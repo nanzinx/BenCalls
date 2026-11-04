@@ -18,30 +18,50 @@ npm install
 npm run dev
 ```
 
-Abra `http://localhost:5173` e entre com um dos perfis de demonstração (Supervisora, Supervisor do Digital,
-Técnico de TI, RH, Diretora). Para voltar ao estado inicial: menu lateral › **Reiniciar demonstração**.
+Abra `http://localhost:5173` e, em **Entrar com um perfil de demonstração**, escolha Supervisora, Supervisor
+do Digital, Técnico de TI, RH ou Diretora. Depois do login aparece a entrada animada (uma vez por dia, como no
+BenHeimdall). Para voltar ao estado inicial: menu lateral › **Reiniciar demonstração**.
 
 ```bash
-npm test        # regras de negócio (etiquetas, SLA, triagem, estoque, contraste)
-npm run build   # build de produção (Vercel: vercel.json já faz o rewrite da SPA)
+npm run verificar   # typecheck (TypeScript) + testes (regras, entrada, servidor) + build
 ```
+
+## Deploy (Docker + pm2 + Cloudflare Tunnel)
+
+```bash
+cp .env.example .env    # cole o TUNNEL_TOKEN
+```
+
+```bash
+./deploy/deploy.sh      # build com testes, sobe site + túnel, healthcheck e rollback automático
+```
+
+Container endurecido (só leitura, sem root, sem capabilities, sem npm), servidor Node próprio com CSP e
+cabeçalhos de segurança, pm2 em modo cluster e nenhuma porta aberta: o acesso chega pelo túnel.
+Passo a passo completo, incluindo a configuração na Cloudflare: [docs/DEPLOY.md](docs/DEPLOY.md).
 
 ## Stack
 
-React 18 + Vite, React Router, Recharts e lucide-react — a mesma base do front atual (§9).
-Sem framework de CSS: um design system próprio em `src/styles/global.css`, com variáveis que o tema da
-instalação sobrescreve (RF36) e modo escuro.
+React 18 + Vite + TypeScript, React Router, Recharts e lucide-react — a mesma base do front atual (§9).
+As regras de negócio (`src/lib`), o logo, a entrada animada e as regras de sessão são TypeScript estrito
+(`npm run typecheck`); as telas seguem em JSX e migram aos poucos.
+Design system próprio em `src/styles/global.css` (tokens que o tema da instalação sobrescreve, modo escuro)
+e `src/styles/motion.css` (marca, entrada, tela de acesso e microinterações). Fontes Inter e Space Grotesk
+servidas pelo próprio site (sem CDN, CSP fechado).
 
 ## Estrutura
 
 ```
 src/
-  lib/          regras puras e testadas: labels (etiquetas/mesas), rules (SLA, triagem, estoque), contrast, csv
+  lib/          regras puras em TypeScript e testadas: labels, rules (SLA, triagem, estoque), contrast, entrada, csv
   data/seed.js  dados de demonstração determinísticos (69 posições reais, catálogo, estoque, 30 dias de histórico)
   store/        estado + ações (cada ação = uma rota da BenApi) e seletores
   components/   Layout, busca global, detalhe de chamado/item/baia, mapa da mesa, triagem, UI base
   pages/        uma tela por rota
-tests/          node:test
+server/        servidor de produção (Node puro) + lock do pm2 da imagem
+deploy/        deploy.sh (atualização com rollback)
+cloudflared/   exemplo de túnel por arquivo
+tests/         node:test (regras, entrada, servidor)
 docs/           MELHORIAS.md — o que foi aprimorado em relação ao protótipo e próximos passos
 ```
 

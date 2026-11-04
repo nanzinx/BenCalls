@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Save, Upload, RotateCcw, Puzzle, BellRing, Palette, CheckCircle2, AlertTriangle, XCircle } from 'lucide-react';
 import { useStore } from '../store/store.jsx';
-import { contraste, nivelContraste, textoSobre } from '../lib/contrast.js';
+import { contraste, nivelContraste, textoSobre } from '../lib/contrast.ts';
 import { PageHead, Field, Note, Seg } from '../components/ui.jsx';
 
 const PRESETS = [
@@ -10,7 +10,8 @@ const PRESETS = [
   { nome: 'Verde e lima', primaria: '#14532D', destaque: '#A3E635' },
   { nome: 'Grafite e ciano', primaria: '#1F2937', destaque: '#22D3EE' }
 ];
-const FONTES = ['Inter', 'Roboto', 'Open Sans', 'Montserrat', 'Nunito Sans', 'system-ui'];
+import { FONTES as MAPA_FONTES } from '../components/Theme.jsx';
+const FONTES = Object.keys(MAPA_FONTES);
 const MODULOS = [
   ['termo', 'Termo de responsabilidade', 'Termo digital dos itens da baia para aceite do operador.'],
   ['dossie', 'Dossiê para o RH', 'Laudo “mau uso” gera dossiê com chamado, fotos, ocupante e termo.'],
@@ -119,7 +120,7 @@ export default function Personalizacao() {
                 <span className="logo" style={{ background: t.destaque, color: contraste(t.destaque, t.primaria) >= 4.5 ? t.primaria : textoSobre(t.destaque) }}>{t.logoImg ? <img src={t.logoImg} alt="" /> : t.logoTexto}</span>
                 <span className="brand-txt"><b>{t.nomeSistema}</b><span>{t.empresa}</span></span>
               </div>
-              <div className="stack" style={{ padding: 16, fontFamily: `'${t.fonte}', system-ui` }}>
+              <div className="stack" style={{ padding: 16, fontFamily: MAPA_FONTES[t.fonte] || MAPA_FONTES.Inter }}>
                 <b style={{ fontSize: 18, color: contraste(t.primaria, '#fff') >= 4.5 ? t.primaria : undefined }}>Olá, Carla</b>
                 <div className="row">
                   <span className="btn" style={{ background: t.primaria, color: textoSobre(t.primaria), borderColor: t.primaria }}>Novo chamado</span>

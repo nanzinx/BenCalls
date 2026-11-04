@@ -3,7 +3,7 @@ import { useOutletContext } from 'react-router-dom';
 import { ShieldAlert, Lock, Gavel, Paperclip } from 'lucide-react';
 import { useStore } from '../store/store.jsx';
 import { baiaCodigo, codigoItem, nomeItem, nomeUser } from '../store/selectors.js';
-import { numeroChamado, dataCurta, dataHora } from '../lib/format.js';
+import { numeroChamado, dataCurta, dataHora } from '../lib/format.ts';
 import { PageHead, Pills, Modal, Note, Kpi, Empty } from '../components/ui.jsx';
 
 const COR = { 'Aguardando RH': 'b-warn', Procedente: 'b-bad', Improcedente: 'b-ok' };

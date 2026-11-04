@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Minus, Plus, X, Save, Pencil, LayoutGrid } from 'lucide-react';
 import { useStore } from '../store/store.jsx';
-import { ITEM_NOMES, ITENS_PADRAO, PAPEIS, TOKENS, montarCodigo, posicoesDaMesa, validarMesa } from '../lib/labels.js';
+import { ITEM_NOMES, ITENS_PADRAO, PAPEIS, TOKENS, montarCodigo, posicoesDaMesa, validarMesa } from '../lib/labels.ts';
 import { PageHead, Pills, Note, Field } from '../components/ui.jsx';
 import DeskMap, { DeskPreview } from '../components/DeskMap.jsx';
 

@@ -3,9 +3,9 @@ import { useOutletContext } from 'react-router-dom';
 import { KanbanSquare, List, Search, Flame, AlertTriangle, ClipboardCheck, UserCheck, Timer } from 'lucide-react';
 import { useStore } from '../store/store.jsx';
 import { baiaCodigo, nomeUser } from '../store/selectors.js';
-import { ABERTOS, PRIORIDADES, slaInfo } from '../lib/rules.js';
-import { normalizar, numeroChamado, idade } from '../lib/format.js';
-import { PageHead, Seg, Pills, Empty, StatusBadge, PrioBadge, Sla, Kpi } from '../components/ui.jsx';
+import { ABERTOS, PRIORIDADES, slaInfo } from '../lib/rules.ts';
+import { normalizar, numeroChamado, idade } from '../lib/format.ts';
+import { PageHead, Seg, Pills, Empty, StatusBadge, PrioBadge, Sla, Kpi, AjudaSla } from '../components/ui.jsx';
 import TicketCard from '../components/TicketCard.jsx';
 import { BannerIncidentes } from './MeusChamados.jsx';
 
@@ -48,7 +48,7 @@ export default function Painel() {
       </PageHead>
       <BannerIncidentes />
       <div className="grid-kpi">
-        <Kpi icon={Flame} label="SLA estourado" valor={estourados} sub="Relógio do SLA correndo" destaque={estourados > 0} onClick={() => setFlag('sla')} />
+        <Kpi icon={Flame} ajuda={<AjudaSla />} label="SLA estourado" valor={estourados} sub="Relógio do SLA correndo" destaque={estourados > 0} onClick={() => setFlag('sla')} />
         <Kpi icon={Timer} label="SLA perto de estourar" valor={quase} sub="Menos de 25% do prazo" onClick={() => setFlag('sla')} />
         <Kpi icon={AlertTriangle} label="Alertas de triagem" valor={abertos.filter((c) => c.alerta).length} sub="Passos marcados rápido demais" onClick={() => setFlag('alerta')} />
         <Kpi icon={ClipboardCheck} label="“Outros” a revisar" valor={abertos.filter((c) => c.outros && !c.outrosRevisado).length} sub="Fila de revisão" onClick={() => setFlag('outros')} />
@@ -92,7 +92,7 @@ export default function Painel() {
       {vis === 'lista' && filtrados.length > 0 && (
         <div className="card card-pad-0 table-wrap">
           <table className="table" style={{ minWidth: 900 }}>
-            <thead><tr><th>Chamado</th><th>Baia / local</th><th>Prioridade</th><th>Status</th><th>SLA</th><th>Técnico</th><th>Aberto</th></tr></thead>
+            <thead><tr><th>Chamado</th><th>Baia / local</th><th>Prioridade</th><th>Status</th><th><span className="row" style={{ gap: 4 }}>SLA <AjudaSla /></span></th><th>Técnico</th><th>Aberto</th></tr></thead>
             <tbody>
               {filtrados.map((c) => (
                 <tr key={c.id} className="clickable" onClick={() => abrir({ ch: c.id })} tabIndex={0} onKeyDown={(e) => e.key === 'Enter' && abrir({ ch: c.id })}>

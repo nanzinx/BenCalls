@@ -1,7 +1,8 @@
-import { useEffect, useRef } from 'react';
-import { X, Clock, PauseCircle, AlertTriangle, CheckCircle2, Info, Inbox } from 'lucide-react';
-import { slaInfo } from '../lib/rules.js';
-import { duracao } from '../lib/format.js';
+import { useEffect, useRef, useState } from 'react';
+import { X, Clock, PauseCircle, AlertTriangle, CheckCircle2, Info, Inbox, HelpCircle } from 'lucide-react';
+import { useContagem } from './Entrada.tsx';
+import { slaInfo } from '../lib/rules.ts';
+import { duracao } from '../lib/format.ts';
 
 export const COR_STATUS = {
   'Em Análise': 'b-blue', Pendente: 'b-orange', 'Em Execução': 'b-info', 'Aguardando Consenso': 'b-warn',
@@ -47,11 +48,41 @@ export function Sla({ ch, agora, bar }) {
   );
 }
 
-export function Kpi({ label, valor, sub, destaque, icon: Icon, onClick }) {
+/** Número que conta de 0 até o valor quando aparece (aceita "72%" também). */
+export function Contador({ valor }) {
+  const m = typeof valor === 'number' ? [String(valor), String(valor), ''] : /^(\d+)(%?)$/.exec(String(valor));
+  const n = useContagem(m ? Number(m[1]) : undefined, 120);
+  return m ? <>{n}{m[2]}</> : <>{valor}</>;
+}
+
+export const TEXTO_SLA = 'SLA (Service Level Agreement, ou acordo de nível de serviço) é o prazo máximo para o TI resolver o chamado. Ele vem da prioridade: Crítica 1h, Alta 2h, Média 4h e Baixa 8h (ou menos, se o catálogo definir). O relógio só corre enquanto o chamado depende do TI (Em Análise e Em Execução); em Pendente e Aguardando confirmação ele pausa.';
+
+/** Ícone de ajuda com balão (passar o mouse ou focar com o teclado). */
+export function Ajuda({ titulo = 'O que é isso?', children }) {
+  const [lado, setLado] = useState('');
+  // O balão abre para o lado que tem espaço (não corta na borda da tela).
+  const medir = (e) => {
+    const r = e.currentTarget.getBoundingClientRect();
+    const w = Math.min(300, window.innerWidth * 0.8) / 2 + 16;
+    setLado(`${r.left + w > window.innerWidth ? 'a-dir' : r.left - w < 0 ? 'a-esq' : ''}${r.top < 200 ? ' a-baixo' : ''}`);
+  };
+  return (
+    <span className={`ajuda ${lado}`} onMouseEnter={medir} onFocus={medir}>
+      <button type="button" className="ajuda-btn" aria-label={titulo}><HelpCircle size={14} /></button>
+      <span className="ajuda-balao" role="tooltip">{children}</span>
+    </span>
+  );
+}
+
+export function AjudaSla() {
+  return <Ajuda titulo="O que é SLA?"><b>O que é SLA?</b> {TEXTO_SLA}</Ajuda>;
+}
+
+export function Kpi({ label, valor, sub, destaque, icon: Icon, onClick, ajuda }) {
   return (
     <div className={`kpi${destaque ? ' destaque' : ''}`}>
-      <span className="k-label">{Icon && <Icon size={14} />}{label}</span>
-      <span className="k-valor">{valor}</span>
+      <span className="k-label">{Icon && <Icon size={14} />}{label}{ajuda}</span>
+      <span className="k-valor"><Contador valor={valor} /></span>
       {sub && <span className="k-sub">{sub}</span>}
       {onClick && <button type="button" className="k-link" onClick={onClick} aria-label={`${label}: ${valor}. Ver detalhes`} />}
     </div>

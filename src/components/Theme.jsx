@@ -1,6 +1,14 @@
 import { useEffect, useState } from 'react';
 import { useStore } from '../store/store.jsx';
-import { contraste, misturar, textoSobre } from '../lib/contrast.js';
+import { contraste, misturar, textoSobre } from '../lib/contrast.ts';
+import { Marca } from './Marca.tsx';
+
+/** Fontes servidas pelo próprio site (sem CDN externo, o CSP fica fechado). */
+export const FONTES = {
+  Inter: "'Inter Variable', 'Segoe UI', Roboto, Arial, sans-serif",
+  'Space Grotesk': "'Space Grotesk Variable', 'Segoe UI', sans-serif",
+  Sistema: "system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif"
+};
 
 const MODO_KEY = 'bencalls:modo';
 
@@ -33,7 +41,7 @@ export function varsDoTema(tema, escuro) {
     '--on-p': textoSobre(p),
     '--a': a,
     '--on-a': onA,
-    '--font': `'${tema.fonte}', system-ui, -apple-system, 'Segoe UI', sans-serif`
+    '--font': FONTES[tema.fonte] || FONTES.Inter
   };
 }
 
@@ -51,24 +59,13 @@ export function ThemeApplier() {
     document.title = `${st.tema.nomeSistema} · ${st.tema.empresa}`;
     document.querySelector('meta[name="theme-color"]')?.setAttribute('content', st.tema.primaria);
   }, [st.tema, escuro]);
-  useEffect(() => {
-    const f = st.tema.fonte;
-    if (!f || f === 'Inter' || f === 'system-ui') return;
-    const id = `font-${f}`;
-    if (document.getElementById(id)) return;
-    const l = document.createElement('link');
-    l.id = id;
-    l.rel = 'stylesheet';
-    l.href = `https://fonts.googleapis.com/css2?family=${encodeURIComponent(f)}:wght@400;500;600;700&display=swap`;
-    document.head.appendChild(l);
-  }, [st.tema.fonte]);
   return null;
 }
 
-export function Logo({ tema, size }) {
-  return (
-    <span className="logo" style={size ? { width: size, height: size, fontSize: size / 2 } : undefined} aria-hidden="true">
-      {tema.logoImg ? <img src={tema.logoImg} alt="" /> : tema.logoTexto || tema.empresa?.[0] || 'B'}
-    </span>
-  );
+/** Logo da instalação: a imagem enviada pela empresa ou a marca animada do BenCalls. */
+export function Logo({ tema, size = 38 }) {
+  if (tema.logoImg) {
+    return <span className="logo" style={{ width: size, height: size }} aria-hidden="true"><img src={tema.logoImg} alt="" /></span>;
+  }
+  return <Marca tamanho={size} />;
 }

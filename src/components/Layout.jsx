@@ -6,14 +6,48 @@ import {
 } from 'lucide-react';
 import { useStore } from '../store/store.jsx';
 import { tem, estoquePorTipo, layoutsDoUsuario } from '../store/selectors.js';
-import { iniciais, idade } from '../lib/format.js';
+import { iniciais, idade } from '../lib/format.ts';
 import { Assinatura } from './ui.jsx';
 import { Logo, useModo } from './Theme.jsx';
+import { NomeMarca } from './Marca.tsx';
 import CommandPalette from './CommandPalette.jsx';
 import TicketDetail from './TicketDetail.jsx';
 import ItemDetail from './ItemDetail.jsx';
 import BaiaDetail from './BaiaDetail.jsx';
 import { Drawer } from './ui.jsx';
+import { Entrada } from './Entrada.tsx';
+import { deveMostrarEntrada, diaDe, lerVistoEm, loginRecente, limparLogin, marcarVisto, marcarAtividade, inativo } from '../lib/entrada.ts';
+import { slaInfo, ABERTOS } from '../lib/rules.ts';
+
+/** Números que aparecem na entrada, conforme o perfil. */
+function selosDaEntrada(st, user, agora) {
+  const abertos = st.chamados.filter((c) => ABERTOS.includes(c.status));
+  if (user.perfil === 'supervisor') {
+    const eq = new Set(user.equipes || []);
+    const meus = abertos.filter((c) => eq.has(c.layoutId) || c.remetenteId === user.id);
+    const confirmar = meus.filter((c) => c.status === 'Aguardando Consenso' && c.remetenteId === user.id).length;
+    const parados = meus.filter((c) => c.operadorParado && c.status !== 'Aguardando Consenso').length;
+    return [
+      { valor: meus.length, texto: meus.length === 1 ? 'chamado em aberto' : 'chamados em aberto' },
+      { valor: confirmar, texto: 'aguardando sua confirmação', tom: confirmar ? 'alerta' : 'ok' },
+      { valor: parados, texto: parados === 1 ? 'operador parado' : 'operadores parados', tom: parados ? 'alerta' : 'ok' }
+    ];
+  }
+  if (user.perfil === 'rh') {
+    const d = st.dossies.filter((x) => x.status === 'Aguardando RH').length;
+    const t = Object.values(st.termos).filter((x) => !x.assinadoEm).length;
+    return [{ valor: d, texto: 'dossiês para analisar', tom: d ? 'alerta' : 'ok' }, { valor: t, texto: 'termos aguardando aceite' }];
+  }
+  const risco = abertos.filter((c) => { const i = slaInfo(c, agora); return !i.pausado && i.nivel !== 'ok'; }).length;
+  const analise = abertos.filter((c) => c.status === 'Em Análise').length;
+  const sel = [
+    { valor: analise, texto: 'em análise' },
+    { valor: abertos.length, texto: 'em andamento' },
+    { valor: risco, texto: 'com SLA em risco', tom: risco ? 'alerta' : 'ok' }
+  ];
+  if (user.perfil === 'ti') sel.push({ valor: abertos.filter((c) => c.alerta).length, texto: 'alertas de triagem' });
+  return sel;
+}
 
 export function useMenu() {
   const { st, user } = useStore();
@@ -98,6 +132,35 @@ export default function Layout() {
   const [sp, setSp] = useSearchParams();
   const loc = useLocation();
   const nav = useNavigate();
+  const [entrada, setEntrada] = useState(() => deveMostrarEntrada({ vistoEm: lerVistoEm(), hoje: diaDe(new Date()), acabouDeEntrar: loginRecente() }));
+  const [cascataEntrada, setCascataEntrada] = useState(false);
+  const selos = useMemo(() => selosDaEntrada(st, user, Date.now()), []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Sessão expira após 30 min sem uso (como no BenHeimdall).
+  useEffect(() => {
+    marcarAtividade();
+    let ultimo = 0;
+    const mexeu = () => { const t = Date.now(); if (t - ultimo > 15_000) { ultimo = t; marcarAtividade(t); } };
+    const eventos = ['pointerdown', 'keydown', 'scroll', 'pointermove'];
+    eventos.forEach((e) => window.addEventListener(e, mexeu, { passive: true }));
+    const id = setInterval(() => {
+      if (inativo()) { sessionStorage.setItem('bencalls-aviso', 'Sua sessão expirou por inatividade. Entre de novo.'); actions.logout(); nav('/login'); }
+    }, 30_000);
+    return () => { eventos.forEach((e) => window.removeEventListener(e, mexeu)); clearInterval(id); };
+  }, [actions, nav]);
+
+  // Brilho que segue o mouse nos cartões (KPIs e cartões com .brilho).
+  useEffect(() => {
+    const f = (e) => {
+      const el = e.target.closest?.('.kpi, .card.brilho');
+      if (!el) return;
+      const r = el.getBoundingClientRect();
+      el.style.setProperty('--mx', `${e.clientX - r.left}px`);
+      el.style.setProperty('--my', `${e.clientY - r.top}px`);
+    };
+    document.addEventListener('pointermove', f, { passive: true });
+    return () => document.removeEventListener('pointermove', f);
+  }, []);
 
   useEffect(() => { setAberto(false); }, [loc.pathname]);
   useEffect(() => {
@@ -131,7 +194,7 @@ export default function Layout() {
         </button>
         <NavLink to={rotaInicial(user)} className="brand">
           <Logo tema={st.tema} />
-          <span className="brand-txt"><b>{st.tema.nomeSistema}</b><span>{st.tema.empresa} · Sistema de Chamados</span></span>
+          <span className="brand-txt"><b><NomeMarca nome={st.tema.nomeSistema} /></b><span>{st.tema.empresa} · Central de Chamados</span></span>
         </NavLink>
         <span className="spacer" />
         <button type="button" className="tb-btn tb-search" onClick={() => setBusca(true)} aria-label="Busca global (Ctrl+K)">
@@ -185,7 +248,7 @@ export default function Layout() {
         </nav>
 
         <main className="content" id="conteudo">
-          <Suspense fallback={<div className="empty">Carregando…</div>}><Outlet context={{ abrir }} /></Suspense>
+          <div className="cascata" key={loc.pathname + (cascataEntrada ? ':e' : '')}><Suspense fallback={<div className="empty">Carregando…</div>}><Outlet context={{ abrir }} /></Suspense></div>
           <Assinatura extra="Modo demonstração · dados fictícios" />
         </main>
       </div>
@@ -199,6 +262,12 @@ export default function Layout() {
       )}
       {baiaKey && st.ocupacao[baiaKey] !== undefined && (
         <Drawer onClose={() => fechar('baia')} label="Detalhe da baia"><BaiaDetail chave={baiaKey} onClose={() => fechar('baia')} abrir={abrir} /></Drawer>
+      )}
+
+      {entrada && (
+        <Entrada nome={user.nome} sistema={st.tema.nomeSistema} subtitulo="Central de Chamados" selos={selos}
+          aoSair={() => setCascataEntrada(true)}
+          aoTerminar={() => { marcarVisto(diaDe(new Date())); limparLogin(); setEntrada(false); }} />
       )}
 
       <div className="toasts" aria-live="polite">

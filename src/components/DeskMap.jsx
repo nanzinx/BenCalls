@@ -1,7 +1,7 @@
 import { useStore } from '../store/store.jsx';
 import { baiaCodigo, statusBaia, chamadosDaBaia } from '../store/selectors.js';
-import { linhasDaMesa, posKey, PAPEIS, montarCodigo } from '../lib/labels.js';
-import { numeroChamado } from '../lib/format.js';
+import { linhasDaMesa, posKey, PAPEIS, montarCodigo } from '../lib/labels.ts';
+import { numeroChamado } from '../lib/format.ts';
 import { ST_BAIA } from './BaiaDetail.jsx';
 
 export function Legenda() {

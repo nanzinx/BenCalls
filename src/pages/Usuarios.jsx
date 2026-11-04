@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Plus, Search, Pencil } from 'lucide-react';
 import { useStore } from '../store/store.jsx';
 import { PERFIS, ACESSOS } from '../data/seed.js';
-import { normalizar, iniciais } from '../lib/format.js';
+import { normalizar, iniciais } from '../lib/format.ts';
 import { PageHead, Modal, Field, Pills } from '../components/ui.jsx';
 
 function Editar({ u, onClose }) {

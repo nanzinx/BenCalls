@@ -1,7 +1,7 @@
 import { useOutletContext } from 'react-router-dom';
 import { useStore } from '../store/store.jsx';
 import { statusBaia } from '../store/selectors.js';
-import { posicoesDaMesa, posKey } from '../lib/labels.js';
+import { posicoesDaMesa, posKey } from '../lib/labels.ts';
 import { PageHead, Kpi } from '../components/ui.jsx';
 import DeskMap, { Legenda } from '../components/DeskMap.jsx';
 import { BannerIncidentes } from './MeusChamados.jsx';

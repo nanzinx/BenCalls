@@ -1,10 +1,10 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { montarCodigo, codigoLocal, posicoesDaMesa, linhasDaMesa, validarMesa, lerCodigo } from '../src/lib/labels.js';
-import { alertaTriagem, passoOk, prioridadePorImpacto, slaDaPrioridade, minutosConsumidos, slaInfo, detectarIncidentes, podeReabrir, podeTransicionar, sugestaoCompra } from '../src/lib/rules.js';
-import { contraste, nivelContraste } from '../src/lib/contrast.js';
+import { montarCodigo, codigoLocal, posicoesDaMesa, linhasDaMesa, validarMesa, lerCodigo } from '../src/lib/labels.ts';
+import { alertaTriagem, passoOk, prioridadePorImpacto, slaDaPrioridade, minutosConsumidos, slaInfo, detectarIncidentes, podeReabrir, podeTransicionar, sugestaoCompra } from '../src/lib/rules.ts';
+import { contraste, nivelContraste } from '../src/lib/contrast.ts';
 import { seedLayouts, seed } from '../src/data/seed.js';
-import { paraCsv } from '../src/lib/csv.js';
+import { paraCsv } from '../src/lib/csv.ts';
 
 const MIN = 60_000;
 const OP1 = { base: 'OP1', centro: ['SUP'], esq: 4, dir: 4, inicio: 'sup', padrao: ['grupo', 'lado', 'posicao', 'item'], sep: '-', desativadas: {} };

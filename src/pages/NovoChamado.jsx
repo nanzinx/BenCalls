@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useOutletContext, useSearchParams } from 'react-router-dom';
-import { Map as MapIcon, FileText, Check, ArrowLeft, ArrowRight, PartyPopper, MessageSquare, AlertTriangle, Info, CircleSlash } from 'lucide-react';
+import { Map as MapIcon, FileText, Check, ArrowLeft, ArrowRight, PartyPopper, MessageSquare, AlertTriangle, Info, CircleSlash, PenLine, Send } from 'lucide-react';
 import { useStore } from '../store/store.jsx';
 import { baiaCodigo, codigoItem, itensDaBaia, layoutsDoUsuario, subDoItem, indiceCatalogo, nomeItem, chamadosDaBaia, layoutById } from '../store/selectors.js';
-import { alertaTriagem, detectarIncidentes, prioridadePorImpacto, slaDaPrioridade } from '../lib/rules.js';
-import { numeroChamado } from '../lib/format.js';
-import { PageHead, Seg, Pills, Note, PrioBadge, StatusBadge, Field } from '../components/ui.jsx';
+import { alertaTriagem, detectarIncidentes, prioridadePorImpacto, slaDaPrioridade } from '../lib/rules.ts';
+import { numeroChamado } from '../lib/format.ts';
+import { PageHead, Seg, Pills, Note, PrioBadge, StatusBadge, Field, AjudaSla } from '../components/ui.jsx';
+import { posicoesDaMesa, posKey } from '../lib/labels.ts';
 import DeskMap, { Legenda } from '../components/DeskMap.jsx';
 import { PassosTriagem, progressoTriagem, BarraProgresso, AnexoFoto, AvisoRapido, MIN_MOTIVO } from '../components/Triagem.jsx';
 import { BannerIncidentes } from './MeusChamados.jsx';
@@ -404,18 +405,120 @@ function PorFormulario() {
   );
 }
 
+// ------------------------------------------------------------------ CHAMADO PRÓPRIO
+const MIN_TITULO = 8;
+const MAX_TITULO = 90;
+
+/** Chamado com título próprio: para o que não cabe no catálogo. O TI classifica depois (fila de "Outros"). */
+function ChamadoProprio() {
+  const { st, user, actions } = useStore();
+  const [titulo, setTitulo] = useState('');
+  const [desc, setDesc] = useState('');
+  const [cat, setCat] = useState('');
+  const [depto, setDepto] = useState('TI');
+  const [local, setLocal] = useState('');
+  const [baia, setBaia] = useState('');
+  const [parado, setParado] = useState(false);
+  const [foto, setFoto] = useState(null);
+  const [criado, setCriado] = useState(null);
+  const [erro, setErro] = useState('');
+  const mesas = layoutsDoUsuario(st, user);
+  const livre = st.catalogo.flatMap((c) => c.subs).find((x) => x.livre);
+  // Com categoria escolhida, o chamado cai no "Outros" do primeiro tipo dela; sem categoria, em Geral › Chamado livre.
+  const C = st.catalogo.find((c) => c.id === cat);
+  const sub = C ? C.subs[0] : livre;
+  const sit = sub?.sits.find((x) => x.outros);
+  const prio = prioridadePorImpacto(sub?.prio || 'Média', parado);
+  const sla = slaDaPrioridade(prio, sub?.sla);
+  const tl = titulo.trim().length;
+  const faltaDesc = Math.max(0, MIN_DESC_FORM - desc.trim().length);
+  const bloqueio = tl < MIN_TITULO ? `Escreva um título (mín. ${MIN_TITULO} caracteres)` : faltaDesc ? `Descreva o problema (faltam ${faltaDesc} caracteres)` : '';
+  const [layoutId, pos] = baia ? baia.split(':') : [null, null];
+
+  const enviar = () => {
+    try {
+      const id = actions.abrirChamado({
+        sitId: sit.id, titulo: titulo.trim(), descricao: desc, local: local.trim(), depto, parado,
+        layoutId, pos, anexos: foto ? [foto] : [], triagem: []
+      });
+      setCriado(id);
+    } catch (e) { setErro(e.message); }
+  };
+  const reset = () => { setTitulo(''); setDesc(''); setCat(''); setLocal(''); setBaia(''); setParado(false); setFoto(null); setCriado(null); setErro(''); };
+  if (criado) return <ChamadoCriado id={criado} onVoltar={reset} voltarLabel="Abrir outro chamado" />;
+
+  return (
+    <div className="split">
+      <section className="main card brilho stack-lg">
+        <p className="small muted">Não achou a situação no mapa nem no formulário? Escreva o chamado do seu jeito. O TI recebe na hora e depois classifica no catálogo; se o problema se repetir, ele vira uma opção oficial.</p>
+        <Field label="Título do chamado" hint={`${tl}/${MAX_TITULO} · resuma o problema em uma frase`} hintTone={tl > 0 && tl < MIN_TITULO ? 'bad' : ''}>
+          <input className="input" style={{ fontSize: 16, fontWeight: 600, minHeight: 48 }} maxLength={MAX_TITULO} value={titulo} onChange={(e) => setTitulo(e.target.value)} placeholder="Ex.: Impressora do RH imprimindo folhas em branco" autoFocus />
+        </Field>
+        <Field label="Descrição (obrigatória)" hint={faltaDesc ? `Mínimo de ${MIN_DESC_FORM} caracteres · faltam ${faltaDesc}` : 'Descrição ok'} hintTone={faltaDesc ? 'bad' : 'ok'}>
+          <textarea className="textarea" rows={5} value={desc} onChange={(e) => setDesc(e.target.value)} placeholder="O que aconteceu, desde quando, quem está afetado e o que já foi tentado." />
+        </Field>
+        <div className="field">Assunto (opcional)
+          <Pills label="Assunto" value={cat} onChange={(v) => { setCat(v); const c = st.catalogo.find((x) => x.id === v); if (c) setDepto(c.equipe); }}
+            options={[{ value: '', label: 'Não sei, o TI classifica' }, ...st.catalogo.filter((c) => !c.subs.some((x) => x.livre)).map((c) => ({ value: c.id, label: c.nome }))]} />
+        </div>
+        <div className="grid-2" style={{ gap: 12 }}>
+          <div className="field">Departamento que vai atender<Pills label="Departamento" value={depto} onChange={setDepto} options={['TI', 'Facilities', 'RH']} /></div>
+          <Field label="Onde (opcional)"><input className="input" value={local} onChange={(e) => setLocal(e.target.value)} placeholder="Ex.: sala de reunião 2, recepção" /></Field>
+          {mesas.length > 0 && (
+            <Field label="Vincular a uma baia (opcional)" hint="Entra no histórico da baia">
+              <select className="select" value={baia} onChange={(e) => setBaia(e.target.value)}>
+                <option value="">— sem baia —</option>
+                {mesas.map((L) => (
+                  <optgroup key={L.id} label={`${L.base} · ${L.nome}`}>
+                    {posicoesDaMesa(L).map((p) => <option key={posKey(p)} value={`${L.id}:${posKey(p)}`}>{baiaCodigo(st, L.id, posKey(p))}</option>)}
+                  </optgroup>
+                ))}
+              </select>
+            </Field>
+          )}
+        </div>
+        <label className="check"><input type="checkbox" checked={parado} onChange={(e) => setParado(e.target.checked)} /> Alguém está sem conseguir trabalhar por causa disso (a prioridade sobe)</label>
+        <AnexoFoto nome={foto} onChange={setFoto} />
+      </section>
+
+      <aside className="side stack sticky">
+        <div className="card stack">
+          <span className="small bold muted">Prévia do chamado</span>
+          <div className="ticket" style={{ cursor: 'default' }}>
+            <span className="t-top"><span className="t-num">#2026-{String(st.seqChamado).padStart(4, '0')} · agora</span><PrioBadge prio={prio} /></span>
+            <span className="t-title" style={{ color: tl ? undefined : 'var(--muted)' }}>{titulo.trim() || 'O título que você escrever aparece aqui'}</span>
+            <span className="row" style={{ gap: 6 }}>
+              <span className="tag">{baia ? baiaCodigo(st, layoutId, pos) : local.trim() || 'Sem baia'}</span>
+              <span className="badge badge-sm b-outline">Outros · revisar</span>
+            </span>
+          </div>
+          <div className="detail-grid">
+            <div><div className="lbl">Prioridade</div><div className="val">{prio}{parado ? ' (pessoa parada)' : ''}</div></div>
+            <div><div className="lbl row" style={{ gap: 4 }}>SLA (prazo) <AjudaSla /></div><div className="val">{sla >= 60 ? `${sla / 60}h` : `${sla} min`}</div></div>
+            <div><div className="lbl">Classificação</div><div className="val">{C ? `${C.nome} › Outros` : 'Geral › Chamado livre'}</div></div>
+            <div><div className="lbl">Atende</div><div className="val">{depto}</div></div>
+          </div>
+          {erro && <Note tipo="bad">{erro}</Note>}
+          <button type="button" className="btn btn-primary btn-lg" disabled={!!bloqueio} onClick={enviar}>{bloqueio || <><Send size={16} /> Abrir chamado</>}</button>
+          <span className="tiny muted">Sem triagem: como o problema está fora do catálogo, não há passos prontos. O chamado entra na fila de revisão de “Outros” (RN11).</span>
+        </div>
+      </aside>
+    </div>
+  );
+}
+
 export default function NovoChamado() {
   const [sp] = useSearchParams();
-  const [modo, setModo] = useState(sp.get('modo') === 'form' ? 'form' : 'mapa');
+  const [modo, setModo] = useState(['form', 'proprio'].includes(sp.get('modo')) ? sp.get('modo') : 'mapa');
   const nav = useNavigate();
   return (
     <>
-      <PageHead title="Novo chamado" desc="Problema numa baia? Use o mapa. Para o resto (sistemas, acessos, salas, solicitações, equipamentos fora do mapa), use o formulário.">
+      <PageHead title="Novo chamado" desc="Problema numa baia? Use o mapa. Sistemas, acessos e solicitações: formulário. Não achou o que precisa? Abra um chamado próprio, com o seu título.">
         <button type="button" className="btn btn-ghost" onClick={() => nav('/inicio')}><CircleSlash size={15} /> Cancelar</button>
       </PageHead>
       <BannerIncidentes />
-      <Seg label="Como abrir o chamado" value={modo} onChange={setModo} options={[{ value: 'mapa', label: 'Pelo mapa da baia', icon: MapIcon }, { value: 'form', label: 'Formulário (sem baia)', icon: FileText }]} />
-      {modo === 'mapa' ? <PorMapa /> : <PorFormulario />}
+      <Seg label="Como abrir o chamado" value={modo} onChange={setModo} options={[{ value: 'mapa', label: 'Pelo mapa da baia', icon: MapIcon }, { value: 'form', label: 'Formulário do catálogo', icon: FileText }, { value: 'proprio', label: 'Chamado próprio', icon: PenLine }]} />
+      {modo === 'mapa' ? <PorMapa /> : modo === 'form' ? <PorFormulario /> : <ChamadoProprio />}
     </>
   );
 }

@@ -1,7 +1,7 @@
 import { AlertTriangle, MessageCircleQuestion, Paperclip } from 'lucide-react';
 import { useStore } from '../store/store.jsx';
 import { baiaCodigo, nomeUser } from '../store/selectors.js';
-import { numeroChamado, idade } from '../lib/format.js';
+import { numeroChamado, idade } from '../lib/format.ts';
 import { StatusBadge, PrioBadge, Sla } from './ui.jsx';
 
 export default function TicketCard({ c, onClick, sel, modo = 'lista' }) {

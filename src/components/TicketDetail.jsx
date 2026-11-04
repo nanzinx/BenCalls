@@ -2,9 +2,9 @@ import { useMemo, useState } from 'react';
 import { X, Paperclip, AlertTriangle, ListChecks, Wrench, UserCheck, Play, PauseCircle, Ban, ThumbsUp, ThumbsDown, RotateCcw, MessageSquarePlus, ArrowRightLeft, Sparkles, MapPin, ExternalLink } from 'lucide-react';
 import { useStore } from '../store/store.jsx';
 import { baiaCodigo, codigoItem, indiceCatalogo, nomeItem, nomeUser, tem, itensDaBaia } from '../store/selectors.js';
-import { numeroChamado, hhmmss, dataHora, idade } from '../lib/format.js';
-import { CAUSAS, podeReabrir, DISPONIVEL } from '../lib/rules.js';
-import { StatusBadge, PrioBadge, Sla, Note, PONTO_STATUS, ItemBadge } from './ui.jsx';
+import { numeroChamado, hhmmss, dataHora, idade } from '../lib/format.ts';
+import { CAUSAS, podeReabrir, DISPONIVEL } from '../lib/rules.ts';
+import { StatusBadge, PrioBadge, Sla, Note, PONTO_STATUS, ItemBadge, AjudaSla } from './ui.jsx';
 
 const FORMS = {
   pendente: { titulo: 'Por que o chamado ficará pendente?', ph: 'Ex.: aguardando peça do fornecedor', botao: 'Marcar como pendente', status: 'Pendente' },
@@ -150,7 +150,7 @@ export default function TicketDetail({ id, onClose, abrir }) {
         <button type="button" className="btn btn-icon" onClick={onClose} aria-label="Fechar detalhe"><X size={18} /></button>
       </div>
 
-      <Sla ch={c} agora={agora} bar />
+      <div className="row" style={{ alignItems: 'flex-start', flexWrap: 'nowrap' }}><div className="grow"><Sla ch={c} agora={agora} bar /></div><AjudaSla /></div>
 
       <div className="detail-grid">
         <div><div className="lbl">Baia</div><div className="val">{baia ? <button type="button" className="btn btn-sm btn-ghost" style={{ padding: 0, minHeight: 0 }} onClick={() => abrir({ baia: `${c.layoutId}:${c.pos}` })}><MapPin size={13} /> {baia}</button> : '—'}</div></div>
@@ -158,7 +158,7 @@ export default function TicketDetail({ id, onClose, abrir }) {
         <div><div className="lbl">Aberto por</div><div className="val">{nomeUser(st, c.remetenteId)}</div></div>
         <div><div className="lbl">Aberto em</div><div className="val">{dataHora(c.criadoEm, agora)} · {idade(c.criadoEm, agora)}</div></div>
         <div><div className="lbl">Atendimento</div><div className="val">{c.depto} · {c.tecnicoId ? nomeUser(st, c.tecnicoId) : <span className="muted">sem técnico</span>}</div></div>
-        <div><div className="lbl">SLA da prioridade</div><div className="val">{c.slaMin >= 60 ? `${c.slaMin / 60}h` : `${c.slaMin} min`}</div></div>
+        <div><div className="lbl">SLA da prioridade (prazo)</div><div className="val">{c.slaMin >= 60 ? `${c.slaMin / 60}h` : `${c.slaMin} min`}</div></div>
         {c.local && <div style={{ gridColumn: '1 / -1' }}><div className="lbl">Onde</div><div className="val">{c.local}</div></div>}
       </div>
 

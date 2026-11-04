@@ -1,8 +1,8 @@
 // Dados fictícios da demonstração. Gerados de forma determinística (mesma
 // semente = mesmos dados), relativos ao momento em que a demo é iniciada.
-import { MIN, DIA } from '../lib/format.js';
-import { ITENS_PADRAO, posicoesDaMesa, posKey } from '../lib/labels.js';
-import { prioridadePorImpacto, slaDaPrioridade } from '../lib/rules.js';
+import { MIN, DIA } from '../lib/format.ts';
+import { ITENS_PADRAO, posicoesDaMesa, posKey } from '../lib/labels.ts';
+import { prioridadePorImpacto, slaDaPrioridade } from '../lib/rules.ts';
 
 function prng(seed) {
   let a = seed >>> 0;
@@ -151,6 +151,10 @@ export function seedCatalogo() {
         S('Desligamento', { solicitacao: true }),
         S('Troca de baia', { solicitacao: true }),
         OUTROS()] }
+    ] },
+    // Chamado próprio: a pessoa escreve o título; o TI classifica depois na fila de revisão.
+    { id: 'c6', nome: 'Geral', icone: 'pen', equipe: 'TI', subs: [
+      { id: 'b12', nome: 'Chamado livre', prio: 'Média', sla: 240, livre: true, sits: [OUTROS()] }
     ] }
   ];
 }
@@ -379,7 +383,7 @@ export function seed(agora = Date.now()) {
   }
 
   return {
-    versao: 3,
+    versao: 4,
     criadoEm: agora,
     usuarios, layouts, catalogo, tipos, itens, chamados, triagensResolvidas, ocupacao, ocupHist, dossies, termos,
     seqChamado: id + 1, seqItem: seqId + 1, seqLocal,

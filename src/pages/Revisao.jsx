@@ -3,7 +3,7 @@ import { useOutletContext } from 'react-router-dom';
 import { ArrowRightLeft, Sparkles, ClipboardCheck, PieChart } from 'lucide-react';
 import { useStore } from '../store/store.jsx';
 import { baiaCodigo, nomeUser } from '../store/selectors.js';
-import { numeroChamado, idade, normalizar, DIA } from '../lib/format.js';
+import { numeroChamado, idade, normalizar, DIA } from '../lib/format.ts';
 import { PageHead, Empty, Modal, Field, Note, Kpi, StatusBadge, Bars } from '../components/ui.jsx';
 
 const STOP = new Set('a o e é de da do das dos em no na nos nas um uma para por com sem que se ao à os as não mais muito está esta este isso foi ser ter tem já desde operador baia problema'.split(' '));

@@ -3,10 +3,10 @@ import { useOutletContext } from 'react-router-dom';
 import { Search, Plus, Download, Printer, Package, Boxes, Wrench, AlertOctagon, ShieldCheck, CalendarClock, TrendingDown, Tag } from 'lucide-react';
 import { useStore } from '../store/store.jsx';
 import { codigoItem, localItem, nomeItem, estoquePorTipo, tem, itensDaBaia } from '../store/selectors.js';
-import { STATUS_ITEM, DISPONIVEL, sugestaoCompra } from '../lib/rules.js';
-import { normalizar, dataCurta, DIA } from '../lib/format.js';
-import { posicoesDaMesa, posKey } from '../lib/labels.js';
-import { baixarCsv } from '../lib/csv.js';
+import { STATUS_ITEM, DISPONIVEL, sugestaoCompra } from '../lib/rules.ts';
+import { normalizar, dataCurta, DIA } from '../lib/format.ts';
+import { posicoesDaMesa, posKey } from '../lib/labels.ts';
+import { baixarCsv } from '../lib/csv.ts';
 import { PageHead, Kpi, Pills, ItemBadge, Modal, Field, Note, Seg, Empty } from '../components/ui.jsx';
 import { EtiquetaImpressa } from '../components/ItemDetail.jsx';
 

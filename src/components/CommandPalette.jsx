@@ -3,8 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { Search, Ticket, Package, LayoutGrid, CornerDownLeft, ArrowRight } from 'lucide-react';
 import { useStore } from '../store/store.jsx';
 import { chamadosVisiveis, codigoItem, layoutsDoUsuario, nomeItem, tem, baiaCodigo } from '../store/selectors.js';
-import { numeroChamado, normalizar } from '../lib/format.js';
-import { posicoesDaMesa, posKey } from '../lib/labels.js';
+import { numeroChamado, normalizar } from '../lib/format.ts';
+import { posicoesDaMesa, posKey } from '../lib/labels.ts';
 import { StatusBadge, ItemBadge } from './ui.jsx';
 
 /** Busca global (Ctrl+K): chamado pelo número, item pela etiqueta ou ID interno, baia pelo código, telas. */

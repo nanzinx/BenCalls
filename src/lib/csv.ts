@@ -1,13 +1,15 @@
 /** Exporta linhas para CSV compatível com Excel em português (separador ";" e BOM UTF-8). */
-export function paraCsv(cabecalho, linhas) {
-  const esc = (v) => {
+export type Celula = string | number | null | undefined;
+
+export function paraCsv(cabecalho: Celula[], linhas: Celula[][]): string {
+  const esc = (v: Celula) => {
     const s = v === null || v === undefined ? '' : String(v);
     return /[";\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
   };
   return '﻿' + [cabecalho, ...linhas].map((l) => l.map(esc).join(';')).join('\r\n');
 }
 
-export function baixarCsv(nome, cabecalho, linhas) {
+export function baixarCsv(nome: string, cabecalho: Celula[], linhas: Celula[][]): void {
   const blob = new Blob([paraCsv(cabecalho, linhas)], { type: 'text/csv;charset=utf-8' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');

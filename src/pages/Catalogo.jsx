@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { Plus, Trash2, ArrowUp, Upload, Users2 } from 'lucide-react';
 import { useStore } from '../store/store.jsx';
-import { PRIORIDADES } from '../lib/rules.js';
-import { normalizar } from '../lib/format.js';
+import { PRIORIDADES } from '../lib/rules.ts';
+import { normalizar } from '../lib/format.ts';
 import { PageHead, New, Note } from '../components/ui.jsx';
 
 let n = 0;

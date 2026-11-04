@@ -2,8 +2,8 @@ import { useState } from 'react';
 import { Search, Download, Lock } from 'lucide-react';
 import { useStore } from '../store/store.jsx';
 import { nomeUser } from '../store/selectors.js';
-import { dataHora, normalizar } from '../lib/format.js';
-import { baixarCsv } from '../lib/csv.js';
+import { dataHora, normalizar } from '../lib/format.ts';
+import { baixarCsv } from '../lib/csv.ts';
 import { PageHead, Note } from '../components/ui.jsx';
 
 /** RN08: toda ação sensível fica registrada (quem, quando, o quê) e não pode ser apagada. */

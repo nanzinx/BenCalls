@@ -1,0 +1,8 @@
+{
+  "name": "bencalls-servidor",
+  "private": true,
+  "description": "Dependências de execução da imagem Docker: só o pm2 (o servidor não tem dependências).",
+  "dependencies": {
+    "pm2": "7.1.2"
+  }
+}

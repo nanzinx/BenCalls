@@ -1,0 +1,21 @@
+# Cloudflare Tunnel do BenCalls por ARQUIVO (alternativa ao token no docker-compose).
+# Use quando o cloudflared roda direto no servidor (sem Docker), como serviço.
+#
+#   cloudflared tunnel login
+#   cloudflared tunnel create bencalls
+#   cloudflared tunnel route dns bencalls chamados.benconsig.com
+#   copie este arquivo para ~/.cloudflared/config.yml (Linux) ou C:\Users\<USUÁRIO>\.cloudflared\config.yml
+#   cloudflared service install
+#
+# Nada aqui é segredo; o arquivo de credenciais (<ID-DO-TUNEL>.json) NUNCA vai para o git.
+tunnel: <ID-DO-TUNEL>
+credentials-file: /etc/cloudflared/<ID-DO-TUNEL>.json
+
+ingress:
+  # Só o site vai para a internet, e só pelo túnel.
+  - hostname: chamados.benconsig.com
+    service: http://localhost:8080
+    originRequest:
+      connectTimeout: 10s
+      noTLSVerify: false
+  - service: http_status:404

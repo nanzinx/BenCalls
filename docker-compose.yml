@@ -1,0 +1,68 @@
+# BenCalls no Docker (README: "Deploy" · docs/DEPLOY.md).
+#
+#   docker compose up -d --build                     sobe só o site (em 127.0.0.1:8080)
+#   docker compose --profile tunel up -d --build     sobe o site + o Cloudflare Tunnel
+#   docker compose logs -f                           acompanha
+#   docker compose exec bencalls node node_modules/pm2/bin/pm2 list
+#   ./deploy/deploy.sh                               atualiza com rollback automático
+#
+# Endurecido: disco só leitura, nenhuma capability do Linux, sem virar root, limites de
+# memória, CPU, processos e log, e nenhuma porta aberta para a internet (o acesso externo
+# chega pelo túnel, que só faz conexões de saída para a Cloudflare).
+
+x-endurecido: &endurecido
+  read_only: true
+  cap_drop: [ALL]
+  security_opt: ["no-new-privileges:true"]
+  pids_limit: 256
+  logging:
+    driver: json-file
+    options: { max-size: "10m", max-file: "5" }
+
+services:
+  bencalls:
+    <<: *endurecido
+    build:
+      context: .
+      args:
+        VERSAO: ${BENCALLS_VERSAO:-dev}
+    image: bencalls:local
+    container_name: bencalls
+    restart: unless-stopped
+    environment:
+      PM2_INSTANCIAS: ${PM2_INSTANCIAS:-2}
+      # Atrás do túnel, o IP real do usuário vem no CF-Connecting-IP (usado no limite por IP).
+      TRUST_CLOUDFLARE: "1"
+      LIMITE_POR_MINUTO: ${LIMITE_POR_MINUTO:-600}
+      # Endereço da BenApi, liberado no connect-src do CSP quando o front for ligado nela.
+      API_URL: ${API_URL:-}
+    tmpfs:
+      - /run/bencalls:uid=1000,gid=1000,mode=0700,size=32m
+      - /tmp:uid=1000,gid=1000,mode=0700,size=32m
+    mem_limit: 512m
+    cpus: 1.0
+    ulimits:
+      nofile: { soft: 4096, hard: 8192 }
+    # Só neste servidor (127.0.0.1). Para abrir na rede interna: BENCALLS_IP=192.168.0.20 no .env.
+    ports:
+      - "${BENCALLS_IP:-127.0.0.1}:${BENCALLS_PORTA:-8080}:8080"
+    stop_grace_period: 20s
+
+  # Cloudflare Tunnel: chamados.benconsig.com → o site. Usa a rede do container do BenCalls
+  # (network_mode), então o túnel aponta para http://localhost:8080.
+  tunel:
+    <<: *endurecido
+    image: cloudflare/cloudflared:2026.9.3
+    profiles: ["tunel"]
+    restart: unless-stopped
+    command: tunnel --no-autoupdate --metrics 127.0.0.1:20241 run
+    user: "65532:65532"
+    mem_limit: 256m
+    pids_limit: 128
+    environment:
+      # Zero Trust → Networks → Tunnels → o túnel → Install connector → copie o token para o .env.
+      TUNNEL_TOKEN: ${TUNNEL_TOKEN:-}
+    network_mode: "service:bencalls"
+    depends_on:
+      bencalls:
+        condition: service_healthy

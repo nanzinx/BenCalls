@@ -1,5 +1,5 @@
-import { montarCodigo, codigoLocal, parsePosKey, ITEM_NOMES, LOCAIS } from '../lib/labels.js';
-import { ABERTOS, FINAIS, DISPONIVEL } from '../lib/rules.js';
+import { montarCodigo, codigoLocal, parsePosKey, ITEM_NOMES, LOCAIS } from '../lib/labels.ts';
+import { ABERTOS, FINAIS, DISPONIVEL } from '../lib/rules.ts';
 import { PERFIS } from '../data/seed.js';
 
 export const layoutById = (st, id) => st.layouts.find((l) => l.id === id);

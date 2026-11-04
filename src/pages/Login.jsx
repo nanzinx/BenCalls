@@ -1,100 +1,116 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Map, ListChecks, Package, BellRing, LogIn, Eye, EyeOff } from 'lucide-react';
+import { Eye, EyeOff, ChevronDown, LogIn, Lock } from 'lucide-react';
 import { useStore } from '../store/store.jsx';
 import { PERFIS } from '../data/seed.js';
-import { iniciais } from '../lib/format.js';
+import { iniciais } from '../lib/format.ts';
+import { marcarLogin, lerTentativas, gravarTentativas, registrarErro, MAX_TENTATIVAS } from '../lib/entrada.ts';
 import { Logo } from '../components/Theme.jsx';
+import { NomeMarca } from '../components/Marca.tsx';
 import { Assinatura } from '../components/ui.jsx';
 import { rotaInicial } from '../components/Layout.jsx';
 
-const DEMO = [
-  ['u1', 'Abre chamados pelo mapa da Equipe 1, faz a triagem e confirma soluções'],
-  ['u2', 'Supervisor do Digital: três mesas, inclusive as sem supervisor'],
-  ['u3', 'Painel, atendimento com laudo, estoque, mapa geral e revisão de “Outros”'],
-  ['u5', 'Recebe os dossiês de mau uso e registra a decisão'],
-  ['u6', 'Dashboard, relatórios, gestão, personalização, auditoria e descartes']
-];
+const DEMO = ['u1', 'u2', 'u3', 'u5', 'u6'];
 
+/** Tela de acesso no padrão do BenHeimdall e do BenURA: cartão escuro sobre o azul da marca. */
 export default function Login() {
   const { st, actions } = useStore();
   const nav = useNavigate();
   const [usuario, setUsuario] = useState('');
   const [senha, setSenha] = useState('');
   const [ver, setVer] = useState(false);
-  const [erro, setErro] = useState('');
+  const [erro, setErro] = useState(() => { const a = sessionStorage.getItem('bencalls-aviso') || ''; sessionStorage.removeItem('bencalls-aviso'); return a; });
+  const [enviando, setEnviando] = useState(false);
+  const [agora, setAgora] = useState(Date.now());
   const t = st.tema;
+  const tent = lerTentativas();
+  const bloqueado = tent.bloqueadoAte > agora;
+
+  useEffect(() => {
+    if (!bloqueado) return undefined;
+    const id = setInterval(() => setAgora(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, [bloqueado]);
 
   const entrar = (id) => {
+    gravarTentativas(null);
+    marcarLogin();
     actions.login(id);
     const u = st.usuarios.find((x) => x.id === id);
     nav(rotaInicial(u), { replace: true });
   };
-  const submit = (e) => {
+
+  const enviar = (e) => {
     e.preventDefault();
-    const u = st.usuarios.find((x) => x.user === usuario.trim().toLowerCase());
-    if (!u || !senha) return setErro('Usuário ou senha inválidos.');
-    if (!u.ativo) return setErro('Este usuário está inativo. Fale com a administração.');
-    entrar(u.id);
+    if (bloqueado) return;
+    setErro('');
+    if (!usuario.trim() || !senha) return setErro('Informe usuário e senha.');
+    setEnviando(true);
+    // Na demonstração não há servidor: um pequeno atraso imita a ida à API.
+    setTimeout(() => {
+      setEnviando(false);
+      const nome = usuario.trim().toLowerCase().replace(/@.*$/, '');
+      const u = st.usuarios.find((x) => x.user === nome);
+      if (!u || senha.length < 4) {
+        const n = registrarErro(lerTentativas(), Date.now());
+        gravarTentativas(n);
+        setAgora(Date.now());
+        return setErro(n.bloqueadoAte > Date.now() ? 'Muitas tentativas. Usuário bloqueado por 5 minutos.' : `Usuário ou senha inválidos. ${MAX_TENTATIVAS - n.erros} tentativa(s) antes do bloqueio.`);
+      }
+      if (!u.ativo) return setErro('Este usuário está inativo. Fale com a administração.');
+      setSenha('');
+      entrar(u.id);
+    }, 450);
   };
 
-  return (
-    <div className="login">
-      <section className="login-hero" style={t.loginImg ? { backgroundImage: `linear-gradient(rgba(0,0,0,.45), rgba(0,0,0,.55)), url(${t.loginImg})` } : undefined}>
-        <div className="row" style={{ gap: 12 }}>
-          <Logo tema={t} size={44} />
-          <div className="brand-txt"><b style={{ fontSize: 18 }}>{t.nomeSistema}</b><span style={{ fontSize: 13 }}>{t.empresa} · Sistema de Chamados</span></div>
-        </div>
-        <div className="stack-lg" style={{ maxWidth: 480, position: 'relative', zIndex: 1 }}>
-          <h1>{t.loginTitulo}</h1>
-          <ul>
-            <li><Map size={18} />Abra o chamado clicando na baia, no mapa da sua equipe. O sistema gera o código do item.</li>
-            <li><ListChecks size={18} />Triagem guiada antes de abrir: muitos problemas se resolvem ali mesmo.</li>
-            <li><Package size={18} />Estoque com etiqueta, histórico e laudo de cada item.</li>
-            <li><BellRing size={18} />Status e alertas chegam sozinhos nos grupos do {st.modulos.benhub ? 'BenHub' : 'seu canal'}.</li>
-          </ul>
-        </div>
-        <span className="small" style={{ opacity: 0.85, position: 'relative', zIndex: 1 }}>Versão 2.0 · demonstração com dados fictícios</span>
-      </section>
+  const restante = Math.max(0, Math.ceil((tent.bloqueadoAte - agora) / 1000));
 
-      <section className="login-form">
-        <div className="stack-lg" style={{ width: '100%', maxWidth: 400 }}>
-          <div>
-            <h2 style={{ fontSize: 24, color: 'var(--p-ink)' }}>Entrar</h2>
-            <p className="muted" style={{ marginTop: 6 }}>Use seu usuário da {t.empresa}.</p>
+  return (
+    <section className="gate" aria-label="Entrar no BenCalls" style={t.loginImg ? { backgroundImage: `linear-gradient(160deg, rgba(6,22,56,.88), rgba(11,58,130,.8)), url(${t.loginImg})` } : undefined}>
+      <div className="gate-bolha b1" aria-hidden="true" />
+      <div className="gate-bolha b2" aria-hidden="true" />
+      <div className="gate-grade" aria-hidden="true" />
+      <div className="stack" style={{ width: '100%', maxWidth: 420, position: 'relative', zIndex: 1, gap: 18 }}>
+        <form className="login-card" onSubmit={enviar} noValidate>
+          <div className="stack-sm" style={{ gap: 6 }}>
+            <span className="marca-hover" style={{ marginBottom: 8, width: 44 }}><Logo tema={t} size={44} /></span>
+            <b className="gate-nome"><NomeMarca nome={t.nomeSistema} /></b>
+            <span className="gate-sub">{t.empresa} · Central de Chamados</span>
           </div>
-          <form className="stack" onSubmit={submit} noValidate>
-            <label className="field">Usuário
-              <input className="input" autoComplete="username" value={usuario} onChange={(e) => { setUsuario(e.target.value); setErro(''); }} placeholder="nome.sobrenome" style={{ minHeight: 48 }} />
-            </label>
-            <label className="field">Senha
-              <span style={{ position: 'relative' }}>
-                <input className="input" type={ver ? 'text' : 'password'} autoComplete="current-password" value={senha} onChange={(e) => { setSenha(e.target.value); setErro(''); }} placeholder="••••••••" style={{ minHeight: 48, paddingRight: 44 }} />
-                <button type="button" className="btn btn-ghost btn-icon" style={{ position: 'absolute', right: 4, top: 4 }} onClick={() => setVer((x) => !x)} aria-label={ver ? 'Esconder senha' : 'Mostrar senha'}>{ver ? <EyeOff size={16} /> : <Eye size={16} />}</button>
-              </span>
-            </label>
-            {erro && <div className="note note-bad" role="alert">{erro}</div>}
-            <button type="submit" className="btn btn-primary btn-lg"><LogIn size={17} /> Entrar</button>
-            <span className="tiny muted">Na demonstração, qualquer senha funciona com um usuário cadastrado (ex.: carla.souza). Na versão final o login usa token JWT e senha com hash (fase 0).</span>
-          </form>
-          <div className="stack-sm" style={{ borderTop: '1px solid var(--border)', paddingTop: 16 }}>
-            <span className="small bold muted">Entrar direto com um perfil de demonstração</span>
-            {DEMO.map(([id, desc]) => {
-              const u = st.usuarios.find((x) => x.id === id);
-              return (
-                <button key={id} type="button" className="persona" onClick={() => entrar(id)}>
-                  <span className="avatar">{iniciais(u.nome)}</span>
-                  <span className="stack-sm grow" style={{ gap: 1 }}>
-                    <b style={{ color: 'var(--p-ink)' }}>{u.nome} <span className="muted" style={{ fontWeight: 500 }}>· {PERFIS[u.perfil].label}</span></b>
-                    <span className="small muted">{desc}</span>
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-          <Assinatura />
-        </div>
-      </section>
-    </div>
+          <p className="gate-lead">{t.loginTitulo} Acesso para supervisores, TI, RH e gestão.</p>
+          <label>Usuário ou e-mail
+            <input value={usuario} onChange={(e) => setUsuario(e.target.value)} placeholder="nome.sobrenome@benconsig.com" autoComplete="username" autoCapitalize="none" spellCheck={false} autoFocus disabled={bloqueado} />
+          </label>
+          <label>Senha
+            <span style={{ position: 'relative' }}>
+              <input type={ver ? 'text' : 'password'} value={senha} onChange={(e) => setSenha(e.target.value)} autoComplete="current-password" style={{ paddingRight: 46 }} disabled={bloqueado} />
+              <button type="button" className="btn btn-ghost btn-icon" style={{ position: 'absolute', right: 3, top: 3, color: '#a9b5c9' }} onClick={() => setVer((x) => !x)} aria-label={ver ? 'Esconder senha' : 'Mostrar senha'}>{ver ? <EyeOff size={16} /> : <Eye size={16} />}</button>
+            </span>
+          </label>
+          <p className="gate-msg" role="alert">{bloqueado ? `Bloqueado por excesso de tentativas. Tente de novo em ${Math.floor(restante / 60)}:${String(restante % 60).padStart(2, '0')}.` : erro}</p>
+          <button className="btn btn-primary" type="submit" disabled={enviando || bloqueado}>
+            {bloqueado ? <><Lock size={16} /> Bloqueado</> : enviando ? 'Entrando…' : <><LogIn size={16} /> Entrar</>}
+          </button>
+          <p className="gate-hint">A sessão expira após 30 min sem uso. Depois de {MAX_TENTATIVAS} senhas erradas, o usuário fica bloqueado por 5 min.</p>
+
+          <details className="gate-demo">
+            <summary>Entrar com um perfil de demonstração <ChevronDown size={16} /></summary>
+            <span className="gate-hint">Dados fictícios. Na demonstração, qualquer senha com 4+ caracteres funciona para um usuário cadastrado (ex.: carla.souza).</span>
+            <div className="gate-perfis">
+              {DEMO.map((id) => {
+                const u = st.usuarios.find((x) => x.id === id);
+                return (
+                  <button key={id} type="button" className="gate-perfil" onClick={() => entrar(id)} aria-label={`Entrar como ${u.nome}, ${PERFIS[u.perfil].label}`}>
+                    <span className="avatar">{iniciais(u.nome)}</span>
+                    <span><b>{u.nome.split(' ')[0]}</b><span>{PERFIS[u.perfil].label}</span></span>
+                  </button>
+                );
+              })}
+            </div>
+          </details>
+        </form>
+        <Assinatura />
+      </div>
+    </section>
   );
 }

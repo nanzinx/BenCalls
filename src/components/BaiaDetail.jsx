@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { X, PlusCircle, UserCog, FileSignature, History } from 'lucide-react';
 import { useStore } from '../store/store.jsx';
 import { baiaCodigo, codigoItem, itensDaBaia, layoutById, nomeItem, statusBaia, tem, layoutsDoUsuario } from '../store/selectors.js';
-import { dataCurta, dataHora, numeroChamado, idade } from '../lib/format.js';
+import { dataCurta, dataHora, numeroChamado, idade } from '../lib/format.ts';
 import { ItemBadge, StatusBadge } from './ui.jsx';
 
 export const ST_BAIA = {

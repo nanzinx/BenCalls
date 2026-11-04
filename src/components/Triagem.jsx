@@ -1,6 +1,6 @@
 import { Check, AlertTriangle, Camera, CheckCircle2 } from 'lucide-react';
-import { hhmmss } from '../lib/format.js';
-import { passoOk } from '../lib/rules.js';
+import { hhmmss } from '../lib/format.ts';
+import { passoOk } from '../lib/rules.ts';
 
 export const MIN_MOTIVO = 10;
 

@@ -3,10 +3,10 @@ import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGri
 import { Download, Printer, Ticket, Sparkles, Timer, Target, RotateCcw, UserX } from 'lucide-react';
 import { useStore } from '../store/store.jsx';
 import { baiaCodigo, nomeUser } from '../store/selectors.js';
-import { minutosConsumidos, ABERTOS } from '../lib/rules.js';
-import { DIA, duracao, dataCurta, pad } from '../lib/format.js';
-import { baixarCsv } from '../lib/csv.js';
-import { PageHead, Kpi, Pills } from '../components/ui.jsx';
+import { minutosConsumidos, ABERTOS } from '../lib/rules.ts';
+import { DIA, duracao, dataCurta, pad } from '../lib/format.ts';
+import { baixarCsv } from '../lib/csv.ts';
+import { PageHead, Kpi, Pills, AjudaSla } from '../components/ui.jsx';
 
 // Duas séries validadas (slots 1 e 2 da paleta categórica de referência).
 const S1 = '#2a78d6';
@@ -126,7 +126,7 @@ export default function Relatorios() {
         <Kpi icon={Ticket} label="Chamados no período" valor={r.total} sub={`${r.concl.length} concluídos`} />
         <Kpi icon={Sparkles} label="Resolvidos na triagem" valor={`${r.triPct}%`} sub={`${r.tri.length} problemas sem abrir chamado`} />
         <Kpi icon={Timer} label="Tempo médio de resolução" valor={duracao(r.tempoMedio)} sub="Da abertura à solução registrada" />
-        <Kpi icon={Target} label="SLA cumprido" valor={`${r.slaPct}%`} sub={`${r.foraSla} chamados fora do prazo`} destaque={r.slaPct < 85} />
+        <Kpi icon={Target} ajuda={<AjudaSla />} label="SLA cumprido" valor={`${r.slaPct}%`} sub={`${r.foraSla} chamados fora do prazo`} destaque={r.slaPct < 85} />
         <Kpi icon={UserX} label="Operador parado" valor={duracao(r.paradoTotal)} sub="Somando todas as baias" />
         <Kpi icon={RotateCcw} label="Reaberturas" valor={r.reab} sub="Voltaram após o fechamento" />
       </div>

@@ -1,0 +1,16 @@
+# Nada de segredo, git ou build local dentro da imagem.
+.git
+.github
+node_modules
+server/node_modules
+dist
+.env
+.env.*
+!.env.example
+*.log
+docs
+deploy
+cloudflared
+Dockerfile
+docker-compose.yml
+.dockerignore

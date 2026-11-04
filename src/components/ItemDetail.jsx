@@ -2,9 +2,9 @@ import { useState } from 'react';
 import { X, Printer, ArrowRightLeft, CheckCircle2, XCircle, ShieldCheck } from 'lucide-react';
 import { useStore } from '../store/store.jsx';
 import { codigoItem, localItem, nomeItem, tem, baiaCodigo, ocupante } from '../store/selectors.js';
-import { TRANSICOES_ITEM, DISPONIVEL } from '../lib/rules.js';
-import { dataCurta, dataHora, numeroChamado, DIA } from '../lib/format.js';
-import { posicoesDaMesa, posKey } from '../lib/labels.js';
+import { TRANSICOES_ITEM, DISPONIVEL } from '../lib/rules.ts';
+import { dataCurta, dataHora, numeroChamado, DIA } from '../lib/format.ts';
+import { posicoesDaMesa, posKey } from '../lib/labels.ts';
 import { ItemBadge, Note, StatusBadge } from './ui.jsx';
 
 export function EtiquetaImpressa({ code, item, empresa }) {

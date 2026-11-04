@@ -3,7 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { FileSignature, Printer, Search, PenLine } from 'lucide-react';
 import { useStore } from '../store/store.jsx';
 import { baiaCodigo, codigoItem, itensDaBaia, layoutById, layoutsDoUsuario, nomeItem } from '../store/selectors.js';
-import { dataCurta, normalizar } from '../lib/format.js';
+import { dataCurta, normalizar } from '../lib/format.ts';
 import { PageHead, Pills, Modal, Note, Kpi, Empty } from '../components/ui.jsx';
 
 function TermoDoc({ chave, onClose }) {

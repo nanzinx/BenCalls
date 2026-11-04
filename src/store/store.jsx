@@ -3,16 +3,16 @@
 // (escopo §11.3 e §13.3), para a troca pela API real ser direta.
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { seed } from '../data/seed.js';
-import { DIA } from '../lib/format.js';
-import { numeroChamado } from '../lib/format.js';
-import { ITEM_NOMES, posicoesDaMesa, posKey } from '../lib/labels.js';
+import { DIA } from '../lib/format.ts';
+import { numeroChamado } from '../lib/format.ts';
+import { ITEM_NOMES, posicoesDaMesa, posKey } from '../lib/labels.ts';
 import {
   alertaTriagem, passoOk, prioridadePorImpacto, slaDaPrioridade, PRIORIDADES,
   podeTransicionar, LOCAL_DO_STATUS, podeReabrir, ABERTOS
-} from '../lib/rules.js';
+} from '../lib/rules.ts';
 import { baiaCodigo, codigoItem, indiceCatalogo, layoutById, nomeUser, estoquePorTipo } from './selectors.js';
 
-const KEY = 'bencalls:demo:v3';
+const KEY = 'bencalls:demo:v4';
 const SESS = 'bencalls:sessao';
 const SESSAO_HORAS = 8;
 
@@ -21,7 +21,7 @@ function carregar() {
     const raw = localStorage.getItem(KEY);
     if (raw) {
       const st = JSON.parse(raw);
-      if (st && st.versao === 3) return st;
+      if (st && st.versao === 4) return st;
     }
   } catch { /* storage indisponível */ }
   return seed();
@@ -163,7 +163,7 @@ export function StoreProvider({ children }) {
         return mutate((s, ctx) => {
           const id = s.seqChamado++;
           const princ = sitsUsadas[0];
-          const parado = sitsUsadas.some((x) => x.para);
+          const parado = sitsUsadas.some((x) => x.para) || !!p.parado;
           let prioBase = princ.sub.prio;
           for (const x of sitsUsadas) if (PRIORIDADES.indexOf(x.sub.prio) < PRIORIDADES.indexOf(prioBase)) prioBase = x.sub.prio;
           const prio = prioridadePorImpacto(prioBase, parado);
