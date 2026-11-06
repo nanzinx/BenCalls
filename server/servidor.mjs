@@ -13,13 +13,14 @@
 //
 // Variáveis: PORT (8080), HOST (0.0.0.0), DIST_DIR (../dist), API_URL (origem extra liberada no
 // connect-src do CSP), TRUST_CLOUDFLARE=1 (usa CF-Connecting-IP como IP do cliente),
-// LIMITE_POR_MINUTO (600), LOG_ACESSO (1).
+// LIMITE_POR_MINUTO (600), LOG_ACESSO (1), IPS_BLOQUEADOS (soma regras às de ips-bloqueados.txt).
 import http from 'node:http';
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join, relative, extname, resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createHash } from 'node:crypto';
 import { gzipSync, brotliCompressSync, constants as zc } from 'node:zlib';
+import { carregarRegras } from './bloqueio.mjs';
 
 const AQUI = dirname(fileURLToPath(import.meta.url));
 const PORT = Number(process.env.PORT || 8080);
@@ -157,7 +158,7 @@ export function resolverRota(mapa, url) {
   return null;
 }
 
-export function criarServidor(mapa = carregar()) {
+export function criarServidor(mapa = carregar(), filtro = carregarRegras()) {
   const servidor = http.createServer((req, res) => {
     const t0 = process.hrtime.bigint();
     const ip = ipDe(req);
@@ -174,6 +175,8 @@ export function criarServidor(mapa = carregar()) {
       fim(status);
     };
 
+    // IPs e faixas bloqueados (server/ips-bloqueados.txt): nem chegam ao site.
+    if (filtro.bloqueado(ip)) return erro(403, 'Acesso bloqueado.');
     if ((req.url || '').length > 2048) return erro(414, 'URL longa demais');
     if (req.method !== 'GET' && req.method !== 'HEAD') {
       res.setHeader('Allow', 'GET, HEAD');
@@ -228,9 +231,11 @@ const alvo = process.env.pm_exec_path || process.argv[1];
 const ehPrincipal = !!alvo && resolve(alvo) === fileURLToPath(import.meta.url);
 if (ehPrincipal) {
   const mapa = carregar();
-  const servidor = criarServidor(mapa);
+  const filtro = carregarRegras();
+  if (filtro.invalidas.length) console.warn(`Regras de bloqueio ignoradas (formato inválido): ${filtro.invalidas.join(', ')}`);
+  const servidor = criarServidor(mapa, filtro);
   servidor.listen(PORT, HOST, () => {
-    console.log(`BenCalls ${VERSAO} no ar em http://${HOST}:${PORT} · ${mapa.size} arquivos · pid ${process.pid}`);
+    console.log(`BenCalls ${VERSAO} no ar em http://${HOST}:${PORT} · ${mapa.size} arquivos · ${filtro.regras.length} regras de bloqueio de IP · pid ${process.pid}`);
     process.send?.('ready'); // pm2 wait_ready
   });
   let saindo = false;

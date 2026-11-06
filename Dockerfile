@@ -59,7 +59,7 @@ ENV NODE_ENV=production \
 WORKDIR /app
 COPY --from=deps /deps/node_modules ./node_modules
 COPY --from=build /app/dist ./dist
-COPY server/servidor.mjs ./server/servidor.mjs
+COPY server/servidor.mjs server/bloqueio.mjs server/ips-bloqueados.txt ./server/
 COPY ecosystem.config.cjs ./
 RUN chmod -R a-w /app \
  && mkdir -p /run/bencalls \
