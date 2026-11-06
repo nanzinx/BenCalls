@@ -34,6 +34,9 @@ services:
       # Atrás do túnel, o IP real do usuário vem no CF-Connecting-IP (usado no limite por IP).
       TRUST_CLOUDFLARE: "1"
       LIMITE_POR_MINUTO: ${LIMITE_POR_MINUTO:-600}
+      # Só entram os IPs de server/ips-liberados.txt e os somados aqui (docs/DEPLOY.md, seção 5).
+      IPS_LIBERADOS: ${IPS_LIBERADOS:-}
+      RESTRINGIR_IPS: ${RESTRINGIR_IPS:-1}
       # Endereço da BenApi, liberado no connect-src do CSP quando o front for ligado nela.
       API_URL: ${API_URL:-}
       # API de integração com o BenHermes (docs/API-INTEGRACAO.md): o segredo vem de um arquivo

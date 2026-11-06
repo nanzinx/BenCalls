@@ -13,7 +13,8 @@
 //
 // Variáveis: PORT (8080), HOST (0.0.0.0), DIST_DIR (../dist), API_URL (origem extra liberada no
 // connect-src do CSP), TRUST_CLOUDFLARE=1 (usa CF-Connecting-IP como IP do cliente),
-// LIMITE_POR_MINUTO (600), LOG_ACESSO (1), IPS_BLOQUEADOS (soma regras às de ips-bloqueados.txt),
+// LIMITE_POR_MINUTO (600), LOG_ACESSO (1), IPS_LIBERADOS (soma IPs aos de ips-liberados.txt; só eles
+// entram), RESTRINGIR_IPS=0 (desliga a restrição, só para teste local),
 // BENHERMES_SEGREDO ou BENHERMES_SEGREDO_ARQUIVO (liga a API de integração com o BenHermes) e
 // DADOS_DIR (pasta gravável para os eventos recebidos; veja docs/API-INTEGRACAO.md).
 import http from 'node:http';
@@ -22,7 +23,7 @@ import { join, relative, extname, resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createHash } from 'node:crypto';
 import { gzipSync, brotliCompressSync, constants as zc } from 'node:zlib';
-import { carregarRegras } from './bloqueio.mjs';
+import { carregarRegras, resumoDoFiltro } from './acesso-ip.mjs';
 import { criarIntegracao } from './integracao/rotas.mjs';
 
 const AQUI = dirname(fileURLToPath(import.meta.url));
@@ -178,8 +179,8 @@ export function criarServidor(mapa = carregar(), filtro = carregarRegras(), inte
       fim(status);
     };
 
-    // IPs e faixas bloqueados (server/ips-bloqueados.txt): nem chegam ao site.
-    if (filtro.bloqueado(ip)) return erro(403, 'Acesso bloqueado.');
+    // Só os IPs e faixas liberados (server/ips-liberados.txt) chegam ao site, como no BenHermes.
+    if (filtro.bloqueado(ip)) return erro(403, 'Acesso não liberado para este endereço.');
     if ((req.url || '').length > 2048) return erro(414, 'URL longa demais');
     if (!permitir(ip)) {
       res.setHeader('Retry-After', '60');
@@ -241,11 +242,12 @@ const ehPrincipal = !!alvo && resolve(alvo) === fileURLToPath(import.meta.url);
 if (ehPrincipal) {
   const mapa = carregar();
   const filtro = carregarRegras();
-  if (filtro.invalidas.length) console.warn(`Regras de bloqueio ignoradas (formato inválido): ${filtro.invalidas.join(', ')}`);
+  if (filtro.invalidas.length) console.warn(`IPs liberados ignorados (formato inválido): ${filtro.invalidas.join(', ')}`);
+  if (!filtro.restringir || !filtro.regras.length) console.warn(`Atenção: ${resumoDoFiltro(filtro)}.`);
   const integracao = criarIntegracao();
   const servidor = criarServidor(mapa, filtro, integracao);
   servidor.listen(PORT, HOST, () => {
-    console.log(`BenCalls ${VERSAO} no ar em http://${HOST}:${PORT} · ${mapa.size} arquivos · ${filtro.regras.length} regras de bloqueio de IP · integração BenHermes ${integracao.ativa ? 'ligada' : 'desligada'} · pid ${process.pid}`);
+    console.log(`BenCalls ${VERSAO} no ar em http://${HOST}:${PORT} · ${mapa.size} arquivos · ${resumoDoFiltro(filtro)} · integração BenHermes ${integracao.ativa ? 'ligada' : 'desligada'} · pid ${process.pid}`);
     process.send?.('ready'); // pm2 wait_ready
   });
   let saindo = false;

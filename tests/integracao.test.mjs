@@ -4,7 +4,7 @@ import { mkdtempSync, mkdirSync, writeFileSync, rmSync, readFileSync } from 'nod
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { carregar, criarServidor } from '../server/servidor.mjs';
-import { criarFiltro } from '../server/bloqueio.mjs';
+import { criarFiltro } from '../server/acesso-ip.mjs';
 import { criarIntegracao } from '../server/integracao/rotas.mjs';
 import { assinar, conferir } from '../server/integracao/assinatura.mjs';
 import { conferirEvento, lerLote, enxugar } from '../server/integracao/protocolo.mjs';
@@ -50,7 +50,7 @@ before(async () => {
   mkdirSync(join(dist, 'assets'));
   writeFileSync(join(dist, 'index.html'), '<!doctype html><title>BenCalls</title>');
   dados = mkdtempSync(join(tmpdir(), 'bencalls-dados-'));
-  srv = criarServidor(carregar(dist), criarFiltro([]), criarIntegracao({ segredo: SEGREDO, dadosDir: dados, log: {} }));
+  srv = criarServidor(carregar(dist), criarFiltro(['127.0.0.1', '::1']), criarIntegracao({ segredo: SEGREDO, dadosDir: dados, log: {} }));
   await new Promise((r) => srv.listen(0, '127.0.0.1', r));
   base = `http://127.0.0.1:${srv.address().port}/api/integracoes/benhermes`;
 });
@@ -91,7 +91,7 @@ test('API: recusa sem assinatura, assinatura errada, formato errado e corpo gran
 });
 
 test('API desligada sem segredo', async () => {
-  const s = criarServidor(carregar(dist), criarFiltro([]), criarIntegracao({ segredo: '', log: {} }));
+  const s = criarServidor(carregar(dist), criarFiltro(['127.0.0.1', '::1']), criarIntegracao({ segredo: '', log: {} }));
   await new Promise((r) => s.listen(0, '127.0.0.1', r));
   const b = `http://127.0.0.1:${s.address().port}/api/integracoes/benhermes`;
   assert.deepEqual(await (await fetch(b + '/status')).json(), { ativa: false, versao: 1 });

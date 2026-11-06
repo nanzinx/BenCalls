@@ -1,6 +1,7 @@
-# IPs e faixas bloqueados no BenCalls (IPv4 e IPv6, com ou sem /prefixo).
+# IPs e faixas LIBERADOS no BenCalls (IPv4 e IPv6, com ou sem /prefixo). Só eles entram;
+# todo o resto recebe 403. É a mesma lista do BenHermes (ALLOWED_IPS).
 # Uma regra por linha; "#" começa um comentário. Para somar regras sem editar este arquivo,
-# use a variável IPS_BLOQUEADOS (separadas por vírgula).
+# use a variável IPS_LIBERADOS (separadas por vírgula).
 #
 # Observação sobre /48: só os 3 primeiros grupos do IPv6 contam. Por isso
 # 2804:431:80f7:7700::/48 equivale a 2804:431:80f7::/48, e as três regras
@@ -12,3 +13,7 @@
 2804:1b3:a5e7:2c83::/48
 201.93.159.169
 2804:1b3:a5e7:8e38::/48
+
+# O próprio servidor: healthcheck do Docker/pm2 e "npm run dev" no seu PC.
+127.0.0.1
+::1

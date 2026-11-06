@@ -92,6 +92,7 @@ docker compose up -d --build
 | `node -v` mostra versão menor que 22.18 | Instale a versão LTS atual do Node. |
 | Porta 5173 ocupada | O Vite usa a próxima porta livre e mostra o endereço no terminal. |
 | Dados estranhos depois de atualizar | Menu do avatar › **Reiniciar demonstração**. |
+| **403** “Acesso não liberado para este endereço” | Só entram os IPs de [`server/ips-liberados.txt`](server/ips-liberados.txt) e o próprio PC (`localhost`). Para abrir de outro aparelho da rede, some o IP em `IPS_LIBERADOS` no `.env`. No **Docker** do seu PC, o acesso chega pelo IP interno do Docker: para testar, use `RESTRINGIR_IPS=0` no `.env` (nunca no servidor). |
 
 </details>
 
@@ -155,7 +156,7 @@ Detalhes do que mudou em relação ao protótipo: [`docs/MELHORIAS.md`](docs/MEL
 | Build | Vite 5 + PostCSS |
 | Produção | Servidor Node sem dependências + pm2 em modo cluster |
 | Deploy | Docker endurecido + Cloudflare Tunnel |
-| Testes | `node:test` (regras, entrada, servidor, bloqueio de IP, estilos) |
+| Testes | `node:test` (regras, entrada, servidor, IPs liberados, integração, estilos) |
 
 **Estilos.** [`tailwind.config.ts`](tailwind.config.ts) define as cores como trincas RGB com nomes em português
 (`marca`, `destaque`, `superficie`, `tinta`, `mudo`, `ok`, `aviso`, `ruim`…), sombras e animações.
@@ -174,7 +175,7 @@ src/
   components/   layout, busca global, detalhe de chamado/item/baia, mapa, triagem, logo, entrada, UI
   pages/        uma tela por rota
   index.css     tokens e componentes (Tailwind)
-server/         servidor de produção, bloqueio de IPs e lock do pm2 da imagem
+server/         servidor de produção, IPs liberados, API de integração e lock do pm2 da imagem
 deploy/         deploy.sh (atualização com rollback automático)
 cloudflared/    exemplo de túnel por arquivo
 tests/          node:test
@@ -237,9 +238,10 @@ Passo a passo completo, incluindo a configuração na Cloudflare: **[`docs/DEPLO
 - **Sem porta aberta:** o acesso chega só pelo Cloudflare Tunnel.
 - **Container endurecido:** só leitura, sem root, sem capabilities, sem npm na imagem, com limites de memória, CPU e processos.
 - **Servidor próprio:** CSP fechado, HSTS e demais cabeçalhos; só serve os arquivos do build; limite de requisições por IP.
-- **Bloqueio de IPs:** a lista fica em [`server/ips-bloqueados.txt`](server/ips-bloqueados.txt) (IPv4 e IPv6, com ou sem `/prefixo`)
-  e vale no servidor, no `npm run dev` e no `npm run preview`. Atrás do túnel o IP real vem do `CF-Connecting-IP`.
-  Para bloquear também na borda da Cloudflare, veja [`docs/DEPLOY.md`](docs/DEPLOY.md#5-bloqueio-de-ips).
+- **Só IPs liberados:** como no BenHermes, só entram os IPs e faixas de [`server/ips-liberados.txt`](server/ips-liberados.txt)
+  (IPv4 e IPv6, com ou sem `/prefixo`); o resto recebe 403. Vale no servidor, no `npm run dev` e no `npm run preview`.
+  Atrás do túnel o IP real vem do `CF-Connecting-IP`. Para barrar também na borda da Cloudflare, veja
+  [`docs/DEPLOY.md`](docs/DEPLOY.md#5-só-ips-liberados).
 - **Sessão:** expira após 30 min sem uso; 5 senhas erradas bloqueiam o login por 5 min.
 
 ---

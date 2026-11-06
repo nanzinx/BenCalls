@@ -30,7 +30,7 @@ Os dois sistemas conversam por **eventos assinados**. Exemplo do dia a dia:
 | **Repetidos** | Cada evento tem um `id` fixo para a mesma mudança; o mesmo id duas vezes é ignorado (`duplicados` na resposta). Reenviar é seguro. |
 | **Formato** | Cada campo é conferido (`422` com o motivo); no máximo 100 eventos e 64 KB por mensagem (`413`). |
 | **Dados mínimos** | O que o site do BenCalls lê (`GET`) não tem nome de operador nem número de chip: só baia, situação e manutenção. |
-| **Rede** | O BenHermes só aceita os IPs de `ALLOWED_IPS`: inclua o IP de saída do servidor do BenCalls. O BenCalls recusa os IPs de `server/ips-bloqueados.txt`: o IP do servidor do BenHermes **não pode** estar lá. |
+| **Rede** | O BenHermes só aceita os IPs de `ALLOWED_IPS`: inclua o IP de saída do servidor do BenCalls. O BenCalls só aceita os IPs de `server/ips-liberados.txt` (ou `IPS_LIBERADOS`): o IP de saída do servidor do BenHermes **precisa** estar lá. |
 
 ## Como ligar
 
