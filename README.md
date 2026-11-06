@@ -92,7 +92,7 @@ docker compose up -d --build
 | `node -v` mostra versão menor que 22.18 | Instale a versão LTS atual do Node. |
 | Porta 5173 ocupada | O Vite usa a próxima porta livre e mostra o endereço no terminal. |
 | Dados estranhos depois de atualizar | Menu do avatar › **Reiniciar demonstração**. |
-| **403** “Acesso não liberado para este endereço” | Só entram os IPs de [`server/ips-liberados.txt`](server/ips-liberados.txt) e o próprio PC (`localhost`). Para abrir de outro aparelho da rede, some o IP em `IPS_LIBERADOS` no `.env`. No **Docker** do seu PC, o acesso chega pelo IP interno do Docker: para testar, use `RESTRINGIR_IPS=0` no `.env` (nunca no servidor). |
+| **403** “Acesso não liberado para este endereço” | Só entram os IPs de [`server/ips-liberados.txt`](server/ips-liberados.txt) e o próprio PC (`localhost`). Para abrir de outro aparelho da rede, some o IP em `IPS_LIBERADOS` no `.env`. No **Docker** do seu PC, o acesso chega pelo IP interno do Docker: coloque `IPS_LIBERADOS=172.16.0.0/12` no `.env`. |
 
 </details>
 

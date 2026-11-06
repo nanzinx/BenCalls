@@ -74,7 +74,8 @@ Como no BenHermes (`ALLOWED_IPS`), o BenCalls só atende os IPs e faixas de
 
 - Para somar endereços sem editar o arquivo: `IPS_LIBERADOS=1.2.3.4,2001:db8::/32` no `.env`.
 - Lista vazia não deixa ninguém entrar (o log da subida avisa).
-- `RESTRINGIR_IPS=0` desliga a restrição: só para testar o Docker no seu PC, nunca no servidor.
+- No Docker do seu PC, o navegador chega com o IP interno do Docker: use `IPS_LIBERADOS=172.16.0.0/12`.
+  `RESTRINGIR_IPS=0` desliga a restrição de vez: só para teste, nunca no servidor.
 - O servidor do **BenHermes** precisa estar na lista para mandar os eventos da integração
   ([`API-INTEGRACAO.md`](API-INTEGRACAO.md)).
 
