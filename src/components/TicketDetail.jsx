@@ -1,11 +1,11 @@
 import { useMemo, useState } from 'react';
 import clsx from 'clsx';
-import { X, Paperclip, AlertTriangle, ListChecks, Wrench, UserCheck, Play, PauseCircle, Ban, ThumbsUp, ThumbsDown, RotateCcw, MessageSquarePlus, ArrowRightLeft, Sparkles, MapPin, ExternalLink, ChevronDown } from 'lucide-react';
+import { X, Paperclip, AlertTriangle, ListChecks, Wrench, UserCheck, Play, PauseCircle, Ban, ThumbsUp, ThumbsDown, RotateCcw, MessageSquarePlus, ArrowRightLeft, Sparkles, MapPin, ExternalLink, ChevronDown, Flame } from 'lucide-react';
 import { useStore } from '../store/store.jsx';
 import { baiaCodigo, codigoItem, indiceCatalogo, nomeItem, nomeUser, tem, itensDaBaia } from '../store/selectors.js';
 import { numeroChamado, hhmmss, dataHora, idade } from '../lib/format.ts';
 import { CAUSAS, podeReabrir, DISPONIVEL } from '../lib/rules.ts';
-import { StatusBadge, PrioBadge, Sla, Note, PONTO_STATUS, ItemBadge, AjudaSla } from './ui.jsx';
+import { StatusBadge, PrioBadge, Note, PONTO_STATUS, ItemBadge } from './ui.jsx';
 
 const FORMS = {
   pendente: { titulo: 'Por que o chamado ficará pendente?', ph: 'Ex.: aguardando peça do fornecedor', botao: 'Marcar como pendente', status: 'Pendente' },
@@ -157,11 +157,16 @@ export default function TicketDetail({ id, onClose, abrir }) {
         </div>
         <div className="flex flex-wrap items-center gap-1.5">
           <StatusBadge status={c.status} />
-          <PrioBadge prio={c.prioridade} sm={false} />
+          <PrioBadge prioritario={c.prioritario} sm={false} />
           {c.operadorParado && !finalizado && <span className="badge b-bad">Operador parado</span>}
           {c.reaberturas > 0 && <span className="badge b-orange">Reaberto {c.reaberturas}×</span>}
+          {ti && !finalizado && (
+            <button type="button" className="btn btn-sm btn-ghost ml-auto text-mudo" aria-pressed={!!c.prioritario}
+              onClick={() => { actions.definirPrioridade(c.id, !c.prioritario); toast(c.prioritario ? 'Prioridade retirada.' : `${numeroChamado(c.id)} marcado como prioritário.`); }}>
+              <Flame size={14} className={c.prioritario ? 'text-ruim' : ''} /> {c.prioritario ? 'Tirar prioridade' : 'Marcar prioritário'}
+            </button>
+          )}
         </div>
-        <div className="flex items-start gap-2"><div className="min-w-0 flex-auto"><Sla ch={c} agora={agora} bar /></div><AjudaSla /></div>
         <nav className="abas" role="tablist" aria-label="Seções do chamado">
           {ABAS.map((a) => (
             <button key={a.id} type="button" role="tab" aria-selected={aba === a.id} className="aba" onClick={() => setAba(a.id)}>

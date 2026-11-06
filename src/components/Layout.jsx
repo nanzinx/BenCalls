@@ -18,10 +18,10 @@ import BaiaDetail from './BaiaDetail.jsx';
 import { Drawer } from './ui.jsx';
 import { Entrada } from './Entrada.tsx';
 import { deveMostrarEntrada, diaDe, lerVistoEm, loginRecente, limparLogin, marcarVisto, marcarAtividade, inativo } from '../lib/entrada.ts';
-import { slaInfo, ABERTOS } from '../lib/rules.ts';
+import { ABERTOS } from '../lib/rules.ts';
 
 /** Números que aparecem na entrada, conforme o perfil. */
-function selosDaEntrada(st, user, agora) {
+function selosDaEntrada(st, user) {
   const abertos = st.chamados.filter((c) => ABERTOS.includes(c.status));
   if (user.perfil === 'supervisor') {
     const eq = new Set(user.equipes || []);
@@ -39,14 +39,14 @@ function selosDaEntrada(st, user, agora) {
     const t = Object.values(st.termos).filter((x) => !x.assinadoEm).length;
     return [{ valor: d, texto: 'dossiês para analisar', tom: d ? 'alerta' : 'ok' }, { valor: t, texto: 'termos aguardando aceite' }];
   }
-  const risco = abertos.filter((c) => { const i = slaInfo(c, agora); return !i.pausado && i.nivel !== 'ok'; }).length;
+  const prioritarios = abertos.filter((c) => c.prioritario).length;
   const analise = abertos.filter((c) => c.status === 'Em Análise').length;
   const sel = [
     { valor: analise, texto: 'em análise' },
     { valor: abertos.length, texto: 'em andamento' },
-    { valor: risco, texto: 'com SLA em risco', tom: risco ? 'alerta' : 'ok' }
+    { valor: prioritarios, texto: prioritarios === 1 ? 'prioritário' : 'prioritários', tom: prioritarios ? 'alerta' : 'ok' }
   ];
-  if (user.perfil === 'ti') sel.push({ valor: abertos.filter((c) => c.alerta).length, texto: 'alertas de triagem' });
+  if (user.perfil === 'ti') { const n = abertos.filter((c) => c.alerta).length; sel.push({ valor: n, texto: n === 1 ? 'alerta de triagem' : 'alertas de triagem' }); }
   return sel;
 }
 
@@ -188,7 +188,7 @@ export default function Layout() {
   const nav = useNavigate();
   const [entrada, setEntrada] = useState(() => deveMostrarEntrada({ vistoEm: lerVistoEm(), hoje: diaDe(new Date()), acabouDeEntrar: loginRecente() }));
   const [cascataEntrada, setCascataEntrada] = useState(false);
-  const selos = useMemo(() => selosDaEntrada(st, user, Date.now()), []); // eslint-disable-line react-hooks/exhaustive-deps
+  const selos = useMemo(() => selosDaEntrada(st, user), []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Sessão expira após 30 min sem uso (como no BenHeimdall).
   useEffect(() => {

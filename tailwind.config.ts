@@ -15,7 +15,6 @@ export default {
   // Classes de componente montadas com `${...}` no JSX (o Tailwind não as encontra sozinho).
   safelist: [
     ...['marca', 'ok', 'aviso', 'ruim', 'info'].map((t) => `k-${t}`),
-    ...['ok', 'alerta', 'estourado', 'pausado'].map((t) => `sla-${t}`),
     ...['warn', 'bad', 'ok', 'info', 'gray'].map((t) => `note-${t}`),
     ...['ok', 'aberto', 'parado', 'vazia', 'off'].map((t) => `st-${t}`),
     ...['ok', 'alerta', 'neutro'].map((t) => `en-${t}`),

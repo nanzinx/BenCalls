@@ -1,9 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import clsx from 'clsx';
-import { X, Clock, PauseCircle, AlertTriangle, CheckCircle2, Info, Inbox, HelpCircle } from 'lucide-react';
+import { X, AlertTriangle, CheckCircle2, Info, Inbox, HelpCircle, Flame } from 'lucide-react';
 import { useContagem } from './Entrada.tsx';
-import { slaInfo } from '../lib/rules.ts';
-import { duracao } from '../lib/format.ts';
 
 export const COR_STATUS = {
   'Em Análise': 'b-blue', Pendente: 'b-orange', 'Em Execução': 'b-info', 'Aguardando Consenso': 'b-warn',
@@ -13,7 +11,6 @@ export const PONTO_STATUS = {
   'Em Análise': 'rgb(var(--marca))', Pendente: '#b26a00', 'Em Execução': '#6b4bb0', 'Aguardando Consenso': 'rgb(var(--aviso-ponto))',
   Concluído: 'rgb(var(--ok-ponto))', Cancelado: 'rgb(var(--cinza-ponto))', Negado: 'rgb(var(--ruim-ponto))'
 };
-export const COR_PRIO = { Crítica: 'b-bad', Alta: 'b-orange', Média: 'b-warn', Baixa: 'b-gray' };
 export const COR_ITEM = {
   Novo: 'b-ok', 'Em uso': 'b-blue', 'Disponível (usado)': 'b-ok', 'Em manutenção': 'b-info',
   'Em garantia': 'b-orange', Quebrado: 'b-bad', Descartado: 'b-gray'
@@ -23,8 +20,10 @@ export const STATUS_LABEL_CURTO = { 'Aguardando Consenso': 'Aguardando confirma�
 export function StatusBadge({ status, sm }) {
   return <span className={`badge ${sm ? 'badge-sm ' : ''}${COR_STATUS[status] || 'b-gray'}`}>{STATUS_LABEL_CURTO[status] || status}</span>;
 }
-export function PrioBadge({ prio, sm = true }) {
-  return <span className={`badge ${sm ? 'badge-sm ' : ''}${COR_PRIO[prio] || 'b-gray'}`}>{prio}</span>;
+/** Selo "Prioritário": só aparece quando o chamado é prioritário (normal não tem selo). */
+export function PrioBadge({ prioritario, sm = true }) {
+  if (!prioritario) return null;
+  return <span className={`badge ${sm ? 'badge-sm ' : ''}b-bad`}><Flame size={sm ? 11 : 12} /> Prioritário</span>;
 }
 export function ItemBadge({ status }) {
   return <span className={`badge badge-sm ${COR_ITEM[status] || 'b-gray'}`}>{status}</span>;
@@ -33,21 +32,6 @@ export function New() {
   return <span className="badge b-new">NOVO</span>;
 }
 
-export function Sla({ ch, agora, bar }) {
-  const s = slaInfo(ch, agora);
-  if (s.finalizado) return <span className="sla sla-pausado"><CheckCircle2 size={13} /> Encerrado</span>;
-  const cls = s.pausado ? 'pausado' : s.nivel;
-  const txt = s.pausado
-    ? `SLA pausado · ${s.resta >= 0 ? `restam ${duracao(s.resta)}` : `estourou ${duracao(-s.resta)}`}`
-    : s.resta >= 0 ? `SLA vence em ${duracao(s.resta)}` : `SLA estourado há ${duracao(-s.resta)}`;
-  const cor = { ok: 'rgb(var(--ok-ponto))', alerta: 'rgb(var(--aviso-ponto))', estourado: 'rgb(var(--ruim-ponto))', pausado: 'rgb(var(--cinza-ponto))' }[cls];
-  return (
-    <span className="flex flex-col gap-1">
-      <span className={`sla sla-${cls}`}>{s.pausado ? <PauseCircle size={13} /> : <Clock size={13} />}{txt}</span>
-      {bar && <span className="sla-bar"><i style={{ width: `${s.pct}%`, background: cor }} /></span>}
-    </span>
-  );
-}
 
 /** Número que conta de 0 até o valor quando aparece (aceita "72%" também). */
 export function Contador({ valor }) {
@@ -55,8 +39,6 @@ export function Contador({ valor }) {
   const n = useContagem(m ? Number(m[1]) : undefined, 120);
   return m ? <>{n}{m[2]}</> : <>{valor}</>;
 }
-
-export const TEXTO_SLA = 'SLA (Service Level Agreement, ou acordo de nível de serviço) é o prazo máximo para o TI resolver o chamado. Ele vem da prioridade: Crítica 1h, Alta 2h, Média 4h e Baixa 8h (ou menos, se o catálogo definir). O relógio só corre enquanto o chamado depende do TI (Em Análise e Em Execução); em Pendente e Aguardando confirmação ele pausa.';
 
 /** Ícone de ajuda com balão (passar o mouse ou focar com o teclado). */
 export function Ajuda({ titulo = 'O que é isso?', children }) {
@@ -75,9 +57,6 @@ export function Ajuda({ titulo = 'O que é isso?', children }) {
   );
 }
 
-export function AjudaSla() {
-  return <Ajuda titulo="O que é SLA?"><b>O que é SLA?</b> {TEXTO_SLA}</Ajuda>;
-}
 
 /**
  * Indicador: número grande, rótulo curto e o ícone num selo colorido.

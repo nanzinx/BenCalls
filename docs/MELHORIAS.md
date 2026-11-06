@@ -12,9 +12,9 @@ Usuários, Catálogo e Espaços com três perfis. Esta versão implementa o esco
 - **Assinatura Benconsig fixa** (faixa amarela + selo no rodapé e no login), que a personalização não remove (RN10).
 - **Etiqueta sempre calculada** a partir do layout + posição + item; o histórico fica no ID interno. Mudar o padrão
   da mesa recalcula todas as etiquetas sem perder nada (RN12). Itens repetidos na baia viram `MN1`/`MN2`.
-- **SLA real**: o relógio só corre em “Em Análise” e “Em Execução” (pausa em Pendente e Aguardando Consenso),
-  com barra de progresso e alerta quando falta menos de 25% do prazo.
-- **Painel do TI** com quadro e lista, filtros (prioridade, departamento, comigo, operador parado, SLA em risco,
+- **Prioridade simples:** o chamado é prioritário ou normal, sem prazo de conclusão. Nasce prioritário quando o
+  tipo está marcado assim no catálogo ou quando o operador fica parado; o TI pode marcar ou tirar.
+- **Painel do TI** com quadro e lista, filtros (prioritários, departamento, comigo, operador parado,
   alerta de triagem, “Outros”) e KPIs clicáveis.
 - **Mobile**: menu vira gaveta, o mapa cabe na tela e, ao tocar na baia, a tela rola até os itens.
 
@@ -49,7 +49,7 @@ Usuários, Catálogo e Espaços com três perfis. Esta versão implementa o esco
 5. **Links diretos** para chamado, item e baia (`?ch=`, `?item=`, `?baia=`), bons para colar nas mensagens do BenHub.
 6. **Progresso da triagem** visível e aviso em tempo real quando os passos estão sendo marcados rápido demais.
 7. **“Resolvidos na triagem” na tela do supervisor**, para mostrar o resultado do trabalho dele.
-8. **Prioridade e SLA previstos** antes de abrir o chamado.
+8. **Aviso de prioridade** antes de abrir o chamado, quando ele vai entrar como prioritário.
 
 ## Próximos passos sugeridos
 
@@ -65,8 +65,8 @@ Usuários, Catálogo e Espaços com três perfis. Esta versão implementa o esco
 - **Fonte única, Inter**, neutra, para texto e títulos (sem a fonte de identidade do BenHeimdall).
 - **Menos poluição:** sem códigos do escopo (RF/RN) na tela, descrições de página em uma linha, indicadores
   só com o número (a explicação fica no balão do mouse) e avisos agrupados num cartão “Precisa de atenção”.
-- **Cartão de chamado em uma linha:** título, número, tempo, baia e ocupante; prazo e status à direita; faixa
-  colorida pela prioridade; alertas como ícones.
+- **Cartão de chamado em uma linha:** título, número, tempo desde a abertura, baia e ocupante; status à direita;
+  faixa vermelha nos prioritários; alertas como ícones.
 - **Detalhe do chamado em abas** (Resumo, Triagem, Comentários, Histórico) com as ações fixas no rodapé.
 - **Menu do usuário no avatar:** situação do técnico, tema escuro, reiniciar demonstração e sair.
 - **Menu lateral recolhível** (só ícones), lembrado entre as visitas.

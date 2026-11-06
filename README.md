@@ -58,7 +58,7 @@ sobrescreve as variáveis, então `bg-marca/10` funciona com qualquer cor. Class
 
 ```
 src/
-  lib/          regras puras em TypeScript e testadas: labels, rules (SLA, triagem, estoque), contrast, entrada, csv
+  lib/          regras puras em TypeScript e testadas: labels, rules (prioridade, triagem, estoque), contrast, entrada, csv
   data/seed.js  dados de demonstração determinísticos (69 posições reais, catálogo, estoque, 30 dias de histórico)
   store/        estado + ações (cada ação = uma rota da BenApi) e seletores
   components/   Layout, busca global, detalhe de chamado/item/baia, mapa da mesa, triagem, UI base

@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { montarCodigo, codigoLocal, posicoesDaMesa, linhasDaMesa, validarMesa, lerCodigo } from '../src/lib/labels.ts';
-import { alertaTriagem, passoOk, prioridadePorImpacto, slaDaPrioridade, minutosConsumidos, slaInfo, detectarIncidentes, podeReabrir, podeTransicionar, sugestaoCompra } from '../src/lib/rules.ts';
+import { alertaTriagem, passoOk, ehPrioritario, ordemFila, detectarIncidentes, podeReabrir, podeTransicionar, sugestaoCompra } from '../src/lib/rules.ts';
 import { contraste, nivelContraste } from '../src/lib/contrast.ts';
 import { seedLayouts, seed } from '../src/data/seed.js';
 import { paraCsv } from '../src/lib/csv.ts';
@@ -59,26 +59,17 @@ test('triagem: motivo obrigatório e alerta de marcação rápida (RF07/RF08b)',
   assert.equal(alertaTriagem([{ at: t0 }, { at: t0 + 30_000 }, { at: t0 + 60_000 }]), null);
 });
 
-test('prioridade por impacto e SLA (RF12/RF14)', () => {
-  assert.equal(prioridadePorImpacto('Média', true), 'Alta');
-  assert.equal(prioridadePorImpacto('Crítica', true), 'Crítica');
-  assert.equal(prioridadePorImpacto('Baixa', false), 'Baixa');
-  assert.equal(slaDaPrioridade('Alta', 240), 120);
-  assert.equal(slaDaPrioridade('Crítica', 30), 30);
-});
-
-test('SLA pausa em Pendente e Aguardando Consenso', () => {
-  const t = 0;
-  const hist = [
-    { status: 'Em Análise', at: t },
-    { status: 'Pendente', at: t + 30 * MIN },
-    { status: 'Em Execução', at: t + 90 * MIN },
-    { status: 'Aguardando Consenso', at: t + 100 * MIN }
-  ];
-  assert.equal(minutosConsumidos(hist, t + 500 * MIN), 40);
-  const s = slaInfo({ slaMin: 60, status: 'Aguardando Consenso', hist }, t + 500 * MIN);
-  assert.equal(s.resta, 20);
-  assert.equal(s.pausado, true);
+test('prioridade é sim ou não (sem SLA)', () => {
+  assert.equal(ehPrioritario({ tipoPrioritario: true }), true);
+  assert.equal(ehPrioritario({ operadorParado: true }), true);
+  assert.equal(ehPrioritario({}), false);
+  const fila = [
+    { id: 1, prioritario: false, criadoEm: 1 },
+    { id: 2, prioritario: true, criadoEm: 5 },
+    { id: 3, prioritario: true, criadoEm: 3 },
+    { id: 4, prioritario: false, criadoEm: 0 }
+  ].sort(ordemFila);
+  assert.deepEqual(fila.map((c) => c.id), [3, 2, 4, 1]);
 });
 
 test('incidente geral: 3 chamados da mesma situação em 1 hora (RF09)', () => {

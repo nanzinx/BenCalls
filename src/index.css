@@ -738,28 +738,6 @@
   .t-title {
     @apply text-[14.5px] font-semibold;
   }
-  .sla {
-    @apply inline-flex items-center gap-[5px] text-xs font-semibold;
-  }
-  .sla-ok {
-    @apply text-ok;
-  }
-  .sla-alerta {
-    @apply text-laranja;
-  }
-  .sla-estourado {
-    @apply text-ruim;
-  }
-  .sla-estourado svg {
-    @apply animate-piscar;
-  }
-  .sla-pausado {
-    @apply text-mudo;
-  }
-  .sla-bar {
-    @apply h-1 overflow-hidden rounded bg-superficie-3;
-  }
-  .sla-bar > i,
   .progress > i {
     @apply block h-full rounded transition-[width] duration-500 ease-suave;
   }
@@ -954,7 +932,7 @@
     @apply h-1 rounded-sm bg-assinatura;
   }
 
-  /* ---------- ajuda (O que é SLA?) ---------- */
+  /* ---------- ajuda (balão de explicação) ---------- */
   .ajuda {
     @apply relative inline-flex;
   }

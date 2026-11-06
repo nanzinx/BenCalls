@@ -2,7 +2,7 @@
 // semente = mesmos dados), relativos ao momento em que a demo é iniciada.
 import { MIN, DIA } from '../lib/format.ts';
 import { ITENS_PADRAO, posicoesDaMesa, posKey } from '../lib/labels.ts';
-import { prioridadePorImpacto, slaDaPrioridade } from '../lib/rules.ts';
+import { ehPrioritario } from '../lib/rules.ts';
 
 function prng(seed) {
   let a = seed >>> 0;
@@ -39,10 +39,12 @@ export const ACESSOS = {
 };
 
 export const PERFIS = {
+  // Todo perfil abre e acompanha os próprios chamados (DACP + RC).
   supervisor: { label: 'Supervisor', acessos: ['DACP', 'RC', 'TERMO'] },
-  ti: { label: 'Técnico de TI', acessos: ['DACP', 'RC', 'PC', 'ASC', 'ROA', 'EST', 'ESP', 'MAPA', 'REV', 'DVGC', 'RCSC', 'TERMO'] },
-  rh: { label: 'RH', acessos: ['RH', 'TERMO', 'DVGC'] },
-  gestor: { label: 'Gestão', acessos: ['DACP', 'PC', 'DVGC', 'MAPA', 'EST', 'CU', 'RCSC', 'ESP', 'TEMA', 'AUD', 'RH', 'TERMO', 'APROV', 'REV'] }
+  // O TI também configura o sistema: logins, personalização e auditoria.
+  ti: { label: 'Técnico de TI', acessos: ['DACP', 'RC', 'PC', 'ASC', 'ROA', 'EST', 'ESP', 'MAPA', 'REV', 'DVGC', 'RCSC', 'TERMO', 'CU', 'TEMA', 'AUD'] },
+  rh: { label: 'RH', acessos: ['DACP', 'RC', 'RH', 'TERMO', 'DVGC'] },
+  gestor: { label: 'Gestão', acessos: ['DACP', 'RC', 'PC', 'DVGC', 'MAPA', 'EST', 'CU', 'RCSC', 'ESP', 'TEMA', 'AUD', 'RH', 'TERMO', 'APROV', 'REV'] }
 };
 
 export function seedUsuarios() {
@@ -91,70 +93,66 @@ export function seedCatalogo() {
   sid = 0;
   return [
     { id: 'c1', nome: 'Periférico', icone: 'headphones', equipe: 'TI', subs: [
-      { id: 'b1', nome: 'Headset', item: 'HS', prio: 'Média', sla: 240, sits: [
+      { id: 'b1', nome: 'Headset', item: 'HS', prioritario: false, sits: [
         S('Sem áudio', { para: true, passos: ['Conferir se o plug está bem encaixado', 'Trocar o headset de porta USB', 'Verificar o volume e o dispositivo de áudio no softphone'] }),
         S('Microfone não capta', { para: true, passos: ['Verificar se o microfone está no mudo', 'Trocar o headset de porta USB'] }),
         S('Fio ou espuma danificado', { dano: true }),
         S('Quebrado', { dano: true }),
         OUTROS()] },
-      { id: 'b2', nome: 'Mouse', item: 'MS', prio: 'Baixa', sla: 480, sits: [
+      { id: 'b2', nome: 'Mouse', item: 'MS', prioritario: false, sits: [
         S('Não funciona', { passos: ['Trocar o mouse de porta USB', 'Limpar o sensor e testar em outra superfície'] }),
         S('Clique falhando', { passos: ['Testar o clique em outro programa', 'Trocar o mouse de porta USB'] }),
         S('Quebrado', { dano: true }),
         OUTROS()] },
-      { id: 'b3', nome: 'Teclado', item: 'TC', prio: 'Baixa', sla: 480, sits: [
+      { id: 'b3', nome: 'Teclado', item: 'TC', prioritario: false, sits: [
         S('Não funciona', { passos: ['Trocar o teclado de porta USB', 'Reiniciar o computador'] }),
         S('Teclas falhando', { passos: ['Trocar o teclado de porta USB', 'Verificar se não há teclas presas'] }),
         S('Quebrado', { dano: true }),
         OUTROS()] }
     ] },
     { id: 'c2', nome: 'Hardware', icone: 'monitor', equipe: 'TI', subs: [
-      { id: 'b4', nome: 'Computador', item: 'PC', prio: 'Crítica', sla: 60, sits: [
+      { id: 'b4', nome: 'Computador', item: 'PC', prioritario: true, sits: [
         S('Não liga', { para: true, passos: ['Conferir se o cabo de energia está ligado', 'Conferir o cabo de rede', 'Reiniciar o computador'] }),
         S('Lento ou travando', { passos: ['Fechar programas e abas que não estão em uso', 'Reiniciar o computador'] }),
         S('Argus não abre', { para: true, passos: ['Fechar e abrir a Argus novamente', 'Reiniciar o computador', 'Testar o login em outra baia'] }),
         S('Sem rede', { para: true, passos: ['Conferir se o cabo de rede está encaixado', 'Verificar se as baias vizinhas também estão sem rede'] }),
         OUTROS()] },
-      { id: 'b5', nome: 'Monitor', item: 'MN', prio: 'Média', sla: 240, sits: [
+      { id: 'b5', nome: 'Monitor', item: 'MN', prioritario: false, sits: [
         S('Sem imagem', { para: true, passos: ['Conferir os cabos de energia e de vídeo', 'Apertar o botão de entrada (input) do monitor'] }),
         S('Não liga', { para: true, passos: ['Conferir o cabo de energia', 'Testar outra tomada'] }),
         S('Tela danificada', { dano: true }),
         OUTROS()] }
     ] },
     { id: 'c3', nome: 'Sistemas', icone: 'app', equipe: 'TI', subs: [
-      { id: 'b6', nome: 'Argus', prio: 'Crítica', sla: 30, sits: [
+      { id: 'b6', nome: 'Argus', prioritario: true, sits: [
         S('Erro ao entrar', { para: true, passos: ['Conferir usuário e senha (caps lock)', 'Fechar e abrir a Argus novamente'] }),
         S('Discador não liga', { para: true, passos: ['Sair e entrar na campanha', 'Reiniciar o softphone'] }),
         OUTROS()] },
-      { id: 'b7', nome: 'Acessos e senhas', prio: 'Baixa', sla: 480, sits: [
+      { id: 'b7', nome: 'Acessos e senhas', prioritario: false, sits: [
         S('Senha bloqueada', { passos: ['Aguardar 15 minutos e tentar de novo'] }),
         S('Pedido de acesso', { solicitacao: true }),
         OUTROS()] },
-      { id: 'b8', nome: 'Rede e internet', prio: 'Alta', sla: 120, sits: [
+      { id: 'b8', nome: 'Rede e internet', prioritario: true, sits: [
         S('Sala inteira sem internet', { para: true, passos: ['Verificar se outras salas também estão sem internet'] }),
         S('Wi-Fi da sala de reunião', { passos: ['Esquecer a rede e conectar de novo'] }),
         OUTROS()] }
     ] },
     { id: 'c4', nome: 'Infraestrutura', icone: 'building', equipe: 'Facilities', subs: [
-      { id: 'b9', nome: 'Mobiliário e energia', prio: 'Baixa', sla: 480, baia: true, sits: [
+      { id: 'b9', nome: 'Mobiliário e energia', prioritario: false, baia: true, sits: [
         S('Cadeira quebrada', { dano: true, semLaudo: true }),
         S('Tomada sem energia', { para: true, passos: ['Testar o equipamento em outra tomada'] }),
         OUTROS()] },
-      { id: 'b10', nome: 'Salas e ambiente', prio: 'Baixa', sla: 480, sits: [
+      { id: 'b10', nome: 'Salas e ambiente', prioritario: false, sits: [
         S('Ar-condicionado', { passos: ['Conferir se o controle está com pilha'] }),
         S('Sala de reunião', { passos: [] }),
         OUTROS()] }
     ] },
     { id: 'c5', nome: 'Solicitações', icone: 'clipboard', equipe: 'TI', subs: [
-      { id: 'b11', nome: 'Pessoas', prio: 'Média', sla: 1440, sits: [
+      { id: 'b11', nome: 'Pessoas', prioritario: false, sits: [
         S('Novo colaborador', { solicitacao: true }),
         S('Desligamento', { solicitacao: true }),
         S('Troca de baia', { solicitacao: true }),
         OUTROS()] }
-    ] },
-    // Chamado próprio: a pessoa escreve o título; o TI classifica depois na fila de revisão.
-    { id: 'c6', nome: 'Geral', icone: 'pen', equipe: 'TI', subs: [
-      { id: 'b12', nome: 'Chamado livre', prio: 'Média', sla: 240, livre: true, sits: [OUTROS()] }
     ] }
   ];
 }
@@ -280,13 +278,12 @@ export function seed(agora = Date.now()) {
     if (rnd() < 0.28) { const [lid, p] = pick(quentes).split(':'); L = layouts.find((x) => x.id === lid); pos = p; }
     else ({ L, pos } = pick(posicoes));
     const criado = agora - int(1, 30) * DIA - int(0, 9) * 60 * MIN;
-    const prio = prioridadePorImpacto(sub.prio, !!sit.para);
-    const sla = slaDaPrioridade(prio, sub.sla);
+    const prioritario = ehPrioritario({ tipoPrioritario: sub.prioritario, operadorParado: !!sit.para });
     const it = sub.item ? itemNaBaia(L.id, pos, sub.item) : null;
     const tecnico = pick(['u3', 'u3', 'u4']);
-    const resolMin = Math.max(8, Math.round((rnd() ** 1.6) * sla * 1.6));
-    const inicio = criado + Math.round(resolMin * 0.25) * MIN;
-    const solucao = criado + resolMin * MIN;
+    const duracaoMin = Math.max(8, Math.round((rnd() ** 1.6) * (prioritario ? 200 : 600)));
+    const inicio = criado + Math.round(duracaoMin * 0.25) * MIN;
+    const solucao = criado + duracaoMin * MIN;
     const fecha = solucao + int(5, 90) * MIN;
     const r = rnd();
     const status = r < 0.06 ? 'Negado' : r < 0.1 ? 'Cancelado' : 'Concluído';
@@ -303,7 +300,7 @@ export function seed(agora = Date.now()) {
     const passos = sit.passos.map((t, j) => ({ texto: t, st: 'feito', at: criado - (sit.passos.length - j) * int(20, 90) * 1000 }));
     chamados.push({
       id: ++id, titulo: `${sub.nome} — ${sit.outros ? 'Outros' : sit.nome}`, catId: sub.cat.id, subId: sub.id, sitId: sit.id,
-      categoria: sub.cat.nome, sub: sub.nome, situacao: sit.nome, prioridade: prio, slaMin: sla, depto: sub.cat.equipe,
+      categoria: sub.cat.nome, sub: sub.nome, situacao: sit.nome, prioritario, depto: sub.cat.equipe,
       layoutId: sub.item || sub.baia ? L.id : null, pos: sub.item || sub.baia ? pos : null, local: '',
       itens: it ? [{ assetId: it.id, tipo: it.tipo, situacao: sit.nome, sitId: sit.id }] : [],
       ocupante: sub.item || sub.baia ? ocup : '—', remetenteId: remetente, tecnicoId: tecnico, status, criadoEm: criado,
@@ -324,11 +321,11 @@ export function seed(agora = Date.now()) {
   const ativo = (o) => {
     const sub = subs.find((s) => s.id === o.subId);
     const sit = sitPor(o.subId, o.sit);
-    const prio = prioridadePorImpacto(sub.prio, !!sit.para);
+    const prioritario = ehPrioritario({ tipoPrioritario: sub.prioritario, operadorParado: !!sit.para });
     const it = sub.item && o.layoutId ? itemNaBaia(o.layoutId, o.pos, sub.item) : null;
     chamados.push({
       id: ++id, titulo: `${sub.nome} — ${o.tituloSit || sit.nome}`, catId: sub.cat.id, subId: sub.id, sitId: sit.id,
-      categoria: sub.cat.nome, sub: sub.nome, situacao: sit.nome, prioridade: prio, slaMin: slaDaPrioridade(prio, sub.sla), depto: sub.cat.equipe,
+      categoria: sub.cat.nome, sub: sub.nome, situacao: sit.nome, prioritario, depto: sub.cat.equipe,
       layoutId: o.layoutId || null, pos: o.pos || null, local: o.local || '',
       itens: it ? [{ assetId: it.id, tipo: it.tipo, situacao: sit.nome, sitId: sit.id }] : [],
       ocupante: o.layoutId ? ocupacao[`${o.layoutId}:${o.pos}`]?.nome || 'Sem ocupante' : '—',
@@ -383,12 +380,12 @@ export function seed(agora = Date.now()) {
   }
 
   return {
-    versao: 4,
+    versao: 5,
     criadoEm: agora,
     usuarios, layouts, catalogo, tipos, itens, chamados, triagensResolvidas, ocupacao, ocupHist, dossies, termos,
     seqChamado: id + 1, seqItem: seqId + 1, seqLocal,
     notificacoes: [
-      { id: 'n1', at: agora - 12 * MIN, canal: 'BenHub', grupo: 'TI', texto: 'Novo chamado #2026-0169 · OP1-D2 · Computador — Não liga · prioridade Crítica', lida: false },
+      { id: 'n1', at: agora - 12 * MIN, canal: 'BenHub', grupo: 'TI', texto: 'Novo chamado #2026-0169 · OP1-D2 · Computador — Não liga · prioritário', lida: false },
       { id: 'n2', at: agora - 40 * MIN, canal: 'BenHub', grupo: 'Supervisão Equipe 1', texto: '#2026-0171 aguardando sua confirmação: solução registrada por Diego Lima', lida: false },
       { id: 'n3', at: agora - 3 * 60 * MIN, canal: 'BenHub', grupo: 'TI / Administração', texto: 'Estoque mínimo: Headset com 3 disponíveis (mínimo 5)', lida: true }
     ],
@@ -404,7 +401,7 @@ export function seed(agora = Date.now()) {
     modulos: { termo: true, dossie: true, benhub: true, argus: false },
     canais: [
       { id: 'e1', evento: 'Chamado aberto, mudança de status e fechamento', grupo: 'Grupo do supervisor da equipe', canal: 'BenHub', ativo: true },
-      { id: 'e2', evento: 'Chamado novo e SLA perto de estourar', grupo: 'Grupo do TI', canal: 'BenHub', ativo: true },
+      { id: 'e2', evento: 'Chamado novo e chamado prioritário', grupo: 'Grupo do TI', canal: 'BenHub', ativo: true },
       { id: 'e3', evento: 'Incidente geral detectado', grupo: 'Supervisores + TI', canal: 'BenHub', ativo: true },
       { id: 'e4', evento: 'Estoque mínimo atingido, garantia vencendo', grupo: 'TI / Administração', canal: 'BenHub', ativo: true },
       { id: 'e5', evento: 'Relatórios automáticos (diário, semanal, mensal)', grupo: 'Gestão', canal: 'E-mail', ativo: true }

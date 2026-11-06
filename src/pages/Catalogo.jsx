@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { Plus, Trash2, ArrowUp, Upload, Users2 } from 'lucide-react';
 import { useStore } from '../store/store.jsx';
-import { PRIORIDADES } from '../lib/rules.ts';
 import { normalizar } from '../lib/format.ts';
 import { PageHead, New, Note } from '../components/ui.jsx';
 
@@ -17,7 +16,7 @@ function importarCsv(texto, catalogo) {
     let C = cat.find((x) => normalizar(x.nome) === normalizar(c));
     if (!C) { C = { id: nid('c'), nome: c, icone: 'app', equipe: 'TI', subs: [] }; cat.push(C); }
     let T = C.subs.find((x) => normalizar(x.nome) === normalizar(t));
-    if (!T) { T = { id: nid('b'), nome: t, prio: 'Média', sla: 240, sits: [{ id: nid('s'), nome: 'Outros', passos: [], outros: true }] }; C.subs.push(T); }
+    if (!T) { T = { id: nid('b'), nome: t, prioritario: false, sits: [{ id: nid('s'), nome: 'Outros', passos: [], outros: true }] }; C.subs.push(T); }
     if (T.sits.some((x) => normalizar(x.nome) === normalizar(s))) return;
     T.sits.splice(T.sits.length - 1, 0, { id: nid('s'), nome: s, passos: passos.split('|').map((x) => x.trim()).filter(Boolean) });
     criadas++;
@@ -62,7 +61,7 @@ export default function Catalogo() {
           ))}
           <button type="button" className="btn btn-dashed btn-sm" onClick={() => {
             const nome = prompt('Nome da nova categoria'); if (!nome?.trim()) return;
-            editar((cat) => cat.push({ id: nid('c'), nome: nome.trim(), icone: 'app', equipe: 'TI', subs: [{ id: nid('b'), nome: 'Geral', prio: 'Média', sla: 240, sits: [{ id: nid('s'), nome: 'Outros', passos: [], outros: true }] }] }), `Categoria criada: ${nome}`);
+            editar((cat) => cat.push({ id: nid('c'), nome: nome.trim(), icone: 'app', equipe: 'TI', subs: [{ id: nid('b'), nome: 'Geral', prioritario: false, sits: [{ id: nid('s'), nome: 'Outros', passos: [], outros: true }] }] }), `Categoria criada: ${nome}`);
           }}><Plus size={14} /> Categoria</button>
           <label className="field mt-2"><span className="flex flex-wrap items-center gap-2"><Users2 size={14} /> Equipe responsável por “{C.nome}”</span>
             <select className="select" value={C.equipe} onChange={(e) => editar((cat, c) => { c.equipe = e.target.value; }, `${C.nome}: equipe ${e.target.value}`)}>
@@ -75,21 +74,17 @@ export default function Catalogo() {
           <div className="flex flex-wrap items-center justify-between gap-3"><b>2. Tipos</b><span className="badge badge-sm b-ok">JÁ EXISTE</span></div>
           {C.subs.map((s, i) => (
             <button key={s.id} type="button" style={sel(i === si)} aria-pressed={i === si} onClick={() => setSi(i)}>
-              {s.nome}<span className="text-[11px] opacity-[0.8] font-medium">Prioridade {s.prio} · SLA {s.sla >= 60 ? `${s.sla / 60}h` : `${s.sla} min`}{s.item ? ` · item ${s.item}` : ''}</span>
+              {s.nome}<span className="text-[11px] opacity-[0.8] font-medium">{s.prioritario ? 'Prioritário' : 'Normal'}{s.item ? ` · item ${s.item}` : ''}</span>
             </button>
           ))}
           <button type="button" className="btn btn-dashed btn-sm" onClick={() => {
             const nome = prompt('Nome do novo tipo'); if (!nome?.trim()) return;
-            editar((cat, c) => c.subs.push({ id: nid('b'), nome: nome.trim(), prio: 'Média', sla: 240, sits: [{ id: nid('s'), nome: 'Outros', passos: [], outros: true }] }), `Tipo criado: ${nome}`);
+            editar((cat, c) => c.subs.push({ id: nid('b'), nome: nome.trim(), prioritario: false, sits: [{ id: nid('s'), nome: 'Outros', passos: [], outros: true }] }), `Tipo criado: ${nome}`);
           }}><Plus size={14} /> Tipo</button>
-          <div className="grid items-start gap-2 grid-cols-[1fr_1fr] mt-2">
-            <label className="field">Prioridade
-              <select className="select" value={S.prio} onChange={(e) => editar((cat, c, s) => { s.prio = e.target.value; }, `${S.nome}: prioridade ${e.target.value}`)}>{PRIORIDADES.map((p) => <option key={p}>{p}</option>)}</select>
-            </label>
-            <label className="field">SLA (min)
-              <input className="input" type="number" min="15" step="15" defaultValue={S.sla} key={S.id} onBlur={(e) => { const v = Number(e.target.value); if (v >= 15 && v !== S.sla) editar((cat, c, s) => { s.sla = v; }, `${S.nome}: SLA ${v} min`); }} />
-            </label>
-          </div>
+          <label className="check mt-2 rounded-xl border border-linha px-3 py-2.5">
+            <input type="checkbox" checked={!!S.prioritario} onChange={(e) => editar((cat, c, s) => { s.prioritario = e.target.checked; }, `${S.nome}: ${e.target.checked ? 'prioritário' : 'normal'}`)} />
+            <span className="flex flex-col"><b className="text-[13px]">“{S.nome}” é prioritário</b><span className="text-xs text-mudo">Chamados deste tipo vão para o topo da fila do TI.</span></span>
+          </label>
         </section>
 
         <section className="card flex flex-col gap-1.5">

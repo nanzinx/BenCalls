@@ -3,10 +3,7 @@ import { AlertTriangle, Paperclip, ClipboardCheck, ChevronRight } from 'lucide-r
 import { useStore } from '../store/store.jsx';
 import { baiaCodigo, nomeUser } from '../store/selectors.js';
 import { numeroChamado, idade } from '../lib/format.ts';
-import { StatusBadge, PrioBadge, Sla } from './ui.jsx';
-
-/** Faixa à esquerda com a cor da prioridade: dá para varrer a lista só pela cor. */
-const FAIXA = { Crítica: 'before:bg-ruim-ponto', Alta: 'before:bg-laranja', Média: 'before:bg-aviso-ponto', Baixa: 'before:bg-cinza-ponto' };
+import { StatusBadge, PrioBadge } from './ui.jsx';
 
 export default function TicketCard({ c, onClick, sel, modo = 'lista' }) {
   const { st, user, agora } = useStore();
@@ -27,19 +24,17 @@ export default function TicketCard({ c, onClick, sel, modo = 'lista' }) {
     <button
       type="button"
       onClick={onClick}
-      aria-label={`Abrir chamado ${numeroChamado(c.id)}: ${c.titulo}, ${c.status}`}
+      aria-label={`Abrir chamado ${numeroChamado(c.id)}: ${c.titulo}, ${c.status}${c.prioritario ? ', prioritário' : ''}`}
       className={clsx(
-        'ticket group relative overflow-hidden pl-4 before:absolute before:inset-y-0 before:left-0 before:w-1 before:content-[""]',
-        FAIXA[c.prioridade],
+        'ticket group relative overflow-hidden',
+        // Faixa vermelha à esquerda só nos prioritários: dá para varrer a lista pela cor.
+        c.prioritario && 'pl-4 before:absolute before:inset-y-0 before:left-0 before:w-1 before:bg-ruim-ponto before:content-[""]',
         sel && 'sel',
         !kanban && 'md:grid md:grid-cols-[minmax(0,1fr)_auto_auto] md:items-center md:gap-5'
       )}
     >
       <span className="flex min-w-0 flex-col gap-1">
-        <span className="flex items-start justify-between gap-2">
-          <span className="t-title leading-snug">{c.titulo}</span>
-          {kanban && <PrioBadge prio={c.prioridade} />}
-        </span>
+        <span className="t-title leading-snug">{c.titulo}</span>
         <span className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-xs text-mudo">
           <span className="font-semibold">{numeroChamado(c.id)}</span>
           <span aria-hidden="true">·</span>
@@ -49,14 +44,14 @@ export default function TicketCard({ c, onClick, sel, modo = 'lista' }) {
         </span>
       </span>
       {kanban ? (
-        <span className="flex flex-col gap-1.5">
-          <Sla ch={c} agora={agora} bar />
-          <span className="flex items-center justify-between">{sinais}</span>
+        <span className="flex items-center justify-between gap-2">
+          <PrioBadge prioritario={c.prioritario} />
+          {sinais}
         </span>
       ) : (
         <>
           <span className="flex items-center gap-3 max-md:mt-1">
-            <Sla ch={c} agora={agora} />
+            <PrioBadge prioritario={c.prioritario} />
             {sinais}
           </span>
           <span className="flex items-center gap-2 max-md:mt-1">

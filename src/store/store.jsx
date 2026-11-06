@@ -7,12 +7,12 @@ import { DIA } from '../lib/format.ts';
 import { numeroChamado } from '../lib/format.ts';
 import { ITEM_NOMES, posicoesDaMesa, posKey } from '../lib/labels.ts';
 import {
-  alertaTriagem, passoOk, prioridadePorImpacto, slaDaPrioridade, PRIORIDADES,
+  alertaTriagem, passoOk, ehPrioritario,
   podeTransicionar, LOCAL_DO_STATUS, podeReabrir, ABERTOS
 } from '../lib/rules.ts';
 import { baiaCodigo, codigoItem, indiceCatalogo, layoutById, nomeUser, estoquePorTipo } from './selectors.js';
 
-const KEY = 'bencalls:demo:v4';
+const KEY = 'bencalls:demo:v5';
 const SESS = 'bencalls:sessao';
 const SESSAO_HORAS = 8;
 
@@ -21,7 +21,7 @@ function carregar() {
     const raw = localStorage.getItem(KEY);
     if (raw) {
       const st = JSON.parse(raw);
-      if (st && st.versao === 4) return st;
+      if (st && st.versao === 5) return st;
     }
   } catch { /* storage indisponível */ }
   return seed();
@@ -164,17 +164,15 @@ export function StoreProvider({ children }) {
           const id = s.seqChamado++;
           const princ = sitsUsadas[0];
           const parado = sitsUsadas.some((x) => x.para) || !!p.parado;
-          let prioBase = princ.sub.prio;
-          for (const x of sitsUsadas) if (PRIORIDADES.indexOf(x.sub.prio) < PRIORIDADES.indexOf(prioBase)) prioBase = x.sub.prio;
-          const prio = prioridadePorImpacto(prioBase, parado);
+          const prioritario = ehPrioritario({ tipoPrioritario: sitsUsadas.some((x) => x.sub.prioritario), operadorParado: parado });
           const alerta = alertaTriagem(p.triagem || []);
           const titulo = itensSel.length > 1
             ? `${itensSel.length} itens — ${itensSel.map((i) => `${ITEM_NOMES[i.tipo] || 'Baia'}: ${sits[i.sitId].nome}`).join(', ')}`
             : `${princ.sub.nome} — ${princ.outros ? `Outros: ${(p.textoOutros || p.descricao || '').trim().slice(0, 48)}` : princ.nome}`;
           const c = {
             id, titulo: p.titulo || titulo, catId: princ.cat.id, subId: princ.sub.id, sitId: princ.id,
-            categoria: princ.cat.nome, sub: princ.sub.nome, situacao: princ.nome, prioridade: prio,
-            slaMin: slaDaPrioridade(prio, princ.sub.sla), depto: p.depto || princ.cat.equipe,
+            categoria: princ.cat.nome, sub: princ.sub.nome, situacao: princ.nome, prioritario,
+            depto: p.depto || princ.cat.equipe,
             layoutId: p.layoutId || null, pos: p.pos || null, local: p.local || '',
             itens: itensSel.filter((i) => i.assetId).map((i) => ({ assetId: i.assetId, tipo: i.tipo, situacao: sits[i.sitId].outros ? `Outros: ${i.texto}` : sits[i.sitId].nome, sitId: i.sitId })),
             ocupante: p.layoutId ? s.ocupacao[`${p.layoutId}:${p.pos}`]?.nome || 'Sem ocupante' : '—',
@@ -187,7 +185,7 @@ export function StoreProvider({ children }) {
           s.chamados.push(c);
           const onde = c.layoutId ? baiaCodigo(s, c.layoutId, c.pos) : c.local || 'sem baia';
           ctx.audit('Chamado aberto', numeroChamado(id), `${c.titulo} · ${onde}`);
-          ctx.notificar(c.depto === 'Facilities' ? 'Facilities' : 'TI', `Novo chamado ${numeroChamado(id)} · ${onde} · ${c.titulo} · prioridade ${prio}${alerta ? ' · ⚠ alerta de triagem' : ''}`);
+          ctx.notificar(c.depto === 'Facilities' ? 'Facilities' : 'TI', `Novo chamado ${numeroChamado(id)} · ${onde} · ${c.titulo}${prioritario ? ' · PRIORITÁRIO' : ''}${alerta ? ' · ⚠ alerta de triagem' : ''}`);
           if (c.layoutId) ctx.notificar(grupoSup(s, c), `Chamado ${numeroChamado(id)} aberto para ${onde}.`);
           return id;
         });
@@ -207,6 +205,16 @@ export function StoreProvider({ children }) {
           const c = achar(s, id);
           c.tecnicoId = c.tecnicoId || ctx.eu;
           mudar(s, ctx, c, 'Em Execução', 'Atendimento iniciado.');
+        });
+      },
+      // O TI pode marcar ou tirar a prioridade de um chamado (fica no histórico).
+      definirPrioridade(id, prioritario) {
+        mutate((s, ctx) => {
+          const c = achar(s, id);
+          c.prioritario = prioritario;
+          const just = prioritario ? 'Marcado como prioritário.' : 'Prioridade retirada.';
+          c.hist.push({ status: c.status, at: ctx.agora, just, user: ctx.eu });
+          ctx.audit(prioritario ? 'Marcado como prioritário' : 'Prioridade retirada', numeroChamado(id), nomeUser(s, ctx.eu));
         });
       },
       assumir(id) {
@@ -466,6 +474,14 @@ export function StoreProvider({ children }) {
           ctx.audit(i >= 0 ? 'Usuário alterado' : 'Usuário criado', u.user, `${u.cargo} · ${u.perfil}`);
         });
       },
+      // A senha provisória é mostrada uma vez e não fica guardada aqui (na API: hash).
+      redefinirSenha(id) {
+        mutate((s, ctx) => {
+          const u = s.usuarios.find((x) => x.id === id);
+          u.trocaSenha = true;
+          ctx.audit('Senha provisória gerada', u.user, nomeUser(s, ctx.eu));
+        });
+      },
       salvarTema(t) {
         mutate((s, ctx) => {
           s.tema = { ...s.tema, ...t };
@@ -491,7 +507,7 @@ export function StoreProvider({ children }) {
     };
   }, [mutate, toast]);
 
-  // RF14: alerta de SLA perto de estourar (verificação periódica, como o @Scheduled do Spring).
+  // Relógio da tela ("há 5 min"), atualizado a cada 30 s.
   const [agora, setAgora] = useState(Date.now());
   useEffect(() => {
     const t = setInterval(() => setAgora(Date.now()), 30_000);

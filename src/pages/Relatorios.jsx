@@ -1,12 +1,12 @@
 import { useMemo, useState } from 'react';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid, LineChart, Line, Legend } from 'recharts';
-import { Download, Printer, Ticket, Sparkles, Timer, Target, RotateCcw, UserX } from 'lucide-react';
+import { Download, Printer, Ticket, Sparkles, Flame, RotateCcw, UserX } from 'lucide-react';
 import { useStore } from '../store/store.jsx';
 import { baiaCodigo, nomeUser } from '../store/selectors.js';
-import { minutosConsumidos, ABERTOS } from '../lib/rules.ts';
+import { ABERTOS } from '../lib/rules.ts';
 import { DIA, duracao, dataCurta, pad } from '../lib/format.ts';
 import { baixarCsv } from '../lib/csv.ts';
-import { PageHead, Kpi, Pills, AjudaSla } from '../components/ui.jsx';
+import { PageHead, Kpi, Pills } from '../components/ui.jsx';
 
 // Duas séries validadas (slots 1 e 2 da paleta categórica de referência).
 const S1 = '#2a78d6';
@@ -61,8 +61,6 @@ export default function Relatorios() {
     const ini = agora - dias * DIA;
     const cs = st.chamados.filter((c) => c.criadoEm >= ini);
     const concl = cs.filter((c) => c.solucao && c.status === 'Concluído');
-    const tempos = concl.map((c) => (c.solucao.at - c.criadoEm) / 60000);
-    const slaOk = concl.filter((c) => minutosConsumidos(c.hist.filter((h) => h.at <= c.solucao.at), c.solucao.at) <= c.slaMin).length;
     const tri = st.triagensResolvidas.filter((t) => t.at >= ini);
     const comTriagem = cs.filter((c) => c.triagem.length > 0);
     const porCat = {}; const porEquipe = {}; const porBaia = {}; const causas = {}; const parado = {}; const porSup = {};
@@ -100,9 +98,7 @@ export default function Relatorios() {
     }
     return {
       cs, concl, tri, total: cs.length,
-      tempoMedio: tempos.length ? tempos.reduce((a, b) => a + b, 0) / tempos.length : 0,
-      slaPct: concl.length ? Math.round((slaOk / concl.length) * 100) : 0,
-      foraSla: concl.length - slaOk,
+      prioritarios: cs.filter((c) => c.prioritario).length,
       triPct: tri.length + comTriagem.length ? Math.round((tri.length / (tri.length + comTriagem.length)) * 100) : 0,
       reab: cs.reduce((n, c) => n + (c.reaberturas || 0), 0),
       paradoTotal: Object.values(parado).reduce((a, b) => a + b, 0),
@@ -119,14 +115,13 @@ export default function Relatorios() {
         <Pills label="Período" value={dias} onChange={setDias} options={[{ value: 7, label: '7 dias' }, { value: 30, label: '30 dias' }, { value: 90, label: '90 dias' }]} />
         <button type="button" className="btn no-print" onClick={() => window.print()}><Printer size={15} /> PDF</button>
         <button type="button" className="btn btn-primary no-print" onClick={csv('chamados', ['Número', 'Aberto em', 'Categoria', 'Tipo', 'Situação', 'Baia', 'Prioridade', 'Status', 'Solicitante', 'Técnico', 'Laudo'],
-          r.cs.map((c) => [`#2026-${pad(c.id, 4)}`, dataCurta(c.criadoEm), c.categoria, c.sub, c.situacao, c.layoutId ? baiaCodigo(st, c.layoutId, c.pos) : c.local, c.prioridade, c.status, nomeUser(st, c.remetenteId), c.tecnicoId ? nomeUser(st, c.tecnicoId) : '', c.solucao?.causa || '']))}><Download size={15} /> Excel (CSV)</button>
+          r.cs.map((c) => [`#2026-${pad(c.id, 4)}`, dataCurta(c.criadoEm), c.categoria, c.sub, c.situacao, c.layoutId ? baiaCodigo(st, c.layoutId, c.pos) : c.local, c.prioritario ? 'Prioritário' : 'Normal', c.status, nomeUser(st, c.remetenteId), c.tecnicoId ? nomeUser(st, c.tecnicoId) : '', c.solucao?.causa || '']))}><Download size={15} /> Excel (CSV)</button>
       </PageHead>
 
       <div className="grid-kpi">
         <Kpi icon={Ticket} label="Chamados no período" valor={r.total} sub={`${r.concl.length} concluídos`} />
         <Kpi icon={Sparkles} tom="info" label="Resolvidos na triagem" valor={`${r.triPct}%`} sub={`${r.tri.length} sem abrir chamado`} />
-        <Kpi icon={Timer} label="Tempo médio de resolução" valor={duracao(r.tempoMedio)} title="Da abertura à solução registrada" />
-        <Kpi icon={Target} ajuda={<AjudaSla />} label="SLA cumprido" valor={`${r.slaPct}%`} tom="ok" sub={`${r.foraSla} fora do prazo`} destaque={r.slaPct < 85} />
+        <Kpi icon={Flame} tom="ruim" label="Prioritários" valor={r.prioritarios} sub={`${r.total ? Math.round((r.prioritarios / r.total) * 100) : 0}% dos chamados`} />
         <Kpi icon={UserX} tom="aviso" label="Operador parado" valor={duracao(r.paradoTotal)} title="Tempo somado de todas as baias" />
         <Kpi icon={RotateCcw} label="Reaberturas" valor={r.reab} title="Chamados que voltaram após o fechamento" />
       </div>
