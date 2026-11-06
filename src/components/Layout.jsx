@@ -70,7 +70,7 @@ export function useMenu() {
     const dossies = st.dossies.filter((d) => d.status === 'Aguardando RH').length;
     const alertasEst = estoquePorTipo(st).filter((t) => t.abaixo).length + st.itens.filter((i) => i.descartePendente).length;
     const minhas = new Set(layoutsDoUsuario(st, user).map((l) => l.id));
-    // WhatsApp das Baias: o que pede ação (banido sem análise, análise atrasada, restrição vencida, perdido)
+    // Controle de WhatsApps: o que pede ação (banido sem análise, análise atrasada, restrição vencida, perdido)
     const mapaWpp = st.whatsapp && (user.perfil === 'supervisor' ? filtrarMapaParaSupervisor(st.whatsapp, { id: user.id, displayName: user.nome, username: user.user }) : st.whatsapp);
     const wpp = st.modulos.whatsapp && mapaWpp ? alertasUrgentes(mapaWpp, new Date()).length : 0;
     const termosPend = Object.entries(st.termos).filter(([k, t]) => !t.assinadoEm && minhas.has(k.split(':')[0])).length;
@@ -79,7 +79,7 @@ export function useMenu() {
       { to: '/novo', label: 'Novo chamado', icon: PlusCircle, a: 'RC' },
       { to: '/painel', label: 'Painel de chamados', icon: KanbanSquare, a: 'PC', badge: emAnalise },
       { to: '/mapa', label: 'Mapa geral', icon: Map, a: 'MAPA' },
-      { to: '/whatsapp', label: 'WhatsApp das Baias', icon: Smartphone, a: 'WPP', mod: 'whatsapp', badge: wpp, warn: true },
+      { to: '/whatsapp', label: 'Controle de WhatsApps', icon: Smartphone, a: 'WPP', mod: 'whatsapp', badge: wpp, warn: true },
       { to: '/revisao', label: 'Revisão de "Outros"', icon: ClipboardCheck, a: 'REV', badge: outros, warn: true },
       { to: '/estoque', label: 'Estoque e patrimônio', icon: Package, a: 'EST', badge: alertasEst, warn: true },
       { to: '/termos', label: 'Termos de responsabilidade', icon: FileSignature, a: 'TERMO', mod: 'termo', badge: termosPend },

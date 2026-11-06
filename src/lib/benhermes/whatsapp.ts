@@ -1,7 +1,7 @@
-// Copiado do BenHermes (src/types/whatsapp.ts, commit 7c8b21c) por scripts/sincronizar-benhermes.mjs.
+// Copiado do BenHermes (src/types/whatsapp.ts, commit 3dc7b7a) por scripts/sincronizar-benhermes.mjs.
 // Não edite aqui: mude no BenHermes e rode o script de novo, para as regras continuarem iguais nos dois.
 /**
- * Tipos do WhatsApp das Baias.
+ * Tipos do Controle de WhatsApps.
  * Mesas e posições seguem o modelo do protótipo do Sistema de Chamados (OP1-E3, OP1-SUP...),
  * para o mapa poder ser levado para lá no futuro. Datas em ISO.
  */
@@ -29,7 +29,7 @@ export interface Lugar {
 
 /**
  * Quem fica no centro da mesa. SUPSUB (supervisor + sub-líder) existe pelo site de chamados;
- * o WhatsApp das Baias usa só SUP ou NENHUM.
+ * o Controle de WhatsApps usa só SUP ou NENHUM.
  */
 export type Centro = 'SUP' | 'SUPSUB' | 'NENHUM';
 

@@ -1,4 +1,4 @@
-// Copiado do BenHermes (src/utils/whatsappBaias.test.ts, commit 7c8b21c) por scripts/sincronizar-benhermes.mjs.
+// Copiado do BenHermes (src/utils/whatsappBaias.test.ts, commit 3dc7b7a) por scripts/sincronizar-benhermes.mjs.
 // Não edite aqui: mude no BenHermes e rode o script de novo, para as regras continuarem iguais nos dois.
 import { describe, expect, it } from './vitest.ts';
 import type { MapaWhatsapp } from '../../src/lib/benhermes/whatsapp.ts';
@@ -295,7 +295,7 @@ describe('versão 3', () => {
       { ...base, inicioDoHistorico: undefined },
     ];
     for (const r of ruins) {
-      expect(() => importarMapa(exportarMapa(r as MapaWhatsapp, AGORA), AGORA)).toThrow('não é um mapa do WhatsApp das Baias válido');
+      expect(() => importarMapa(exportarMapa(r as MapaWhatsapp, AGORA), AGORA)).toThrow('não é um mapa do Controle de WhatsApps válido');
     }
   });
 });

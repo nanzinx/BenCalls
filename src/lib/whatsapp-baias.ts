@@ -1,4 +1,4 @@
-// Ponte entre o WhatsApp das Baias (regras do BenHermes, em ./benhermes) e as baias do BenCalls.
+// Ponte entre o Controle de WhatsApps (regras do BenHermes, em ./benhermes) e as baias do BenCalls.
 // As duas pontas usam o mesmo código de baia (OP1-E3): a mesa do WhatsApp é achada pela sigla,
 // que é a "base" do layout no BenCalls. Tudo puro; "agora" vem por parâmetro.
 import type { Layout } from './tipos.ts';
@@ -156,7 +156,7 @@ export function divergencias(mapa: MapaWhatsapp, layouts: LayoutBenCalls[], ocup
   const out: Divergencia[] = [];
   const siglas = new Set(layouts.map((l) => l.base.toUpperCase()));
   for (const s of mapa.salas) for (const m of s.mesas) {
-    if (!siglas.has(m.sigla.toUpperCase())) out.push({ tipo: 'mesa-so-no-whatsapp', codigo: m.sigla, texto: `${m.sigla} (${m.nome}) existe no WhatsApp das Baias, mas não nas mesas do BenCalls.` });
+    if (!siglas.has(m.sigla.toUpperCase())) out.push({ tipo: 'mesa-so-no-whatsapp', codigo: m.sigla, texto: `${m.sigla} (${m.nome}) existe no Controle de WhatsApps, mas não nas mesas do BenCalls.` });
   }
   for (const L of layouts) {
     const achada = acharMesa(mapa, L.base);

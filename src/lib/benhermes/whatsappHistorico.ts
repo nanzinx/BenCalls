@@ -1,4 +1,4 @@
-// Copiado do BenHermes (src/utils/whatsappHistorico.ts, commit 7c8b21c) por scripts/sincronizar-benhermes.mjs.
+// Copiado do BenHermes (src/utils/whatsappHistorico.ts, commit 3dc7b7a) por scripts/sincronizar-benhermes.mjs.
 // Não edite aqui: mude no BenHermes e rode o script de novo, para as regras continuarem iguais nos dois.
 import type { EventoWhatsapp, MapaWhatsapp, Mesa, Situacao, TipoEvento } from './whatsapp.ts';
 import { nomeDoCelular } from './celulares.ts';

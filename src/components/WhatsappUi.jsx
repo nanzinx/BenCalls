@@ -1,4 +1,4 @@
-// Peças do WhatsApp das Baias usadas na página, no detalhe da baia e no mapa.
+// Peças do Controle de WhatsApps usadas na página, no detalhe da baia e no mapa.
 import { useState } from 'react';
 import clsx from 'clsx';
 import { Smartphone, PlusCircle, ExternalLink } from 'lucide-react';
@@ -128,7 +128,7 @@ export function SecaoWhatsappDaBaia({ layout, pos }) {
     try {
       const id = actions.abrirChamado({
         layoutId: layout.id, pos, sitId: sitPerdido.id, triagem: [],
-        descricao: `Número ${numero || 'sem número anotado'}${w.ligada ? ` (${textoDoLocal(w.ligada.celular, w.ligada.vaga)})` : ''} perdido no WhatsApp das Baias. Trocar o chip da vaga.`
+        descricao: `Número ${numero || 'sem número anotado'}${w.ligada ? ` (${textoDoLocal(w.ligada.celular, w.ligada.vaga)})` : ''} perdido no Controle de WhatsApps. Trocar o chip da vaga.`
       });
       toast(`Chamado ${numeroChamado(id)} aberto para trocar o chip.`);
     } catch (e) { toast(e.message, 'bad'); }
@@ -152,7 +152,7 @@ export function SecaoWhatsappDaBaia({ layout, pos }) {
           <button type="button" className="btn btn-sm" onClick={abrirTrocaDeChip}><PlusCircle size={14} /> Abrir chamado para trocar o chip</button>
         )}
         {chamadoAberto && <span className="text-xs text-mudo">Chamado {numeroChamado(chamadoAberto.id)} aberto para este WhatsApp.</span>}
-        <button type="button" className="btn btn-sm btn-ghost ml-auto" onClick={() => nav('/whatsapp')}><ExternalLink size={14} /> WhatsApp das Baias</button>
+        <button type="button" className="btn btn-sm btn-ghost ml-auto" onClick={() => nav('/whatsapp')}><ExternalLink size={14} /> Controle de WhatsApps</button>
       </div>
     </section>
   );

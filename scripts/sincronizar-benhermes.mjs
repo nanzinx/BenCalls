@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Traz a lógica do WhatsApp das Baias do BenHermes para o BenCalls, sem mudar uma linha das regras.
+// Traz a lógica do Controle de WhatsApps do BenHermes para o BenCalls, sem mudar uma linha das regras.
 //
 //   node scripts/sincronizar-benhermes.mjs ../BENHERMES
 //

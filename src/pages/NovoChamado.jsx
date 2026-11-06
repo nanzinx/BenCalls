@@ -107,7 +107,7 @@ function PorMapa() {
   const opcoes = [
     ...itens.map((it) => ({ key: it.id, it, sub: subDoItem(st, it.tipo), code: codigoItem(st, it), nome: nomeItem(it.tipo) })),
     { key: 'BAIA', it: null, sub: subBaia, code: 'Sem etiqueta', nome: 'Problema na baia (sem item)', desc: 'cadeira, tomada, mobiliário', sigla: '—' },
-    // WhatsApp das Baias (BenHermes): "WhatsApp banido" já marca o número no mapa do WhatsApp.
+    // Controle de WhatsApps (BenHermes): "WhatsApp banido" já marca o número no mapa do WhatsApp.
     ...(st.modulos.whatsapp && subs.b12 && sel && sel !== 'SUB' ? [{
       key: 'WPP', it: null, sub: subs.b12, nome: 'WhatsApp da baia', desc: 'banido, chip perdido, celular', sigla: 'WA',
       code: (() => { const w = whatsappDaBaia(st.whatsapp, L.base, sel, new Date(agora)); return w ? `WhatsApp: ${TEXTO_SITUACAO[w.estado.situacao]}` : 'Sem WhatsApp no mapa'; })()

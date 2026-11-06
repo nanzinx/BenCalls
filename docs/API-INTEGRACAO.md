@@ -3,7 +3,7 @@
 Os dois sistemas conversam por **eventos assinados**. Exemplo do dia a dia:
 
 1. A supervisora abre no BenCalls o chamado **“WhatsApp banido”** na baia `OP1-E3`.
-2. O chamado aparece no BenHermes, em *WhatsApp das Baias › Chamados do BenCalls*.
+2. O chamado aparece no BenHermes, em *Controle de WhatsApps › Chamados do BenCalls*.
 3. Na manutenção, o TI marca no BenHermes **📨 Pedi análise** e depois **🟢 Liberado**.
 4. O BenHermes avisa o BenCalls na hora: lá o WhatsApp de `OP1-E3` fica **OK** e o chamado é
    **concluído** (“Resolvido no BenHermes: liberado na manutenção (manhã)”), com aviso para a supervisão.
@@ -18,7 +18,7 @@ Os dois sistemas conversam por **eventos assinados**. Exemplo do dia a dia:
                                                   → WhatsApp OK + chamado concluído
 
  Chamados do BenCalls ◀── POST /api/integracoes/bencalls/eventos ─────── chamado de WhatsApp
- (lista no WhatsApp das Baias)                                           aberto/concluído
+ (lista no Controle de WhatsApps)                                           aberto/concluído
 ```
 
 ## Segurança
@@ -58,7 +58,7 @@ Os dois sistemas conversam por **eventos assinados**. Exemplo do dia a dia:
    Fora do Docker: `BENHERMES_SEGREDO=<segredo>` e, de preferência, `DADOS_DIR=<pasta gravável>`.
 3. **BenHermes**: `BENCALLS_URL=https://chamados.benconsig.com` e `BENCALLS_SEGREDO=<segredo>`
    (ou `BENCALLS_SEGREDO_ARQUIVO`). Reinicie. O log mostra `Integração BenCalls: envio ligado · recebimento ligado`.
-4. Confira: no BenCalls, *WhatsApp das Baias › BenHermes* mostra **Ligada**; no BenHermes,
+4. Confira: no BenCalls, *Controle de WhatsApps › BenHermes* mostra **Ligada**; no BenHermes,
    `GET /api/integracoes/bencalls/status` (Admin) mostra `pendentes: 0` e o último envio.
 
 Para testar sem o BenHermes (manda um evento assinado para o BenCalls):
@@ -92,7 +92,7 @@ Os eventos ficam em `DADOS_DIR/benhermes-eventos.jsonl` (vale entre os processos
   como “WhatsApp banido” e “Número perdido”). Número que caiu ou foi perdido avisa a supervisão da equipe.
 - `manutencao.concluida`: avisa o grupo do TI (“Manutenção da manhã concluída no BenHermes: 6 celulares, 3 ações”).
 
-Tudo aparece em *WhatsApp das Baias › BenHermes › Últimos eventos recebidos*, que também tem um botão para
+Tudo aparece em *Controle de WhatsApps › BenHermes › Últimos eventos recebidos*, que também tem um botão para
 **simular** o evento de liberação (demonstração).
 
 ## No BenHermes

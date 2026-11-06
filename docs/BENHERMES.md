@@ -1,6 +1,6 @@
-# 💬 WhatsApp das Baias: integração com o BenHermes
+# 💬 Controle de WhatsApps: integração com o BenHermes
 
-O **WhatsApp das Baias** nasceu no BenHermes para substituir a planilha *RELATORIO-WHATSAPP-INTUITIVO*.
+O **Controle de WhatsApps** nasceu no BenHermes para substituir a planilha *RELATORIO-WHATSAPP-INTUITIVO*.
 No BenCalls ele fica **ligado às baias**: a mesma baia `OP1-E3` mostra os itens, os chamados e o WhatsApp dela.
 O objetivo é ter mais controle dos números e facilitar a manutenção diária.
 
@@ -8,7 +8,7 @@ O objetivo é ter mais controle dos números e facilitar a manutenção diária.
 
 | Onde | O quê |
 |---|---|
-| **Menu › WhatsApp das Baias** | Mapa das mesas pintado pela situação do WhatsApp, os números grandes (OK, banidos, em análise, restringidos, perdidos) e o bloco **Atenção** com os botões do ciclo do banimento. O contador do menu mostra o que pede ação. |
+| **Menu › Controle de WhatsApps** | Mapa das mesas pintado pela situação do WhatsApp, os números grandes (OK, banidos, em análise, restringidos, perdidos) e o bloco **Atenção** com os botões do ciclo do banimento. O contador do menu mostra o que pede ação. |
 | **Detalhe da baia** (qualquer mapa) | Situação do número, celular e vaga ligados, número do chip e os botões (⛔ Caiu, 📨 Pedi análise, 🟢 Liberado, ✖️ Perdido, 🔁 Troquei o chip, 🟢 Voltou). Número perdido tem o botão **Abrir chamado para trocar o chip**. |
 | **Manutenção** | Manhã e almoço da operação: celular por celular, os botões, **✅ Celular conferido**, observação e o texto *REGISTRO DE MANUTENÇÃO — WHATSAPP* pronto para copiar. Se a página fechar, a manutenção continua de onde parou. |
 | **Celulares** | Cada celular (cor da capinha, marca, equipe) com as vagas, quem usa, o número e a situação. |
@@ -18,14 +18,14 @@ O objetivo é ter mais controle dos números e facilitar a manutenção diária.
 ### Como os dois se conversam
 
 - **Chamado ⇄ WhatsApp.** O catálogo ganhou *WhatsApp e celular › WhatsApp da baia*. Abrir um chamado
-  **“WhatsApp banido”** pelo mapa já marca o número como banido no WhatsApp das Baias. Cada botão apertado
+  **“WhatsApp banido”** pelo mapa já marca o número como banido no Controle de WhatsApps. Cada botão apertado
   depois (análise pedida, liberado, chip trocado…) entra no histórico do chamado aberto daquela baia.
 - **Ocupante ⇄ operador.** Trocar o ocupante da baia no BenCalls troca o operador no mapa do WhatsApp
   (e grava no histórico dele, como no BenHermes).
 - **Avisos.** Quando um número cai ou é perdido, a supervisão da equipe recebe o aviso (BenHub ou e-mail).
 - **Quem mexe.** TI e gestão veem tudo e fazem a manutenção. O supervisor vê **só a própria equipe** e pode
   atualizar a situação dela, pela mesma regra do BenHermes (`filtrarMapaParaSupervisor`). Código de acesso: `WPP`.
-- **Módulo.** Liga e desliga em *Personalização › Módulos › WhatsApp das Baias (BenHermes)*.
+- **Módulo.** Liga e desliga em *Personalização › Módulos › Controle de WhatsApps (BenHermes)*.
 
 ## As regras são as do BenHermes, sem cópia manual
 
@@ -54,7 +54,7 @@ fica em [`src/lib/whatsapp-baias.ts`](../src/lib/whatsapp-baias.ts), com testes 
 
 O mapa é o `.json` **versão 3** do BenHermes (`tipo: benhermes-whatsapp-baias`):
 
-- **BenHermes → BenCalls:** no BenHermes, *Exportar mapa*; no BenCalls, *WhatsApp das Baias › BenHermes ›
+- **BenHermes → BenCalls:** no BenHermes, *Exportar mapa*; no BenCalls, *Controle de WhatsApps › BenHermes ›
   Importar mapa do BenHermes*. A prévia mostra salas, celulares e o que não bate com as baias daqui.
 - **BenCalls → BenHermes:** *Exportar mapa (.json)* aqui e *Importar mapa* lá.
 

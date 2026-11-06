@@ -231,14 +231,14 @@ export function StoreProvider({ children }) {
           ctx.audit('Chamado aberto', numeroChamado(id), `${c.titulo} · ${onde}`);
           ctx.notificar(c.depto === 'Facilities' ? 'Facilities' : 'TI', `Novo chamado ${numeroChamado(id)} · ${onde} · ${c.titulo}${prioritario ? ' · PRIORITÁRIO' : ''}${alerta ? ' · ⚠ alerta de triagem' : ''}`);
           if (c.layoutId) ctx.notificar(grupoSup(s, c), `Chamado ${numeroChamado(id)} aberto para ${onde}.`);
-          // WhatsApp das Baias: chamado "WhatsApp banido" já marca o número como banido no mapa.
+          // Controle de WhatsApps: chamado "WhatsApp banido" já marca o número como banido no mapa.
           if (princ.whatsapp === 'BANIDO' && c.layoutId && s.whatsapp && s.modulos.whatsapp) {
             const L = layoutById(s, c.layoutId);
             const d = new Date(ctx.agora);
             const w = L && whatsappDaBaia(s.whatsapp, L.base, c.pos, d);
             if (w && w.acoes.includes('BANIDO')) {
               s.whatsapp = gravarAlteracao(s.whatsapp, aplicarAcao(s.whatsapp, w.alvo, 'BANIDO', d), d);
-              c.hist.push({ status: c.status, at: ctx.agora, just: `WhatsApp ${w.codigo} marcado como banido no WhatsApp das Baias.`, user: ctx.eu });
+              c.hist.push({ status: c.status, at: ctx.agora, just: `WhatsApp ${w.codigo} marcado como banido no Controle de WhatsApps.`, user: ctx.eu });
             }
           }
           return id;
@@ -489,12 +489,12 @@ export function StoreProvider({ children }) {
           if (n && s.modulos.termo) s.termos[key] = { ocupante: n, geradoEm: ctx.agora, assinadoEm: null, versao: (s.termos[key]?.versao || 0) + 1 };
           if (!n) delete s.termos[key];
           ctx.audit('Ocupação alterada', baiaCodigo(s, layoutId, pos), `${atual?.nome || 'vazia'} → ${n || 'vazia'}`);
-          // O WhatsApp das Baias acompanha quem senta na baia (o BenCalls é quem sabe).
+          // O Controle de WhatsApps acompanha quem senta na baia (o BenCalls é quem sabe).
           const L = layoutById(s, layoutId);
           if (L && s.whatsapp) s.whatsapp = trocarOperador(s.whatsapp, L.base, pos, n, new Date(ctx.agora));
         });
       },
-      // ---------- WhatsApp das Baias (regras do BenHermes; cada mudança entra no histórico dele)
+      // ---------- Controle de WhatsApps (regras do BenHermes; cada mudança entra no histórico dele)
       /** Botão do ciclo do banimento (Caiu, Pedi análise, Liberado, Perdido, Troquei o chip, Voltou). */
       whatsappAcao(alvo, acao, extra) {
         return mutate((s, ctx) => {
@@ -520,7 +520,7 @@ export function StoreProvider({ children }) {
             if (L) {
               for (const c of s.chamados) {
                 if (c.layoutId === L.id && c.pos === alvo.posicao && c.subId === 'b12' && ABERTOS.includes(c.status)) {
-                  c.hist.push({ status: c.status, at: ctx.agora, just: `WhatsApp das Baias: ${ACAO[acao].rotulo.toLowerCase()}${extra?.numeroNovo ? ` (número novo ${extra.numeroNovo})` : ''}.`, user: ctx.eu });
+                  c.hist.push({ status: c.status, at: ctx.agora, just: `Controle de WhatsApps: ${ACAO[acao].rotulo.toLowerCase()}${extra?.numeroNovo ? ` (número novo ${extra.numeroNovo})` : ''}.`, user: ctx.eu });
                 }
               }
             }
@@ -539,13 +539,13 @@ export function StoreProvider({ children }) {
           const r = mudar(antes, d);
           const depois = r && r.salas ? r : r.mapa;
           s.whatsapp = gravarAlteracao(antes, depois, d);
-          if (auditoria) ctx.audit(auditoria.acao, auditoria.alvo || 'WhatsApp das Baias', auditoria.detalhe || '');
+          if (auditoria) ctx.audit(auditoria.acao, auditoria.alvo || 'Controle de WhatsApps', auditoria.detalhe || '');
           return r;
         });
       },
       /**
        * Eventos que chegaram do BenHermes pela API de integração (ou do simulador): atualiza o
-       * WhatsApp das baias e conclui os chamados de WhatsApp quando o número volta a ficar OK.
+       * Controle de WhatsApps e conclui os chamados de WhatsApp quando o número volta a ficar OK.
        */
       aplicarEventosBenHermes(eventos, cursor) {
         return mutate((s, ctx) => {
@@ -567,7 +567,7 @@ export function StoreProvider({ children }) {
       whatsappSubstituir(mapa, origem) {
         mutate((s, ctx) => {
           s.whatsapp = mapa;
-          ctx.audit('WhatsApp: mapa importado', 'WhatsApp das Baias', `${origem} · ${mapa.salas.reduce((n, x) => n + x.mesas.length, 0)} mesas · ${mapa.celulares.length} celulares`);
+          ctx.audit('WhatsApp: mapa importado', 'Controle de WhatsApps', `${origem} · ${mapa.salas.reduce((n, x) => n + x.mesas.length, 0)} mesas · ${mapa.celulares.length} celulares`);
         });
       },
       // RF19: aceite digital do termo.

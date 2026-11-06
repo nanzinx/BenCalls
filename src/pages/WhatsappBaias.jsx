@@ -1,4 +1,4 @@
-// WhatsApp das Baias dentro do BenCalls: as mesmas regras e o mesmo mapa (.json versão 3) do
+// Controle de WhatsApps dentro do BenCalls: as mesmas regras e o mesmo mapa (.json versão 3) do
 // BenHermes, ligados às baias, aos ocupantes e aos chamados daqui.
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { statusDaIntegracao } from '../components/IntegracaoBenHermes.jsx';
@@ -70,7 +70,7 @@ export default function WhatsappBaias() {
 
   return (
     <>
-      <PageHead title="WhatsApp das Baias" badge="BenHermes"
+      <PageHead title="Controle de WhatsApps" badge="BenHermes"
         desc={user.perfil === 'supervisor' ? 'O WhatsApp de cada baia da sua equipe. Clique numa baia para atualizar.' : 'Situação do WhatsApp de cada baia, os celulares e a manutenção, com as mesmas regras do BenHermes.'}>
         <Seg label="Seções" value={aba} onChange={setAba} options={abas} />
       </PageHead>
@@ -418,7 +418,7 @@ function AbaIntegracao({ d }) {
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
     const p = (n) => String(n).padStart(2, '0');
-    a.download = `whatsapp-baias-${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}.json`;
+    a.download = `controle-whatsapps-${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}.json`;
     a.click();
     setTimeout(() => URL.revokeObjectURL(a.href), 1000);
   };
@@ -448,7 +448,7 @@ function AbaIntegracao({ d }) {
       <section className="card flex flex-col gap-3">
         <h2 className="flex items-center gap-2"><PlugZap size={18} /> Mesmo mapa nos dois sistemas</h2>
         <p className="text-sm text-tinta-2">
-          As regras do WhatsApp das Baias são as do BenHermes (commit <span className="font-mono">{VERSAO_BENHERMES}</span>), e o arquivo é o mesmo:
+          As regras do Controle de WhatsApps são as do BenHermes (commit <span className="font-mono">{VERSAO_BENHERMES}</span>), e o arquivo é o mesmo:
           o <b>.json</b> exportado aqui abre no BenHermes em <i>Importar mapa</i>, e o de lá abre aqui. Situações, celulares, histórico e manutenções vão juntos.
         </p>
         <div className="flex flex-wrap gap-2">

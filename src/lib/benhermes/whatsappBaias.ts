@@ -1,11 +1,11 @@
-// Copiado do BenHermes (src/utils/whatsappBaias.ts, commit 7c8b21c) por scripts/sincronizar-benhermes.mjs.
+// Copiado do BenHermes (src/utils/whatsappBaias.ts, commit 3dc7b7a) por scripts/sincronizar-benhermes.mjs.
 // Não edite aqui: mude no BenHermes e rode o script de novo, para as regras continuarem iguais nos dois.
 import type { EstadoWhatsapp, Lugar, MapaWhatsapp, Mesa, Sala, Situacao, WhatsappDoSupervisor } from './whatsapp.ts';
 import type { FormatoMesa } from './mapaMesas.ts';
 import { ajustarLugares, posicoesAtivas } from './mapaMesas.ts';
 
 /**
- * Regras do WhatsApp das Baias: situação de cada lugar, ciclo do banimento, restrição com prazo,
+ * Regras do Controle de WhatsApps: situação de cada lugar, ciclo do banimento, restrição com prazo,
  * mesas e o arquivo .json do mapa. Tudo puro; "agora" vem sempre por parâmetro.
  */
 
@@ -357,7 +357,7 @@ const lerMapa = (bruto: any, agora: Date): MapaWhatsapp => {
     (dados.manutencaoAtual === null || manutencaoValida(dados.manutencaoAtual)) &&
     ehTexto(dados.inicioDoHistorico) &&
     ehTexto(dados.atualizadoEm);
-  if (!valido) throw new Error('O arquivo não é um mapa do WhatsApp das Baias válido.');
+  if (!valido) throw new Error('O arquivo não é um mapa do Controle de WhatsApps válido.');
   return {
     versao: 3,
     salas: dados.salas,
@@ -377,7 +377,7 @@ export const importarMapa = (texto: string, agora: Date): MapaWhatsapp => {
   } catch {
     throw new Error('O arquivo não é um .json válido.');
   }
-  if (dados?.tipo !== TIPO_ARQUIVO) throw new Error('Este arquivo não foi exportado pelo WhatsApp das Baias.');
+  if (dados?.tipo !== TIPO_ARQUIVO) throw new Error('Este arquivo não foi exportado pelo Controle de WhatsApps.');
   return lerMapa(dados, agora);
 };
 

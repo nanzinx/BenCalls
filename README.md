@@ -137,7 +137,7 @@ Todos os perfis **abrem e acompanham chamados**. Na demonstração, qualquer sen
 | 👤 **Logins e acessos** | O TI cria logins com senha provisória, redefine senhas e ajusta os acessos de cada pessoa. |
 | 🔎 **Busca global** | <kbd>Ctrl</kbd> + <kbd>K</kbd> encontra chamado, etiqueta, ID interno, baia ou tela. |
 | 🔔 **Avisos “para você”** | Ao entrar, o site avisa o que chegou para você resolver (encaminhado a você, novo na fila do seu departamento ou que voltou). Contador na aba, sino, alerta na hora (inclusive do navegador) e o TI encaminha para um técnico. |
-| 💬 **WhatsApp das Baias** | Integração com o **BenHermes**: situação do WhatsApp de cada baia, celulares, ciclo do banimento, manutenção com o texto do grupo e o mesmo `.json` nos dois sistemas. Chamado “WhatsApp banido” já marca o número. Veja [`docs/BENHERMES.md`](docs/BENHERMES.md). |
+| 💬 **Controle de WhatsApps** | Integração com o **BenHermes**: situação do WhatsApp de cada baia, celulares, ciclo do banimento, manutenção com o texto do grupo e o mesmo `.json` nos dois sistemas. Chamado “WhatsApp banido” já marca o número. Veja [`docs/BENHERMES.md`](docs/BENHERMES.md). |
 | 🔌 **API BenHermes ⇄ BenCalls** | Manutenção feita no BenHermes deixa o WhatsApp OK aqui e **conclui o chamado** da baia na hora; chamados de WhatsApp daqui aparecem lá. Eventos assinados (HMAC), com fila de reenvio. Veja [`docs/API-INTEGRACAO.md`](docs/API-INTEGRACAO.md). |
 | 🗂️ **Auditoria** | Central de notificações (cópia do BenHub) e registro imutável de cada ação. |
 

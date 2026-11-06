@@ -82,7 +82,7 @@ Usuários, Catálogo e Espaços com três perfis. Esta versão implementa o esco
   **Abrir**; com **Avisos do navegador** ligado no menu do avatar, a notificação aparece até com o site em segundo plano.
 - O TI pode **encaminhar** o chamado para um técnico específico, que é avisado ao entrar.
 
-## WhatsApp das Baias (BenHermes)
+## Controle de WhatsApps (BenHermes)
 
 - O controle dos WhatsApps das baias, que vivia só no BenHermes, agora aparece **na própria baia** e numa tela
   própria, com as **mesmas regras** (copiadas por script, com os testes do BenHermes rodando aqui).

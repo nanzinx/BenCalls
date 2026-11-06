@@ -18,7 +18,7 @@ function prng(seed) {
 
 // ---------------------------------------------------------------- usuários
 // Códigos de acesso: os da BenApi (DACP, RC, PC, ASC, ROA, DVGC, CU, RCSC)
-// + os novos do front v2 (EST, ESP, MAPA, REV, RH, TEMA, AUD, TERMO) e o WPP (WhatsApp das Baias, vindo do BenHermes).
+// + os novos do front v2 (EST, ESP, MAPA, REV, RH, TEMA, AUD, TERMO) e o WPP (Controle de WhatsApps, vindo do BenHermes).
 export const ACESSOS = {
   DACP: 'Meus chamados',
   RC: 'Registrar chamado',
@@ -37,7 +37,7 @@ export const ACESSOS = {
   TEMA: 'Personalização e módulos',
   AUD: 'Auditoria',
   APROV: 'Aprovar descartes',
-  WPP: 'WhatsApp das Baias'
+  WPP: 'Controle de WhatsApps'
 };
 
 export const PERFIS = {
@@ -156,7 +156,7 @@ export function seedCatalogo() {
         S('Troca de baia', { solicitacao: true }),
         OUTROS()] }
     ] },
-    // Integração com o WhatsApp das Baias (BenHermes): "whatsapp" diz o que a situação faz no mapa.
+    // Integração com o Controle de WhatsApps (BenHermes): "whatsapp" diz o que a situação faz no mapa.
     { id: 'c6', nome: 'WhatsApp e celular', icone: 'phone', equipe: 'TI', subs: [
       { id: 'b12', nome: 'WhatsApp da baia', prioritario: false, sits: [
         S('WhatsApp banido', { whatsapp: 'BANIDO', passos: ['Abrir o WhatsApp e confirmar a mensagem de conta banida'] }),
@@ -408,7 +408,7 @@ export function seed(agora = Date.now()) {
   return {
     versao: 7,
     ciencia,
-    // WhatsApp das Baias (mesmo mapa do BenHermes, versão 3)
+    // Controle de WhatsApps (mesmo mapa do BenHermes, versão 3)
     whatsapp: seedWhatsapp(layouts, ocupacao, nomeUser, agora),
     criadoEm: agora,
     usuarios, layouts, catalogo, tipos, itens, chamados, triagensResolvidas, ocupacao, ocupHist, dossies, termos,

@@ -1,4 +1,4 @@
-// WhatsApp das Baias da demonstração: o mesmo mapa do BenHermes (versão 3), montado a partir das
+// Controle de WhatsApps da demonstração: o mesmo mapa do BenHermes (versão 3), montado a partir das
 // mesas do BenCalls, com celulares, situações do ciclo do banimento, histórico e manutenções.
 // Cada mudança passa pelas funções do BenHermes, então o histórico sai igual ao de lá.
 import { HORA, DIA, MIN } from '../lib/format.ts';
