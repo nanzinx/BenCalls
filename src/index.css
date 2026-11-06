@@ -819,6 +819,16 @@
   .seat.st-vazia {
     @apply border-dashed border-linha bg-cinza-fundo;
   }
+  /* Camada WhatsApp: banido é vermelho sem pulsar; perdido é escuro. */
+  .seat.st-wpp-ruim {
+    @apply border-ruim-borda bg-ruim-fundo;
+  }
+  .seat.st-perdido {
+    @apply border-tinta bg-tinta text-superficie;
+  }
+  .seat.st-perdido * {
+    @apply text-superficie;
+  }
   .seat.st-off {
     @apply cursor-default items-center justify-center border-dashed border-linha-forte bg-transparent text-xs text-mudo hover:transform-none hover:shadow-none;
   }

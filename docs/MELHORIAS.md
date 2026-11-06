@@ -71,3 +71,23 @@ Usuários, Catálogo e Espaços com três perfis. Esta versão implementa o esco
 - **Menu do usuário no avatar:** situação do técnico, tema escuro, reiniciar demonstração e sair.
 - **Menu lateral recolhível** (só ícones), lembrado entre as visitas.
 - **Filtros do painel numa linha** e indicadores que funcionam como atalho de filtro (mostram quando estão ativos).
+
+## Notificações “para você”
+
+- **Aviso ao entrar** com os chamados direcionados à pessoa que ela ainda não viu: encaminhados a ela, novos na fila
+  do departamento dela (TI ou RH) ou que voltaram para ela (reaberto/devolvido). Abrir o chamado conta como visto.
+- **Sino** com a seção “Para você”, **contador no título da aba** (“(2) BenCalls”), marca **Novo** nos cartões e o
+  KPI/filtro “Para você” no painel.
+- **Na hora:** quando chega algo novo com o site aberto (mesmo vindo de outra aba), aparece um aviso com o botão
+  **Abrir**; com **Avisos do navegador** ligado no menu do avatar, a notificação aparece até com o site em segundo plano.
+- O TI pode **encaminhar** o chamado para um técnico específico, que é avisado ao entrar.
+
+## WhatsApp das Baias (BenHermes)
+
+- O controle dos WhatsApps das baias, que vivia só no BenHermes, agora aparece **na própria baia** e numa tela
+  própria, com as **mesmas regras** (copiadas por script, com os testes do BenHermes rodando aqui).
+- Manutenção diária com o texto do grupo, celulares, histórico, alertas no menu e o mesmo `.json` nos dois sistemas.
+- Chamados e WhatsApp conversam: chamado “WhatsApp banido” marca o número, número perdido abre chamado de troca de
+  chip, trocar o ocupante atualiza o operador e a supervisão é avisada quando um número cai.
+- Detalhes e o caminho para a ligação direta pela API do BenHermes: [`BENHERMES.md`](BENHERMES.md).
+

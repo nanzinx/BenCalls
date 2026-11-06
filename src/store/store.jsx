@@ -12,8 +12,11 @@ import {
 } from '../lib/rules.ts';
 import { acessosDe, baiaCodigo, codigoItem, indiceCatalogo, layoutById, nomeUser, estoquePorTipo } from './selectors.js';
 import { paraVoce } from '../lib/notificacoes.ts';
+import { whatsappDaBaia, trocarOperador } from '../lib/whatsapp-baias.ts';
+import { aplicarAcao, ACAO } from '../lib/benhermes/whatsappManutencao.ts';
+import { gravarAlteracao } from '../lib/benhermes/whatsappHistorico.ts';
 
-const KEY = 'bencalls:demo:v6';
+const KEY = 'bencalls:demo:v7';
 const SESS = 'bencalls:sessao';
 const SESSAO_HORAS = 8;
 
@@ -22,7 +25,7 @@ function carregar() {
     const raw = localStorage.getItem(KEY);
     if (raw) {
       const st = JSON.parse(raw);
-      if (st && st.versao === 6) return st;
+      if (st && st.versao === 7) return st;
     }
   } catch { /* storage indisponível */ }
   return seed();
@@ -227,6 +230,16 @@ export function StoreProvider({ children }) {
           ctx.audit('Chamado aberto', numeroChamado(id), `${c.titulo} · ${onde}`);
           ctx.notificar(c.depto === 'Facilities' ? 'Facilities' : 'TI', `Novo chamado ${numeroChamado(id)} · ${onde} · ${c.titulo}${prioritario ? ' · PRIORITÁRIO' : ''}${alerta ? ' · ⚠ alerta de triagem' : ''}`);
           if (c.layoutId) ctx.notificar(grupoSup(s, c), `Chamado ${numeroChamado(id)} aberto para ${onde}.`);
+          // WhatsApp das Baias: chamado "WhatsApp banido" já marca o número como banido no mapa.
+          if (princ.whatsapp === 'BANIDO' && c.layoutId && s.whatsapp && s.modulos.whatsapp) {
+            const L = layoutById(s, c.layoutId);
+            const d = new Date(ctx.agora);
+            const w = L && whatsappDaBaia(s.whatsapp, L.base, c.pos, d);
+            if (w && w.acoes.includes('BANIDO')) {
+              s.whatsapp = gravarAlteracao(s.whatsapp, aplicarAcao(s.whatsapp, w.alvo, 'BANIDO', d), d);
+              c.hist.push({ status: c.status, at: ctx.agora, just: `WhatsApp ${w.codigo} marcado como banido no WhatsApp das Baias.`, user: ctx.eu });
+            }
+          }
           return id;
         });
       },
@@ -475,6 +488,65 @@ export function StoreProvider({ children }) {
           if (n && s.modulos.termo) s.termos[key] = { ocupante: n, geradoEm: ctx.agora, assinadoEm: null, versao: (s.termos[key]?.versao || 0) + 1 };
           if (!n) delete s.termos[key];
           ctx.audit('Ocupação alterada', baiaCodigo(s, layoutId, pos), `${atual?.nome || 'vazia'} → ${n || 'vazia'}`);
+          // O WhatsApp das Baias acompanha quem senta na baia (o BenCalls é quem sabe).
+          const L = layoutById(s, layoutId);
+          if (L && s.whatsapp) s.whatsapp = trocarOperador(s.whatsapp, L.base, pos, n, new Date(ctx.agora));
+        });
+      },
+      // ---------- WhatsApp das Baias (regras do BenHermes; cada mudança entra no histórico dele)
+      /** Botão do ciclo do banimento (Caiu, Pedi análise, Liberado, Perdido, Troquei o chip, Voltou). */
+      whatsappAcao(alvo, acao, extra) {
+        return mutate((s, ctx) => {
+          const d = new Date(ctx.agora);
+          const antes = s.whatsapp;
+          const depois = aplicarAcao(antes, alvo, acao, d, extra);
+          if (depois === antes) return false;
+          s.whatsapp = gravarAlteracao(antes, depois, d);
+          const ev = s.whatsapp.historico.at(-1);
+          const onde = ev?.codigo || ev?.vaga || 'WhatsApp';
+          const quem = ev?.operador ? ` (${ev.operador})` : '';
+          ctx.audit(`WhatsApp: ${ACAO[acao].rotulo}`, onde, `${ev?.celular ? `${ev.celular} · ` : ''}${s.whatsapp.manutencaoAtual ? 'na manutenção' : 'pelo painel'}`);
+          // Avisa a supervisão da equipe quando um número cai ou é perdido.
+          if (alvo.tipo === 'lugar' && ['BANIDO', 'PERDIDO'].includes(acao)) {
+            const mesa = s.whatsapp.salas.flatMap((x) => x.mesas).find((m) => m.id === alvo.mesaId);
+            const L = mesa && s.layouts.find((l) => l.base.toUpperCase() === mesa.sigla.toUpperCase());
+            if (L) ctx.notificar(`Supervisão ${L.sala} · ${L.nome}`, acao === 'BANIDO' ? `WhatsApp ${onde}${quem} caiu. A análise será pedida na manutenção.` : `WhatsApp ${onde}${quem} foi perdido: o chip será trocado.`);
+          }
+          // Anota nos chamados de WhatsApp abertos daquela baia.
+          if (alvo.tipo === 'lugar') {
+            const mesa = s.whatsapp.salas.flatMap((x) => x.mesas).find((m) => m.id === alvo.mesaId);
+            const L = mesa && s.layouts.find((l) => l.base.toUpperCase() === mesa.sigla.toUpperCase());
+            if (L) {
+              for (const c of s.chamados) {
+                if (c.layoutId === L.id && c.pos === alvo.posicao && c.subId === 'b12' && ABERTOS.includes(c.status)) {
+                  c.hist.push({ status: c.status, at: ctx.agora, just: `WhatsApp das Baias: ${ACAO[acao].rotulo.toLowerCase()}${extra?.numeroNovo ? ` (número novo ${extra.numeroNovo})` : ''}.`, user: ctx.eu });
+                }
+              }
+            }
+          }
+          return true;
+        });
+      },
+      /**
+       * Qualquer outra mudança no mapa (manutenção, celulares, importação), sempre por uma função do
+       * BenHermes: mudar(mapa, agora) devolve o mapa novo (ou { mapa, ... }).
+       */
+      whatsappMudar(mudar, auditoria) {
+        return mutate((s, ctx) => {
+          const d = new Date(ctx.agora);
+          const antes = s.whatsapp;
+          const r = mudar(antes, d);
+          const depois = r && r.salas ? r : r.mapa;
+          s.whatsapp = gravarAlteracao(antes, depois, d);
+          if (auditoria) ctx.audit(auditoria.acao, auditoria.alvo || 'WhatsApp das Baias', auditoria.detalhe || '');
+          return r;
+        });
+      },
+      /** Troca o mapa inteiro (importar o .json do BenHermes). O histórico vem junto com o arquivo. */
+      whatsappSubstituir(mapa, origem) {
+        mutate((s, ctx) => {
+          s.whatsapp = mapa;
+          ctx.audit('WhatsApp: mapa importado', 'WhatsApp das Baias', `${origem} · ${mapa.salas.reduce((n, x) => n + x.mesas.length, 0)} mesas · ${mapa.celulares.length} celulares`);
         });
       },
       // RF19: aceite digital do termo.

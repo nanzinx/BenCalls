@@ -3,6 +3,7 @@
 import { MIN, DIA } from '../lib/format.ts';
 import { ITENS_PADRAO, posicoesDaMesa, posKey } from '../lib/labels.ts';
 import { ehPrioritario } from '../lib/rules.ts';
+import { seedWhatsapp } from './seedWhatsapp.js';
 
 function prng(seed) {
   let a = seed >>> 0;
@@ -17,7 +18,7 @@ function prng(seed) {
 
 // ---------------------------------------------------------------- usuários
 // Códigos de acesso: os da BenApi (DACP, RC, PC, ASC, ROA, DVGC, CU, RCSC)
-// + os novos do front v2 (EST, ESP, MAPA, REV, RH, TEMA, AUD, TERMO).
+// + os novos do front v2 (EST, ESP, MAPA, REV, RH, TEMA, AUD, TERMO) e o WPP (WhatsApp das Baias, vindo do BenHermes).
 export const ACESSOS = {
   DACP: 'Meus chamados',
   RC: 'Registrar chamado',
@@ -35,16 +36,17 @@ export const ACESSOS = {
   TERMO: 'Termos de responsabilidade',
   TEMA: 'Personalização e módulos',
   AUD: 'Auditoria',
-  APROV: 'Aprovar descartes'
+  APROV: 'Aprovar descartes',
+  WPP: 'WhatsApp das Baias'
 };
 
 export const PERFIS = {
   // Todo perfil abre e acompanha os próprios chamados (DACP + RC).
-  supervisor: { label: 'Supervisor', acessos: ['DACP', 'RC', 'TERMO'] },
+  supervisor: { label: 'Supervisor', acessos: ['DACP', 'RC', 'TERMO', 'WPP'] },
   // O TI também configura o sistema: logins, personalização e auditoria.
-  ti: { label: 'Técnico de TI', acessos: ['DACP', 'RC', 'PC', 'ASC', 'ROA', 'EST', 'ESP', 'MAPA', 'REV', 'DVGC', 'RCSC', 'TERMO', 'CU', 'TEMA', 'AUD'] },
+  ti: { label: 'Técnico de TI', acessos: ['DACP', 'RC', 'PC', 'ASC', 'ROA', 'EST', 'ESP', 'MAPA', 'REV', 'DVGC', 'RCSC', 'TERMO', 'CU', 'TEMA', 'AUD', 'WPP'] },
   rh: { label: 'RH', acessos: ['DACP', 'RC', 'RH', 'TERMO', 'DVGC'] },
-  gestor: { label: 'Gestão', acessos: ['DACP', 'RC', 'PC', 'DVGC', 'MAPA', 'EST', 'CU', 'RCSC', 'ESP', 'TEMA', 'AUD', 'RH', 'TERMO', 'APROV', 'REV'] }
+  gestor: { label: 'Gestão', acessos: ['DACP', 'RC', 'PC', 'DVGC', 'MAPA', 'EST', 'CU', 'RCSC', 'ESP', 'TEMA', 'AUD', 'RH', 'TERMO', 'APROV', 'REV', 'WPP'] }
 };
 
 export function seedUsuarios() {
@@ -152,6 +154,14 @@ export function seedCatalogo() {
         S('Novo colaborador', { solicitacao: true }),
         S('Desligamento', { solicitacao: true }),
         S('Troca de baia', { solicitacao: true }),
+        OUTROS()] }
+    ] },
+    // Integração com o WhatsApp das Baias (BenHermes): "whatsapp" diz o que a situação faz no mapa.
+    { id: 'c6', nome: 'WhatsApp e celular', icone: 'phone', equipe: 'TI', subs: [
+      { id: 'b12', nome: 'WhatsApp da baia', prioritario: false, sits: [
+        S('WhatsApp banido', { whatsapp: 'BANIDO', passos: ['Abrir o WhatsApp e confirmar a mensagem de conta banida'] }),
+        S('Número perdido (trocar o chip)', { whatsapp: 'PERMANENTE', solicitacao: true }),
+        S('Celular corporativo com defeito', { passos: ['Reiniciar o celular', 'Conferir se o carregador está funcionando'] }),
         OUTROS()] }
     ] }
   ];
@@ -396,8 +406,10 @@ export function seed(agora = Date.now()) {
   }
 
   return {
-    versao: 6,
+    versao: 7,
     ciencia,
+    // WhatsApp das Baias (mesmo mapa do BenHermes, versão 3)
+    whatsapp: seedWhatsapp(layouts, ocupacao, nomeUser, agora),
     criadoEm: agora,
     usuarios, layouts, catalogo, tipos, itens, chamados, triagensResolvidas, ocupacao, ocupHist, dossies, termos,
     seqChamado: id + 1, seqItem: seqId + 1, seqLocal,
@@ -415,7 +427,7 @@ export function seed(agora = Date.now()) {
       fonte: 'Inter', loginImg: '', loginTitulo: 'Chamado certo, na baia certa.',
       termos: { baia: 'baia', posicao: 'posição' }
     },
-    modulos: { termo: true, dossie: true, benhub: true, argus: false },
+    modulos: { termo: true, dossie: true, benhub: true, argus: false, whatsapp: true },
     canais: [
       { id: 'e1', evento: 'Chamado aberto, mudança de status e fechamento', grupo: 'Grupo do supervisor da equipe', canal: 'BenHub', ativo: true },
       { id: 'e2', evento: 'Chamado novo e chamado prioritário', grupo: 'Grupo do TI', canal: 'BenHub', ativo: true },

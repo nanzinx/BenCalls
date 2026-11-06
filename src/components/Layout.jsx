@@ -3,7 +3,7 @@ import clsx from 'clsx';
 import { NavLink, Outlet, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import {
   Inbox, PlusCircle, KanbanSquare, Map, Package, ClipboardCheck, ShieldAlert, BarChart3, Users, ListTree,
-  LayoutGrid, Palette, ScrollText, Search, Bell, BellRing, Menu, LogOut, Moon, Sun, RotateCcw, MessageSquare, FileSignature, X, ChevronDown, PanelLeftClose, PanelLeftOpen
+  LayoutGrid, Palette, ScrollText, Search, Bell, BellRing, Menu, Smartphone, LogOut, Moon, Sun, RotateCcw, MessageSquare, FileSignature, X, ChevronDown, PanelLeftClose, PanelLeftOpen
 } from 'lucide-react';
 import { useStore } from '../store/store.jsx';
 import { tem, estoquePorTipo, layoutsDoUsuario } from '../store/selectors.js';
@@ -19,6 +19,8 @@ import { Drawer } from './ui.jsx';
 import { Entrada } from './Entrada.tsx';
 import { deveMostrarEntrada, diaDe, lerVistoEm, loginRecente, limparLogin, marcarVisto, marcarAtividade, inativo } from '../lib/entrada.ts';
 import { ABERTOS } from '../lib/rules.ts';
+import { alertasUrgentes } from '../lib/whatsapp-baias.ts';
+import { filtrarMapaParaSupervisor } from '../lib/benhermes/whatsappBaias.ts';
 import { AvisoParaVoce, LinhaParaVoce, useAlertasEmTempoReal, useTituloComContador, useAvisoDeEntrada, avisosDoNavegadorLigados, ligarAvisosDoNavegador } from './ParaVoce.jsx';
 
 /** Números que aparecem na entrada, conforme o perfil. */
@@ -67,12 +69,16 @@ export function useMenu() {
     const dossies = st.dossies.filter((d) => d.status === 'Aguardando RH').length;
     const alertasEst = estoquePorTipo(st).filter((t) => t.abaixo).length + st.itens.filter((i) => i.descartePendente).length;
     const minhas = new Set(layoutsDoUsuario(st, user).map((l) => l.id));
+    // WhatsApp das Baias: o que pede ação (banido sem análise, análise atrasada, restrição vencida, perdido)
+    const mapaWpp = st.whatsapp && (user.perfil === 'supervisor' ? filtrarMapaParaSupervisor(st.whatsapp, { id: user.id, displayName: user.nome, username: user.user }) : st.whatsapp);
+    const wpp = st.modulos.whatsapp && mapaWpp ? alertasUrgentes(mapaWpp, new Date()).length : 0;
     const termosPend = Object.entries(st.termos).filter(([k, t]) => !t.assinadoEm && minhas.has(k.split(':')[0])).length;
     const itens = [
       { to: '/inicio', label: 'Meus chamados', icon: Inbox, a: 'DACP', badge: aguardando, warn: true },
       { to: '/novo', label: 'Novo chamado', icon: PlusCircle, a: 'RC' },
       { to: '/painel', label: 'Painel de chamados', icon: KanbanSquare, a: 'PC', badge: emAnalise },
       { to: '/mapa', label: 'Mapa geral', icon: Map, a: 'MAPA' },
+      { to: '/whatsapp', label: 'WhatsApp das Baias', icon: Smartphone, a: 'WPP', mod: 'whatsapp', badge: wpp, warn: true },
       { to: '/revisao', label: 'Revisão de "Outros"', icon: ClipboardCheck, a: 'REV', badge: outros, warn: true },
       { to: '/estoque', label: 'Estoque e patrimônio', icon: Package, a: 'EST', badge: alertasEst, warn: true },
       { to: '/termos', label: 'Termos de responsabilidade', icon: FileSignature, a: 'TERMO', mod: 'termo', badge: termosPend },

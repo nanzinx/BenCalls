@@ -136,7 +136,9 @@ Todos os perfis **abrem e acompanham chamados**. Na demonstração, qualquer sen
 | 🏢 **Multiempresa** | Cores, logo e textos por empresa, com validação de contraste; a assinatura Benconsig é fixa. |
 | 👤 **Logins e acessos** | O TI cria logins com senha provisória, redefine senhas e ajusta os acessos de cada pessoa. |
 | 🔎 **Busca global** | <kbd>Ctrl</kbd> + <kbd>K</kbd> encontra chamado, etiqueta, ID interno, baia ou tela. |
-| 🔔 **Avisos e auditoria** | Central de notificações (cópia do BenHub) e registro imutável de cada ação. |
+| 🔔 **Avisos “para você”** | Ao entrar, o site avisa o que chegou para você resolver (encaminhado a você, novo na fila do seu departamento ou que voltou). Contador na aba, sino, alerta na hora (inclusive do navegador) e o TI encaminha para um técnico. |
+| 💬 **WhatsApp das Baias** | Integração com o **BenHermes**: situação do WhatsApp de cada baia, celulares, ciclo do banimento, manutenção com o texto do grupo e o mesmo `.json` nos dois sistemas. Chamado “WhatsApp banido” já marca o número. Veja [`docs/BENHERMES.md`](docs/BENHERMES.md). |
+| 🗂️ **Auditoria** | Central de notificações (cópia do BenHub) e registro imutável de cada ação. |
 
 Detalhes do que mudou em relação ao protótipo: [`docs/MELHORIAS.md`](docs/MELHORIAS.md).
 
