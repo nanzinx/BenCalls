@@ -28,8 +28,8 @@ export function Marca({ tamanho = 36, variante = 'normal', titulo, className = '
     >
       <defs>
         <linearGradient id="marca-fundo" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0" stopColor="var(--p-hover, #072654)" />
-          <stop offset="1" stopColor="var(--p, #0B3A82)" />
+          <stop offset="0" style={{ stopColor: 'rgb(var(--marca-2))' }} />
+          <stop offset="1" style={{ stopColor: 'rgb(var(--marca))' }} />
         </linearGradient>
       </defs>
       <rect className="marca-fundo" width="64" height="64" rx="16" fill="url(#marca-fundo)" />
@@ -39,12 +39,12 @@ export function Marca({ tamanho = 36, variante = 'normal', titulo, className = '
           d="M17 20h30a4 4 0 0 1 4 4v4.2a3.8 3.8 0 0 0 0 7.6V40a4 4 0 0 1-4 4H17a4 4 0 0 1-4-4v-4.2a3.8 3.8 0 0 0 0-7.6V24a4 4 0 0 1 4-4Z"
           fill="#fff"
         />
-        <path d="M41 23.5v17" stroke="var(--p, #0B3A82)" strokeWidth="2" strokeLinecap="round" strokeDasharray="0.1 4" />
+        <path d="M41 23.5v17" style={{ stroke: 'rgb(var(--marca))' }} strokeWidth="2" strokeLinecap="round" strokeDasharray="0.1 4" />
         <path
           className="marca-check"
           d="M20.5 32.2l4.6 4.6 9.1-9.6"
           fill="none"
-          stroke="var(--p, #0B3A82)"
+          style={{ stroke: 'rgb(var(--marca))' }}
           strokeWidth="3.6"
           strokeLinecap="round"
           strokeLinejoin="round"
@@ -52,8 +52,8 @@ export function Marca({ tamanho = 36, variante = 'normal', titulo, className = '
         />
       </g>
       <g className="marca-ponto">
-        <circle className="marca-onda" cx="50" cy="15" r="6" fill="none" stroke="var(--a, #F5B800)" strokeWidth="2" />
-        <circle cx="50" cy="15" r="6.5" fill="var(--a, #F5B800)" stroke="var(--p-hover, #072654)" strokeWidth="2.5" />
+        <circle className="marca-onda" cx="50" cy="15" r="6" fill="none" style={{ stroke: 'rgb(var(--destaque))' }} strokeWidth="2" />
+        <circle cx="50" cy="15" r="6.5" style={{ fill: 'rgb(var(--destaque))', stroke: 'rgb(var(--marca-2))' }} strokeWidth="2.5" />
       </g>
     </svg>
   );

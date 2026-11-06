@@ -65,8 +65,8 @@ export default function CommandPalette({ onClose, menu, abrir }) {
   return (
     <div className="overlay" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
       <div className="palette" role="dialog" aria-modal="true" aria-label="Busca global">
-        <div style={{ position: 'relative' }}>
-          <Search size={18} style={{ position: 'absolute', left: 18, top: 20, color: 'var(--muted)' }} />
+        <div className="relative">
+          <Search className="absolute left-[18px] top-5 text-mudo" size={18} />
           <input autoFocus value={q} onChange={(e) => setQ(e.target.value)} onKeyDown={onKey}
             placeholder="Busque chamado (#2026-0131), etiqueta (OP1-E2-HS), ID (BEN-0412), baia ou tela…"
             aria-label="Buscar" role="combobox" aria-expanded="true" aria-controls="palette-list" />
@@ -81,19 +81,19 @@ export default function CommandPalette({ onClose, menu, abrir }) {
                 const idx = k;
                 return (
                   <button key={it.key} type="button" role="option" aria-selected={sel} className="p-item" onMouseEnter={() => setI(idx)} onClick={() => exec(it)}>
-                    <it.icon size={17} style={{ color: 'var(--p-ink)', flex: 'none' }} />
-                    <span className="grow" style={{ display: 'flex', flexDirection: 'column' }}>
-                      <span style={{ fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{it.titulo}</span>
+                    <it.icon className="text-marca-txt flex-none" size={17} />
+                    <span className="min-w-0 flex-auto flex flex-col">
+                      <span className="font-semibold overflow-hidden text-ellipsis whitespace-nowrap">{it.titulo}</span>
                       <span className="p-sub">{it.sub}</span>
                     </span>
                     {it.extra}
-                    {sel && <CornerDownLeft size={14} style={{ color: 'var(--muted)' }} />}
+                    {sel && <CornerDownLeft className="text-mudo" size={14} />}
                   </button>
                 );
               })}
             </div>
           ))}
-          {q && !planos.length && <div className="empty" style={{ border: 0 }}>Nada encontrado para “{q}”.</div>}
+          {q && !planos.length && <div className="empty border-0">Nada encontrado para “{q}”.</div>}
         </div>
       </div>
     </div>

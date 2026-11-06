@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useNavigate, useOutletContext } from 'react-router-dom';
-import { PlusCircle, Search, Activity, MessageCircleQuestion, CheckCircle2, XCircle, Sparkles, Siren } from 'lucide-react';
+import { PlusCircle, Search, Activity, MessageCircleQuestion, CheckCircle2, Sparkles, Siren } from 'lucide-react';
 import { useStore } from '../store/store.jsx';
 import { chamadosVisiveis, layoutsDoUsuario, tem, statusBaia, indiceCatalogo, baiaCodigo } from '../store/selectors.js';
 import { ABERTOS, FINAIS, detectarIncidentes } from '../lib/rules.ts';
@@ -60,48 +60,47 @@ export default function MeusChamados() {
 
   return (
     <>
-      <PageHead title={`Olá, ${user.nome.split(' ')[0]}`} desc={user.perfil === 'supervisor' ? `Chamados das baias da sua equipe (${mesas.map((m) => m.base).join(', ')}).` : 'Chamados abertos por você.'}>
+      <PageHead title={`Olá, ${user.nome.split(' ')[0]}`} desc={user.perfil === 'supervisor' ? `Sua equipe · ${mesas.map((m) => m.base).join(', ')}` : 'Chamados abertos por você'}>
         {tem(user, 'RC') && <button type="button" className="btn btn-primary btn-lg" onClick={() => nav('/novo')}><PlusCircle size={17} /> Novo chamado</button>}
       </PageHead>
 
       <BannerIncidentes />
 
       <div className="grid-kpi">
-        <Kpi icon={Activity} label="Em andamento" valor={conta((c) => ['Em Análise', 'Pendente', 'Em Execução'].includes(c.status))} sub="Em análise, pendentes ou em execução" onClick={() => setFiltro('abertos')} />
-        <Kpi icon={MessageCircleQuestion} label="Aguardando sua confirmação" valor={aguard} sub="O TI já registrou a solução" destaque={aguard > 0} onClick={() => setFiltro('confirmar')} />
-        <Kpi icon={CheckCircle2} label="Concluídos no mês" valor={conta((c) => c.status === 'Concluído' && c.criadoEm >= inicioMes.getTime())} sub={`${conta((c) => c.status === 'Concluído')} no total`} onClick={() => setFiltro('encerrados')} />
-        <Kpi icon={XCircle} label="Negados ou cancelados" valor={conta((c) => c.status === 'Negado' || c.status === 'Cancelado')} sub="Veja a justificativa no histórico" />
-        {user.perfil === 'supervisor' && <Kpi icon={Sparkles} label="Resolvidos na triagem" valor={triagemMes} sub="Problemas sem chamado nos últimos 30 dias" />}
+        <Kpi icon={Activity} label="Em andamento" valor={conta((c) => ['Em Análise', 'Pendente', 'Em Execução'].includes(c.status))} title="Em análise, pendentes ou em execução" onClick={() => setFiltro('abertos')} />
+        <Kpi icon={MessageCircleQuestion} label="Para confirmar" valor={aguard} title="O TI já registrou a solução: confirme se resolveu" tom="aviso" onClick={() => setFiltro('confirmar')} />
+        <Kpi icon={CheckCircle2} tom="ok" label="Concluídos no mês" valor={conta((c) => c.status === 'Concluído' && c.criadoEm >= inicioMes.getTime())} sub={`${conta((c) => c.status === 'Concluído')} no total`} onClick={() => setFiltro('encerrados')} />
+        {user.perfil === 'supervisor' && <Kpi icon={Sparkles} tom="info" label="Resolvidos na triagem" valor={triagemMes} title="Problemas resolvidos sem abrir chamado nos últimos 30 dias" />}
       </div>
 
       <div className="split">
-        <section className="main stack">
-          <div className="row-between">
+        <section className="main flex flex-col gap-3">
+          <div className="flex flex-wrap items-center justify-between gap-3">
             <Pills label="Filtrar chamados" value={filtro} onChange={setFiltro} options={[
               { value: 'abertos', label: 'Em aberto', count: conta((c) => ABERTOS.includes(c.status)) },
               { value: 'confirmar', label: 'Confirmar solução', count: aguard },
               { value: 'encerrados', label: 'Encerrados', count: conta((c) => FINAIS.includes(c.status)) },
               { value: 'todos', label: 'Todos', count: meus.length }
             ]} />
-            <div className="search-wrap" style={{ minWidth: 240, flex: '0 1 300px' }}>
+            <div className="search-wrap min-w-[240px] flex-[0_1_300px]">
               <Search size={16} />
               <input className="input input-search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Número, baia, título ou ocupante" aria-label="Buscar nos meus chamados" />
             </div>
           </div>
           {lista.length === 0 && <Empty title={filtro === 'confirmar' ? 'Nada para confirmar' : 'Nenhum chamado aqui'}>{filtro === 'abertos' ? 'Sua equipe está sem chamados em aberto. 🎉' : 'Tente outro filtro ou busca.'}</Empty>}
-          <div className="stack-sm" style={{ gap: 10 }}>
+          <div className="flex flex-col gap-2.5">
             {lista.slice(0, 60).map((c) => <TicketCard key={c.id} c={c} onClick={() => abrir({ ch: c.id })} />)}
           </div>
-          {lista.length > 60 && <span className="small muted">Mostrando os 60 mais recentes de {lista.length}. Use a busca para encontrar os outros.</span>}
+          {lista.length > 60 && <span className="text-xs text-mudo">Mostrando os 60 mais recentes de {lista.length}. Use a busca para encontrar os outros.</span>}
         </section>
 
         {resumo.length > 0 && (
-          <aside className="side stack">
+          <aside className="side flex flex-col gap-3">
             {resumo.map(({ L, cont }) => (
-              <div key={L.id} className="card stack-sm">
-                <div className="row-between"><b>{L.base} · {L.nome}</b><button type="button" className="btn btn-sm" onClick={() => nav(`/novo?mesa=${L.id}`)}>Abrir mapa</button></div>
-                <div className="row" style={{ gap: 14 }}>
-                  {Object.entries(cont).map(([k, v]) => <span key={k} className="row small" style={{ gap: 6 }}><span className="dot" style={{ background: ST_BAIA[k].dot }} />{v} {ST_BAIA[k].label.toLowerCase()}</span>)}
+              <div key={L.id} className="card flex flex-col gap-1.5">
+                <div className="flex flex-wrap items-center justify-between gap-3"><b>{L.base} · {L.nome}</b><button type="button" className="btn btn-sm" onClick={() => nav(`/novo?mesa=${L.id}`)}>Abrir mapa</button></div>
+                <div className="flex flex-wrap items-center gap-3.5">
+                  {Object.entries(cont).map(([k, v]) => <span key={k} className="flex flex-wrap items-center text-xs gap-1.5"><span className="dot" style={{ background: ST_BAIA[k].dot }} />{v} {ST_BAIA[k].label.toLowerCase()}</span>)}
                 </div>
               </div>
             ))}

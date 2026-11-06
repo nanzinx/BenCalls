@@ -1,12 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useOutletContext, useSearchParams } from 'react-router-dom';
-import { Map as MapIcon, FileText, Check, ArrowLeft, ArrowRight, PartyPopper, MessageSquare, AlertTriangle, Info, CircleSlash, PenLine, Send } from 'lucide-react';
+import { Map as MapIcon, FileText, Check, ArrowLeft, ArrowRight, PartyPopper, MessageSquare, AlertTriangle, Info, CircleSlash } from 'lucide-react';
 import { useStore } from '../store/store.jsx';
 import { baiaCodigo, codigoItem, itensDaBaia, layoutsDoUsuario, subDoItem, indiceCatalogo, nomeItem, chamadosDaBaia, layoutById } from '../store/selectors.js';
-import { alertaTriagem, detectarIncidentes, prioridadePorImpacto, slaDaPrioridade } from '../lib/rules.ts';
+import { alertaTriagem, detectarIncidentes, ehPrioritario } from '../lib/rules.ts';
 import { numeroChamado } from '../lib/format.ts';
-import { PageHead, Seg, Pills, Note, PrioBadge, StatusBadge, Field, AjudaSla } from '../components/ui.jsx';
-import { posicoesDaMesa, posKey } from '../lib/labels.ts';
+import { PageHead, Seg, Pills, Note, PrioBadge, StatusBadge, Field } from '../components/ui.jsx';
 import DeskMap, { Legenda } from '../components/DeskMap.jsx';
 import { PassosTriagem, progressoTriagem, BarraProgresso, AnexoFoto, AvisoRapido, MIN_MOTIVO } from '../components/Triagem.jsx';
 import { BannerIncidentes } from './MeusChamados.jsx';
@@ -34,24 +33,24 @@ function ChamadoCriado({ id, onVoltar, voltarLabel }) {
   if (!c) return null;
   const onde = c.layoutId ? baiaCodigo(st, c.layoutId, c.pos) : c.local || 'Sem baia';
   return (
-    <section className="card card-pad-0" style={{ maxWidth: 760, width: '100%', margin: '0 auto' }}>
-      <div style={{ background: 'var(--p)', color: 'var(--on-p)', padding: '20px 24px' }} className="row-between">
-        <div><span className="small" style={{ opacity: 0.85 }}>Chamado aberto</span><h2 style={{ fontSize: 26, color: 'inherit' }}>{numeroChamado(c.id)}</h2></div>
-        <div className="row"><PrioBadge prio={c.prioridade} sm={false} /><StatusBadge status={c.status} /></div>
+    <section className="card card-pad-0 max-w-[760px] w-full mx-auto">
+      <div className="flex flex-wrap items-center justify-between gap-3 bg-marca text-sobre-marca py-5 px-6">
+        <div><span className="text-xs opacity-[0.85]">Chamado aberto</span><h2 className="text-[26px] text-inherit">{numeroChamado(c.id)}</h2></div>
+        <div className="flex flex-wrap items-center gap-2"><PrioBadge prioritario={c.prioritario} sm={false} /><StatusBadge status={c.status} /></div>
       </div>
-      <div className="stack" style={{ padding: 24 }}>
+      <div className="flex flex-col gap-3 p-6">
         <div className="detail-grid">
           <div><div className="lbl">Baia / local</div><div className="val">{onde}</div></div>
           <div><div className="lbl">Ocupante no momento</div><div className="val">{c.ocupante}</div></div>
           <div><div className="lbl">Categoria</div><div className="val">{c.categoria} › {c.sub}</div></div>
-          <div><div className="lbl">SLA</div><div className="val">{c.slaMin >= 60 ? `${c.slaMin / 60}h` : `${c.slaMin} min`} ({c.prioridade.toLowerCase()})</div></div>
+          <div><div className="lbl">Prioridade</div><div className="val">{c.prioritario ? 'Prioritário' : 'Normal'}</div></div>
         </div>
         {c.itens.length > 0 && (
-          <div className="stack-sm">
-            <span className="small muted">Itens (código gerado pelo sistema)</span>
+          <div className="flex flex-col gap-1.5">
+            <span className="text-xs text-mudo">Itens (código gerado pelo sistema)</span>
             {c.itens.map((i) => {
               const it = st.itens.find((x) => x.id === i.assetId);
-              return <div key={i.assetId} className="row" style={{ border: '1px solid var(--border)', borderRadius: 10, padding: '8px 12px' }}><span className="tag">{codigoItem(st, it)}</span><b>{nomeItem(i.tipo)}</b><span className="small muted">{i.situacao}</span></div>;
+              return <div key={i.assetId} className="flex flex-wrap items-center gap-2 border border-linha rounded-[10px] py-2 px-3"><span className="tag">{codigoItem(st, it)}</span><b>{nomeItem(i.tipo)}</b><span className="text-xs text-mudo">{i.situacao}</span></div>;
             })}
           </div>
         )}
@@ -59,7 +58,7 @@ function ChamadoCriado({ id, onVoltar, voltarLabel }) {
         {c.outros && <Note tipo="gray"><b>Fila de revisão de “Outros”:</b> o TI vai reclassificar este chamado e, se o problema se repetir, criar uma nova situação no catálogo.</Note>}
         {c.anexos.length > 0 && <Note tipo="warn">Foto anexada. O TI classifica a causa do dano no laudo técnico antes de fechar o chamado.</Note>}
         <Note tipo="info" icon={MessageSquare}>Aviso enviado ao <b>grupo do {c.depto}</b>{c.layoutId ? <> e ao <b>grupo do supervisor</b></> : null} no {st.modulos.benhub ? 'BenHub' : 'e-mail'}.</Note>
-        <div className="row" style={{ justifyContent: 'flex-end' }}>
+        <div className="flex flex-wrap items-center gap-2 justify-end">
           <button type="button" className="btn btn-lg" onClick={() => abrir({ ch: c.id })}>Ver chamado</button>
           <button type="button" className="btn btn-primary btn-lg" onClick={onVoltar}>{voltarLabel}</button>
         </div>
@@ -132,7 +131,7 @@ function PorMapa() {
   const registros = todosPassos.filter((p) => regs[p.key]).map((p) => ({ texto: `${p.cod} · ${p.texto}`, st: regs[p.key].st, motivo: (regs[p.key].motivo || '').trim(), at: regs[p.key].at }));
   const rapido = !!alertaTriagem(registros) && prog.feitos >= 2;
   const parado = blocos.some((b) => b.x.para);
-  const prioPrev = blocos.length ? prioridadePorImpacto(blocos.map((b) => b.x.sub.prio).sort((a, b) => ['Crítica', 'Alta', 'Média', 'Baixa'].indexOf(a) - ['Crítica', 'Alta', 'Média', 'Baixa'].indexOf(b))[0], parado) : null;
+  const prioPrev = blocos.length > 0 && ehPrioritario({ tipoPrioritario: blocos.some((b) => b.x.sub.prioritario), operadorParado: parado });
   const incidentes = detectarIncidentes(st.chamados, { agora });
 
   const abrirChamado = () => {
@@ -157,16 +156,16 @@ function PorMapa() {
   const etapa = { mapa: sel ? 1 : 0, triagem: 2, resolvido: 3, chamado: 3 }[tela];
 
   return (
-    <div className="stack-lg">
+    <div className="flex flex-col gap-5">
       <Etapas atual={etapa} />
 
       {tela === 'mapa' && (
         <div className="split">
-          <section className="main card stack">
-            <div className="row-between">
+          <section className="main card flex flex-col gap-3">
+            <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
-                <h2 style={{ color: 'var(--p-ink)' }}>{L.sala} — {L.nome} <span className="muted" style={{ fontWeight: 500 }}>({L.base})</span></h2>
-                <p className="small muted" style={{ marginTop: 4 }}>Clique na baia com problema. Você não precisa saber o código da etiqueta.</p>
+                <h2 className="text-marca-txt">{L.sala} — {L.nome} <span className="text-mudo font-medium">({L.base})</span></h2>
+                <p className="text-xs text-mudo mt-1">Clique na baia com problema. Você não precisa saber o código da etiqueta.</p>
               </div>
               <Legenda />
             </div>
@@ -176,29 +175,29 @@ function PorMapa() {
             <DeskMap layout={L} sel={sel} onPick={(k) => { if (k !== sel) { setSel(k); setPicks({}); setOrdem([]); } }} mostrarChamado />
           </section>
 
-          <aside id="painel-baia" className="side card stack sticky" aria-live="polite">
+          <aside id="painel-baia" className="side card flex flex-col gap-3 sticky-lado" aria-live="polite">
             {!sel ? (
-              <div className="stack-sm" style={{ padding: '12px 0' }}>
-                <h2 style={{ color: 'var(--p-ink)' }}>Nenhuma baia selecionada</h2>
-                <p className="muted">Selecione uma baia no mapa para ver os itens instalados e marcar o que está com problema.</p>
+              <div className="flex flex-col gap-1.5 py-3 px-0">
+                <h2 className="text-marca-txt">Nenhuma baia selecionada</h2>
+                <p className="text-mudo">Selecione uma baia no mapa para ver os itens instalados e marcar o que está com problema.</p>
               </div>
             ) : (
               <>
-                <div className="row-between" style={{ alignItems: 'flex-start' }}>
-                  <div className="stack-sm" style={{ gap: 2 }}>
-                    <span className="small muted">Baia selecionada</span>
-                    <h2 className="mono" style={{ fontSize: 22, color: 'var(--p-ink)' }}>{code}</h2>
-                    <span className="small">Ocupante agora: <b>{ocup}</b></span>
+                <div className="flex flex-wrap justify-between gap-3 items-start">
+                  <div className="flex flex-col gap-0.5">
+                    <span className="text-xs text-mudo">Baia selecionada</span>
+                    <h2 className="font-mono text-[22px] text-marca-txt">{code}</h2>
+                    <span className="text-xs">Ocupante agora: <b>{ocup}</b></span>
                   </div>
                   <button type="button" className="btn btn-sm" onClick={() => abrir({ baia: `${L.id}:${sel}` })}>Histórico</button>
                 </div>
                 {abertosBaia.length > 0 && (
                   <Note tipo="warn">Esta baia já tem {abertosBaia.length > 1 ? `${abertosBaia.length} chamados abertos` : 'um chamado aberto'}: {abertosBaia.map((c) => (
-                    <button key={c.id} type="button" className="btn btn-sm btn-ghost" style={{ minHeight: 0, padding: '0 4px' }} onClick={() => abrir({ ch: c.id })}>{numeroChamado(c.id)} ({c.titulo})</button>
+                    <button key={c.id} type="button" className="btn btn-sm btn-ghost min-h-0 py-0 px-1" onClick={() => abrir({ ch: c.id })}>{numeroChamado(c.id)} ({c.titulo})</button>
                   ))}. Confira antes de abrir outro para o mesmo problema.</Note>
                 )}
-                <b className="small">1. Marque o item com problema</b>
-                <div className="stack-sm">
+                <b className="text-xs">1. Marque o item com problema</b>
+                <div className="flex flex-col gap-1.5">
                   {opcoes.map((o) => {
                     const on = !!picks[o.key];
                     const p = picks[o.key];
@@ -208,17 +207,17 @@ function PorMapa() {
                         <button type="button" onClick={() => toggle(o.key)} aria-pressed={on} disabled={!o.sub}>
                           <span className={`box${on ? ' on' : ''}`}>{on && <Check size={14} />}</span>
                           <span className="sigla">{o.it ? o.it.tipo : '—'}</span>
-                          <span className="stack-sm grow" style={{ gap: 0 }}>
+                          <span className="flex flex-col min-w-0 flex-auto gap-0">
                             <b>{o.nome}</b>
-                            <span className="tiny muted">{o.code}{o.it ? ` · ${o.it.status}` : ' · cadeira, tomada, mobiliário'}{dup ? ` · chamado ${numeroChamado(dup.id)} aberto` : ''}</span>
+                            <span className="text-[11px] text-mudo">{o.code}{o.it ? ` · ${o.it.status}` : ' · cadeira, tomada, mobiliário'}{dup ? ` · chamado ${numeroChamado(dup.id)} aberto` : ''}</span>
                           </span>
                         </button>
                         {on && (
-                          <div className="stack-sm" style={{ padding: '6px 0 4px 32px' }}>
-                            <span className="small" style={{ color: 'var(--text-2)' }}>2. Qual é a situação?</span>
-                            <div className="row" style={{ gap: 6 }}>
+                          <div className="flex flex-col gap-1.5 pt-1.5 pr-0 pb-1 pl-8">
+                            <span className="text-xs text-tinta-2">2. Qual é a situação?</span>
+                            <div className="flex flex-wrap items-center gap-1.5">
                               {o.sub.sits.filter((x) => !x.solicitacao).map((x) => (
-                                <button key={x.id} type="button" className="pill pill-accent" style={{ minHeight: 34, fontSize: 12.5 }} aria-pressed={p.sitId === x.id} onClick={() => setPicks({ ...picks, [o.key]: { ...p, sitId: x.id } })}>
+                                <button key={x.id} type="button" className="pill pill-accent min-h-[34px] text-[12.5px]" aria-pressed={p.sitId === x.id} onClick={() => setPicks({ ...picks, [o.key]: { ...p, sitId: x.id } })}>
                                   {x.nome}{incidentes.some((i) => i.sitId === x.id) && <AlertTriangle size={12} aria-label="problema conhecido" />}
                                 </button>
                               ))}
@@ -229,7 +228,7 @@ function PorMapa() {
                                 <span className={`hint ${(p.texto || '').trim().length < MIN_OUTROS ? 'bad' : 'ok'}`}>{(p.texto || '').trim().length < MIN_OUTROS ? `Faltam ${MIN_OUTROS - (p.texto || '').trim().length} caracteres` : 'Descrição ok'}</span>
                               </label>
                             )}
-                            {sits[p.sitId]?.dano && <span className="tiny muted">Dano físico: não tem triagem, mas pede foto na próxima etapa.</span>}
+                            {sits[p.sitId]?.dano && <span className="text-[11px] text-mudo">Dano físico: não tem triagem, mas pede foto na próxima etapa.</span>}
                           </div>
                         )}
                       </div>
@@ -249,41 +248,41 @@ function PorMapa() {
       )}
 
       {tela === 'triagem' && (
-        <section className="card stack-lg" style={{ maxWidth: 860, width: '100%', margin: '0 auto' }}>
-          <div className="stack-sm">
-            <span className="small muted">Baia {code} · {ocup}</span>
-            <h2 style={{ fontSize: 22, color: 'var(--p-ink)' }}>Antes de abrir, tente estes passos</h2>
-            <p className="muted">Muitos problemas se resolvem aqui mesmo. O chamado só pode ser aberto depois que todos os passos forem marcados como feitos (ou como não possíveis, com o motivo).</p>
+        <section className="card flex flex-col gap-5 max-w-[860px] w-full mx-auto">
+          <div className="flex flex-col gap-1.5">
+            <span className="text-xs text-mudo">Baia {code} · {ocup}</span>
+            <h2 className="text-[22px] text-marca-txt">Antes de abrir, tente estes passos</h2>
+            <p className="text-mudo">Muitos problemas se resolvem aqui mesmo. O chamado só pode ser aberto depois que todos os passos forem marcados como feitos (ou como não possíveis, com o motivo).</p>
           </div>
           <BarraProgresso feitos={prog.feitos} total={prog.total} />
           {incidentes.filter((i) => blocos.some((b) => b.x.id === i.sitId)).map((i) => (
             <Note key={i.sitId} tipo="bad"><b>Problema conhecido:</b> já existem {i.chamados.length} chamados de “{sits[i.sitId].nome}” na última hora. Pode ser um incidente geral — o TI já está ciente.</Note>
           ))}
           {blocos.map((b) => (
-            <div key={b.k} className="card card-flat stack-sm">
-              <div className="row"><b style={{ color: 'var(--p-ink)' }}>{b.o.nome}</b><span className="tag">{b.o.code}</span><span className="badge b-warn">{b.x.nome}</span>{b.x.para && <span className="badge badge-sm b-bad">operador parado</span>}</div>
+            <div key={b.k} className="card card-flat flex flex-col gap-1.5">
+              <div className="flex flex-wrap items-center gap-2"><b className="text-marca-txt">{b.o.nome}</b><span className="tag">{b.o.code}</span><span className="badge b-warn">{b.x.nome}</span>{b.x.para && <span className="badge badge-sm b-bad">operador parado</span>}</div>
               {b.x.outros && (
                 <>
-                  <p style={{ background: 'var(--surface-2)', borderRadius: 8, padding: '10px 12px', whiteSpace: 'pre-line' }}>{picks[b.k].texto.trim()}</p>
-                  <span className="small muted">Situação fora do catálogo: não há triagem. O chamado entra na fila de revisão do TI.</span>
+                  <p className="bg-superficie-2 rounded-[8px] py-2.5 px-3 whitespace-pre-line">{picks[b.k].texto.trim()}</p>
+                  <span className="text-xs text-mudo">Situação fora do catálogo: não há triagem. O chamado entra na fila de revisão do TI.</span>
                 </>
               )}
               {b.x.dano && (
                 <>
-                  <span className="small" style={{ color: 'var(--text-2)' }}>Item danificado não passa por triagem. Anexe uma foto para o laudo técnico do TI.</span>
+                  <span className="text-xs text-tinta-2">Item danificado não passa por triagem. Anexe uma foto para o laudo técnico do TI.</span>
                   <AnexoFoto nome={fotos[b.k]} onChange={(n) => setFotos({ ...fotos, [b.k]: n })} obrigatorio />
                 </>
               )}
               {!b.x.dano && !b.x.outros && b.passos.length > 0 && <PassosTriagem passos={b.passos} regs={regs} setReg={(k, r) => setRegs((x) => { const n = { ...x }; if (r) n[k] = r; else delete n[k]; return n; })} />}
-              {!b.x.dano && !b.x.outros && !b.passos.length && <span className="small muted">Esta situação não tem passos de triagem.</span>}
+              {!b.x.dano && !b.x.outros && !b.passos.length && <span className="text-xs text-mudo">Esta situação não tem passos de triagem.</span>}
             </div>
           ))}
           {rapido && <AvisoRapido />}
-          {prioPrev && <span className="small muted">Prioridade prevista: <b>{prioPrev}</b>{parado ? ' (operador sem conseguir trabalhar)' : ''} · SLA de {slaDaPrioridade(prioPrev, blocos[0].x.sub.sla)} min</span>}
+          {prioPrev && <span className="flex items-center gap-2 text-xs text-mudo"><PrioBadge prioritario /> {parado ? 'Operador sem conseguir trabalhar: o chamado entra como prioritário.' : 'Este tipo de chamado é prioritário.'}</span>}
           {erro && <Note tipo="bad">{erro}</Note>}
-          <div className="row" style={{ justifyContent: 'flex-end' }}>
+          <div className="flex flex-wrap items-center gap-2 justify-end">
             <button type="button" className="btn btn-lg" onClick={() => setTela('mapa')}><ArrowLeft size={16} /> Voltar</button>
-            {todosPassos.length > 0 && <button type="button" className="btn btn-lg" style={{ color: 'var(--ok)', borderColor: 'var(--ok-dot)' }} onClick={resolveu}><Check size={16} /> Resolveu, não precisa de chamado</button>}
+            {todosPassos.length > 0 && <button type="button" className="btn btn-lg text-ok border-ok-ponto" onClick={resolveu}><Check size={16} /> Resolveu, não precisa de chamado</button>}
             <button type="button" className="btn btn-primary btn-lg" disabled={!podeAbrir} onClick={abrirChamado}>
               {podeAbrir ? 'Não resolveu, abrir chamado' : prog.falta > 0 ? `Conclua a triagem (falta${prog.falta > 1 ? 'm' : ''} ${prog.falta} passo${prog.falta > 1 ? 's' : ''})` : 'Anexe a foto para abrir'}
             </button>
@@ -292,10 +291,10 @@ function PorMapa() {
       )}
 
       {tela === 'resolvido' && (
-        <section className="card stack" style={{ maxWidth: 620, width: '100%', margin: '0 auto', padding: 32, alignItems: 'flex-start' }}>
-          <span style={{ width: 52, height: 52, borderRadius: '50%', background: 'var(--ok-bg)', color: 'var(--ok)', display: 'grid', placeItems: 'center' }}><PartyPopper size={26} /></span>
-          <h2 style={{ fontSize: 22, color: 'var(--p-ink)' }}>Resolvido na triagem</h2>
-          <p style={{ lineHeight: 1.6 }}>Nenhum chamado foi aberto. O registro entra no relatório de triagem da baia <b>{code}</b>, para o TI saber quais passos mais resolvem.</p>
+        <section className="card flex flex-col gap-3 max-w-[620px] w-full p-8 items-start mx-auto">
+          <span className="w-[52px] h-[52px] rounded-full bg-ok-fundo text-ok grid place-items-center"><PartyPopper size={26} /></span>
+          <h2 className="text-[22px] text-marca-txt">Resolvido na triagem</h2>
+          <p className="leading-[1.6]">Nenhum chamado foi aberto. O registro entra no relatório de triagem da baia <b>{code}</b>, para o TI saber quais passos mais resolvem.</p>
           <button type="button" className="btn btn-primary btn-lg" onClick={() => { limpar(); toast('Obrigado! Menos um chamado na fila do TI.'); }}>Voltar ao mapa</button>
         </section>
       )}
@@ -351,35 +350,35 @@ function PorFormulario() {
 
   return (
     <div className="split">
-      <section className="main card stack-lg">
-        <p className="small muted">Para problemas que não estão ligados a uma baia: sistemas, acessos, rede, salas de reunião, solicitações (novo colaborador, desligamento, troca de baia) ou equipamentos fora do mapa.</p>
-        <div className="stack-sm">
-          <b className="small" style={{ color: 'var(--p-ink)' }}>1. Categoria</b>
+      <section className="main card flex flex-col gap-5">
+        <p className="text-xs text-mudo">Para problemas que não estão ligados a uma baia: sistemas, acessos, rede, salas de reunião, solicitações (novo colaborador, desligamento, troca de baia) ou equipamentos fora do mapa.</p>
+        <div className="flex flex-col gap-1.5">
+          <b className="text-xs text-marca-txt">1. Categoria</b>
           <Pills label="Categoria" value={cat} onChange={(v) => { setCat(v); setSubId(null); setSitId(null); setRegs({}); setTitEditado(false); setDepto(st.catalogo.find((c) => c.id === v).equipe); }}
             options={st.catalogo.map((c) => ({ value: c.id, label: c.nome }))} />
         </div>
         {C && (
-          <div className="stack-sm">
-            <b className="small" style={{ color: 'var(--p-ink)' }}>2. Tipo</b>
+          <div className="flex flex-col gap-1.5">
+            <b className="text-xs text-marca-txt">2. Tipo</b>
             <Pills label="Tipo" value={subId} onChange={(v) => { setSubId(v); setSitId(null); setRegs({}); setTitEditado(false); }} options={C.subs.map((s) => ({ value: s.id, label: s.nome }))} />
-            {S?.item && <span className="small" style={{ color: 'var(--orange)' }}><Info size={13} style={{ verticalAlign: -2 }} /> Problema num item de baia? Use o mapa: o chamado fica vinculado ao item e ao histórico da baia.</span>}
+            {S?.item && <span className="text-xs text-laranja"><Info className="align-[-2px]" size={13} /> Problema num item de baia? Use o mapa: o chamado fica vinculado ao item e ao histórico da baia.</span>}
           </div>
         )}
         {S && (
-          <div className="stack-sm">
-            <b className="small" style={{ color: 'var(--p-ink)' }}>3. Qual é a situação?</b>
+          <div className="flex flex-col gap-1.5">
+            <b className="text-xs text-marca-txt">3. Qual é a situação?</b>
             <Pills accent label="Situação" value={sitId} onChange={(v) => { setSitId(v); setRegs({}); setTitEditado(false); }} options={S.sits.map((s) => ({ value: s.id, label: s.nome }))} />
-            <span className="small muted">Prioridade {S.prio} · SLA {S.sla >= 60 ? `${S.sla / 60}h` : `${S.sla} min`} (definidos no catálogo)</span>
+            {S.prioritario && <span className="flex items-center gap-2 text-xs text-mudo"><PrioBadge prioritario /> Este tipo de chamado é prioritário.</span>}
           </div>
         )}
         {X && (
-          <div className="stack">
-            <b className="small" style={{ color: 'var(--p-ink)' }}>4. Detalhes do chamado</b>
+          <div className="flex flex-col gap-3">
+            <b className="text-xs text-marca-txt">4. Detalhes do chamado</b>
             <Field label="Título"><input className="input" value={tit} onChange={(e) => { setTitulo(e.target.value); setTitEditado(true); }} /></Field>
             <Field label={`Descrição (obrigatória)`} hint={faltaDesc ? `Mínimo de ${MIN_DESC_FORM} caracteres · faltam ${faltaDesc}` : 'Descrição ok'} hintTone={faltaDesc ? 'bad' : 'ok'}>
               <textarea className="textarea" rows={5} value={desc} onChange={(e) => setDesc(e.target.value)} placeholder={X.outros ? 'Descreva o problema com suas palavras: o que aconteceu, desde quando e quem está afetado.' : X.solicitacao ? 'Nome da pessoa, data, acessos necessários e o que mais o TI precisa saber.' : 'O que está acontecendo, desde quando, quem está afetado e o que já foi tentado.'} />
             </Field>
-            <div className="grid-2" style={{ gap: 12 }}>
+            <div className="grid grid-cols-[repeat(auto-fit,minmax(320px,1fr))] items-start gap-3">
               <Field label="Onde (opcional)"><input className="input" value={local} onChange={(e) => setLocal(e.target.value)} placeholder="Ex.: sala de reunião 2, recepção" /></Field>
               <div className="field">Departamento que vai atender<Pills label="Departamento" value={depto} onChange={setDepto} options={['TI', 'Facilities', 'RH']} /></div>
             </div>
@@ -388,120 +387,18 @@ function PorFormulario() {
         )}
       </section>
 
-      <aside className="side card stack sticky">
-        <h2 style={{ color: 'var(--p-ink)' }}>Triagem antes de abrir</h2>
-        {!X && <p className="small muted">Escolha a situação para ver os passos de verificação.</p>}
-        {X?.outros && <p className="small muted">Situação fora do catálogo: não há triagem. Descreva bem o problema; o chamado entra na fila de revisão do TI.</p>}
-        {X?.dano && <p className="small muted">Dano físico não passa por triagem. Anexe uma foto para o laudo técnico.</p>}
-        {X?.solicitacao && <p className="small muted">Solicitação: não é defeito, então não tem triagem.</p>}
-        {X && !X.outros && !X.dano && !X.solicitacao && !passos.length && <p className="small muted">Esta situação não tem passos de triagem.</p>}
+      <aside className="side card flex flex-col gap-3 sticky-lado">
+        <h2 className="text-marca-txt">Triagem antes de abrir</h2>
+        {!X && <p className="text-xs text-mudo">Escolha a situação para ver os passos de verificação.</p>}
+        {X?.outros && <p className="text-xs text-mudo">Situação fora do catálogo: não há triagem. Descreva bem o problema; o chamado entra na fila de revisão do TI.</p>}
+        {X?.dano && <p className="text-xs text-mudo">Dano físico não passa por triagem. Anexe uma foto para o laudo técnico.</p>}
+        {X?.solicitacao && <p className="text-xs text-mudo">Solicitação: não é defeito, então não tem triagem.</p>}
+        {X && !X.outros && !X.dano && !X.solicitacao && !passos.length && <p className="text-xs text-mudo">Esta situação não tem passos de triagem.</p>}
         <BarraProgresso feitos={prog.feitos} total={prog.total} />
         {passos.length > 0 && <PassosTriagem passos={passos} regs={regs} setReg={(k, r) => setRegs((x) => { const n = { ...x }; if (r) n[k] = r; else delete n[k]; return n; })} />}
         {erro && <Note tipo="bad">{erro}</Note>}
         <button type="button" className="btn btn-primary btn-lg" disabled={!!bloqueio} onClick={enviar}>{bloqueio || 'Abrir chamado'}</button>
-        {passos.length > 0 && !bloqueio && <span className="tiny muted">Os passos e horários vão junto com o chamado (RF07).</span>}
-      </aside>
-    </div>
-  );
-}
-
-// ------------------------------------------------------------------ CHAMADO PRÓPRIO
-const MIN_TITULO = 8;
-const MAX_TITULO = 90;
-
-/** Chamado com título próprio: para o que não cabe no catálogo. O TI classifica depois (fila de "Outros"). */
-function ChamadoProprio() {
-  const { st, user, actions } = useStore();
-  const [titulo, setTitulo] = useState('');
-  const [desc, setDesc] = useState('');
-  const [cat, setCat] = useState('');
-  const [depto, setDepto] = useState('TI');
-  const [local, setLocal] = useState('');
-  const [baia, setBaia] = useState('');
-  const [parado, setParado] = useState(false);
-  const [foto, setFoto] = useState(null);
-  const [criado, setCriado] = useState(null);
-  const [erro, setErro] = useState('');
-  const mesas = layoutsDoUsuario(st, user);
-  const livre = st.catalogo.flatMap((c) => c.subs).find((x) => x.livre);
-  // Com categoria escolhida, o chamado cai no "Outros" do primeiro tipo dela; sem categoria, em Geral › Chamado livre.
-  const C = st.catalogo.find((c) => c.id === cat);
-  const sub = C ? C.subs[0] : livre;
-  const sit = sub?.sits.find((x) => x.outros);
-  const prio = prioridadePorImpacto(sub?.prio || 'Média', parado);
-  const sla = slaDaPrioridade(prio, sub?.sla);
-  const tl = titulo.trim().length;
-  const faltaDesc = Math.max(0, MIN_DESC_FORM - desc.trim().length);
-  const bloqueio = tl < MIN_TITULO ? `Escreva um título (mín. ${MIN_TITULO} caracteres)` : faltaDesc ? `Descreva o problema (faltam ${faltaDesc} caracteres)` : '';
-  const [layoutId, pos] = baia ? baia.split(':') : [null, null];
-
-  const enviar = () => {
-    try {
-      const id = actions.abrirChamado({
-        sitId: sit.id, titulo: titulo.trim(), descricao: desc, local: local.trim(), depto, parado,
-        layoutId, pos, anexos: foto ? [foto] : [], triagem: []
-      });
-      setCriado(id);
-    } catch (e) { setErro(e.message); }
-  };
-  const reset = () => { setTitulo(''); setDesc(''); setCat(''); setLocal(''); setBaia(''); setParado(false); setFoto(null); setCriado(null); setErro(''); };
-  if (criado) return <ChamadoCriado id={criado} onVoltar={reset} voltarLabel="Abrir outro chamado" />;
-
-  return (
-    <div className="split">
-      <section className="main card brilho stack-lg">
-        <p className="small muted">Não achou a situação no mapa nem no formulário? Escreva o chamado do seu jeito. O TI recebe na hora e depois classifica no catálogo; se o problema se repetir, ele vira uma opção oficial.</p>
-        <Field label="Título do chamado" hint={`${tl}/${MAX_TITULO} · resuma o problema em uma frase`} hintTone={tl > 0 && tl < MIN_TITULO ? 'bad' : ''}>
-          <input className="input" style={{ fontSize: 16, fontWeight: 600, minHeight: 48 }} maxLength={MAX_TITULO} value={titulo} onChange={(e) => setTitulo(e.target.value)} placeholder="Ex.: Impressora do RH imprimindo folhas em branco" autoFocus />
-        </Field>
-        <Field label="Descrição (obrigatória)" hint={faltaDesc ? `Mínimo de ${MIN_DESC_FORM} caracteres · faltam ${faltaDesc}` : 'Descrição ok'} hintTone={faltaDesc ? 'bad' : 'ok'}>
-          <textarea className="textarea" rows={5} value={desc} onChange={(e) => setDesc(e.target.value)} placeholder="O que aconteceu, desde quando, quem está afetado e o que já foi tentado." />
-        </Field>
-        <div className="field">Assunto (opcional)
-          <Pills label="Assunto" value={cat} onChange={(v) => { setCat(v); const c = st.catalogo.find((x) => x.id === v); if (c) setDepto(c.equipe); }}
-            options={[{ value: '', label: 'Não sei, o TI classifica' }, ...st.catalogo.filter((c) => !c.subs.some((x) => x.livre)).map((c) => ({ value: c.id, label: c.nome }))]} />
-        </div>
-        <div className="grid-2" style={{ gap: 12 }}>
-          <div className="field">Departamento que vai atender<Pills label="Departamento" value={depto} onChange={setDepto} options={['TI', 'Facilities', 'RH']} /></div>
-          <Field label="Onde (opcional)"><input className="input" value={local} onChange={(e) => setLocal(e.target.value)} placeholder="Ex.: sala de reunião 2, recepção" /></Field>
-          {mesas.length > 0 && (
-            <Field label="Vincular a uma baia (opcional)" hint="Entra no histórico da baia">
-              <select className="select" value={baia} onChange={(e) => setBaia(e.target.value)}>
-                <option value="">— sem baia —</option>
-                {mesas.map((L) => (
-                  <optgroup key={L.id} label={`${L.base} · ${L.nome}`}>
-                    {posicoesDaMesa(L).map((p) => <option key={posKey(p)} value={`${L.id}:${posKey(p)}`}>{baiaCodigo(st, L.id, posKey(p))}</option>)}
-                  </optgroup>
-                ))}
-              </select>
-            </Field>
-          )}
-        </div>
-        <label className="check"><input type="checkbox" checked={parado} onChange={(e) => setParado(e.target.checked)} /> Alguém está sem conseguir trabalhar por causa disso (a prioridade sobe)</label>
-        <AnexoFoto nome={foto} onChange={setFoto} />
-      </section>
-
-      <aside className="side stack sticky">
-        <div className="card stack">
-          <span className="small bold muted">Prévia do chamado</span>
-          <div className="ticket" style={{ cursor: 'default' }}>
-            <span className="t-top"><span className="t-num">#2026-{String(st.seqChamado).padStart(4, '0')} · agora</span><PrioBadge prio={prio} /></span>
-            <span className="t-title" style={{ color: tl ? undefined : 'var(--muted)' }}>{titulo.trim() || 'O título que você escrever aparece aqui'}</span>
-            <span className="row" style={{ gap: 6 }}>
-              <span className="tag">{baia ? baiaCodigo(st, layoutId, pos) : local.trim() || 'Sem baia'}</span>
-              <span className="badge badge-sm b-outline">Outros · revisar</span>
-            </span>
-          </div>
-          <div className="detail-grid">
-            <div><div className="lbl">Prioridade</div><div className="val">{prio}{parado ? ' (pessoa parada)' : ''}</div></div>
-            <div><div className="lbl row" style={{ gap: 4 }}>SLA (prazo) <AjudaSla /></div><div className="val">{sla >= 60 ? `${sla / 60}h` : `${sla} min`}</div></div>
-            <div><div className="lbl">Classificação</div><div className="val">{C ? `${C.nome} › Outros` : 'Geral › Chamado livre'}</div></div>
-            <div><div className="lbl">Atende</div><div className="val">{depto}</div></div>
-          </div>
-          {erro && <Note tipo="bad">{erro}</Note>}
-          <button type="button" className="btn btn-primary btn-lg" disabled={!!bloqueio} onClick={enviar}>{bloqueio || <><Send size={16} /> Abrir chamado</>}</button>
-          <span className="tiny muted">Sem triagem: como o problema está fora do catálogo, não há passos prontos. O chamado entra na fila de revisão de “Outros” (RN11).</span>
-        </div>
+        {passos.length > 0 && !bloqueio && <span className="text-[11px] text-mudo">Os passos e horários vão junto com o chamado.</span>}
       </aside>
     </div>
   );
@@ -509,16 +406,18 @@ function ChamadoProprio() {
 
 export default function NovoChamado() {
   const [sp] = useSearchParams();
-  const [modo, setModo] = useState(['form', 'proprio'].includes(sp.get('modo')) ? sp.get('modo') : 'mapa');
+  const { user } = useStore();
+  // Quem cuida de baias (supervisor, TI) começa pelo mapa; RH e gestão, pelo formulário.
+  const [modo, setModo] = useState(sp.get('modo') === 'form' || ['rh', 'gestor'].includes(user.perfil) ? 'form' : 'mapa');
   const nav = useNavigate();
   return (
     <>
-      <PageHead title="Novo chamado" desc="Problema numa baia? Use o mapa. Sistemas, acessos e solicitações: formulário. Não achou o que precisa? Abra um chamado próprio, com o seu título.">
+      <PageHead title="Novo chamado" desc="Problema numa baia? Use o mapa. Para o resto, o formulário.">
         <button type="button" className="btn btn-ghost" onClick={() => nav('/inicio')}><CircleSlash size={15} /> Cancelar</button>
       </PageHead>
       <BannerIncidentes />
-      <Seg label="Como abrir o chamado" value={modo} onChange={setModo} options={[{ value: 'mapa', label: 'Pelo mapa da baia', icon: MapIcon }, { value: 'form', label: 'Formulário do catálogo', icon: FileText }, { value: 'proprio', label: 'Chamado próprio', icon: PenLine }]} />
-      {modo === 'mapa' ? <PorMapa /> : modo === 'form' ? <PorFormulario /> : <ChamadoProprio />}
+      <Seg label="Como abrir o chamado" value={modo} onChange={setModo} options={[{ value: 'mapa', label: 'Pelo mapa da baia', icon: MapIcon }, { value: 'form', label: 'Formulário do catálogo', icon: FileText }]} />
+      {modo === 'mapa' ? <PorMapa /> : <PorFormulario />}
     </>
   );
 }

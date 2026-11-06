@@ -2,10 +2,8 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App.jsx';
 import '@fontsource-variable/inter';
-import '@fontsource-variable/space-grotesk';
 import '@fontsource-variable/jetbrains-mono';
-import './styles/global.css';
-import './styles/motion.css';
+import './index.css';
 
 try {
   const modo = localStorage.getItem('bencalls:modo');

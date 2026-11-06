@@ -1,18 +1,16 @@
 import { useEffect, useRef, useState } from 'react';
-import { X, Clock, PauseCircle, AlertTriangle, CheckCircle2, Info, Inbox, HelpCircle } from 'lucide-react';
+import clsx from 'clsx';
+import { X, AlertTriangle, CheckCircle2, Info, Inbox, HelpCircle, Flame } from 'lucide-react';
 import { useContagem } from './Entrada.tsx';
-import { slaInfo } from '../lib/rules.ts';
-import { duracao } from '../lib/format.ts';
 
 export const COR_STATUS = {
   'Em Análise': 'b-blue', Pendente: 'b-orange', 'Em Execução': 'b-info', 'Aguardando Consenso': 'b-warn',
   Concluído: 'b-ok', Cancelado: 'b-gray', Negado: 'b-bad'
 };
 export const PONTO_STATUS = {
-  'Em Análise': 'var(--p)', Pendente: '#b26a00', 'Em Execução': '#6b4bb0', 'Aguardando Consenso': 'var(--warn-dot)',
-  Concluído: 'var(--ok-dot)', Cancelado: 'var(--gray-dot)', Negado: 'var(--bad-dot)'
+  'Em Análise': 'rgb(var(--marca))', Pendente: '#b26a00', 'Em Execução': '#6b4bb0', 'Aguardando Consenso': 'rgb(var(--aviso-ponto))',
+  Concluído: 'rgb(var(--ok-ponto))', Cancelado: 'rgb(var(--cinza-ponto))', Negado: 'rgb(var(--ruim-ponto))'
 };
-export const COR_PRIO = { Crítica: 'b-bad', Alta: 'b-orange', Média: 'b-warn', Baixa: 'b-gray' };
 export const COR_ITEM = {
   Novo: 'b-ok', 'Em uso': 'b-blue', 'Disponível (usado)': 'b-ok', 'Em manutenção': 'b-info',
   'Em garantia': 'b-orange', Quebrado: 'b-bad', Descartado: 'b-gray'
@@ -22,8 +20,10 @@ export const STATUS_LABEL_CURTO = { 'Aguardando Consenso': 'Aguardando confirma�
 export function StatusBadge({ status, sm }) {
   return <span className={`badge ${sm ? 'badge-sm ' : ''}${COR_STATUS[status] || 'b-gray'}`}>{STATUS_LABEL_CURTO[status] || status}</span>;
 }
-export function PrioBadge({ prio, sm = true }) {
-  return <span className={`badge ${sm ? 'badge-sm ' : ''}${COR_PRIO[prio] || 'b-gray'}`}>{prio}</span>;
+/** Selo "Prioritário": só aparece quando o chamado é prioritário (normal não tem selo). */
+export function PrioBadge({ prioritario, sm = true }) {
+  if (!prioritario) return null;
+  return <span className={`badge ${sm ? 'badge-sm ' : ''}b-bad`}><Flame size={sm ? 11 : 12} /> Prioritário</span>;
 }
 export function ItemBadge({ status }) {
   return <span className={`badge badge-sm ${COR_ITEM[status] || 'b-gray'}`}>{status}</span>;
@@ -32,21 +32,6 @@ export function New() {
   return <span className="badge b-new">NOVO</span>;
 }
 
-export function Sla({ ch, agora, bar }) {
-  const s = slaInfo(ch, agora);
-  if (s.finalizado) return <span className="sla sla-pausado"><CheckCircle2 size={13} /> Encerrado</span>;
-  const cls = s.pausado ? 'pausado' : s.nivel;
-  const txt = s.pausado
-    ? `SLA pausado · ${s.resta >= 0 ? `restam ${duracao(s.resta)}` : `estourou ${duracao(-s.resta)}`}`
-    : s.resta >= 0 ? `SLA vence em ${duracao(s.resta)}` : `SLA estourado há ${duracao(-s.resta)}`;
-  const cor = { ok: 'var(--ok-dot)', alerta: 'var(--warn-dot)', estourado: 'var(--bad-dot)', pausado: 'var(--gray-dot)' }[cls];
-  return (
-    <span className="stack-sm" style={{ gap: 4 }}>
-      <span className={`sla sla-${cls}`}>{s.pausado ? <PauseCircle size={13} /> : <Clock size={13} />}{txt}</span>
-      {bar && <span className="sla-bar"><i style={{ width: `${s.pct}%`, background: cor }} /></span>}
-    </span>
-  );
-}
 
 /** Número que conta de 0 até o valor quando aparece (aceita "72%" também). */
 export function Contador({ valor }) {
@@ -54,8 +39,6 @@ export function Contador({ valor }) {
   const n = useContagem(m ? Number(m[1]) : undefined, 120);
   return m ? <>{n}{m[2]}</> : <>{valor}</>;
 }
-
-export const TEXTO_SLA = 'SLA (Service Level Agreement, ou acordo de nível de serviço) é o prazo máximo para o TI resolver o chamado. Ele vem da prioridade: Crítica 1h, Alta 2h, Média 4h e Baixa 8h (ou menos, se o catálogo definir). O relógio só corre enquanto o chamado depende do TI (Em Análise e Em Execução); em Pendente e Aguardando confirmação ele pausa.';
 
 /** Ícone de ajuda com balão (passar o mouse ou focar com o teclado). */
 export function Ajuda({ titulo = 'O que é isso?', children }) {
@@ -74,17 +57,23 @@ export function Ajuda({ titulo = 'O que é isso?', children }) {
   );
 }
 
-export function AjudaSla() {
-  return <Ajuda titulo="O que é SLA?"><b>O que é SLA?</b> {TEXTO_SLA}</Ajuda>;
-}
 
-export function Kpi({ label, valor, sub, destaque, icon: Icon, onClick, ajuda }) {
+/**
+ * Indicador: número grande, rótulo curto e o ícone num selo colorido.
+ * `sub` só quando acrescenta um dado (ex.: "151 concluídos"); explicação vai no `title`.
+ */
+export function Kpi({ label, valor, sub, destaque, icon: Icon, onClick, ajuda, tom = 'marca', title, ativo }) {
   return (
-    <div className={`kpi${destaque ? ' destaque' : ''}`}>
-      <span className="k-label">{Icon && <Icon size={14} />}{label}{ajuda}</span>
-      <span className="k-valor"><Contador valor={valor} /></span>
+    <div className={clsx('kpi', destaque && 'destaque', ativo && 'kpi-ativo')} title={title}>
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex min-w-0 flex-col gap-1">
+          <span className="k-label">{label}{ajuda}</span>
+          <span className="k-valor"><Contador valor={valor} /></span>
+        </div>
+        {Icon && <span className={`k-icone k-${destaque ? 'ruim' : tom}`} aria-hidden="true"><Icon size={18} /></span>}
+      </div>
       {sub && <span className="k-sub">{sub}</span>}
-      {onClick && <button type="button" className="k-link" onClick={onClick} aria-label={`${label}: ${valor}. Ver detalhes`} />}
+      {onClick && <button type="button" className="k-link" onClick={onClick} aria-label={`${label}: ${valor}. Filtrar`} aria-pressed={ativo || undefined} />}
     </div>
   );
 }
@@ -93,10 +82,10 @@ export function PageHead({ title, desc, children, badge }) {
   return (
     <div className="page-head">
       <div>
-        <div className="row" style={{ gap: 10 }}><h1>{title}</h1>{badge}</div>
+        <div className="flex flex-wrap items-center gap-2.5"><h1>{title}</h1>{badge}</div>
         {desc && <p>{desc}</p>}
       </div>
-      {children && <div className="row">{children}</div>}
+      {children && <div className="flex flex-wrap items-center gap-2">{children}</div>}
     </div>
   );
 }
@@ -105,8 +94,8 @@ export function Empty({ icon: Icon = Inbox, title, children }) {
   return (
     <div className="empty">
       <Icon size={34} />
-      <b style={{ color: 'var(--text)' }}>{title}</b>
-      {children && <div className="small">{children}</div>}
+      <b className="text-tinta">{title}</b>
+      {children && <div className="text-xs">{children}</div>}
     </div>
   );
 }
@@ -163,7 +152,7 @@ export function Field({ label, hint, hintTone, children }) {
 
 export function Pills({ options, value, onChange, accent, label }) {
   return (
-    <div className="row" role="group" aria-label={label} style={{ gap: 6 }}>
+    <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label={label}>
       {options.map((o) => {
         const v = typeof o === 'string' ? o : o.value;
         const l = typeof o === 'string' ? o : o.label;
@@ -189,15 +178,15 @@ export function Seg({ options, value, onChange, label }) {
   );
 }
 
-export function Bars({ dados, cor = 'var(--p)', sufixo = '' }) {
+export function Bars({ dados, cor = 'rgb(var(--marca))', sufixo = '' }) {
   const max = Math.max(1, ...dados.map((d) => d[1]));
   return (
     <div className="bars">
       {dados.map(([l, v]) => (
         <div className="bar-row" key={l}>
-          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={l}>{l}</span>
+          <span className="overflow-hidden text-ellipsis whitespace-nowrap" title={l}>{l}</span>
           <div className="bar-track"><div className="bar-fill" style={{ width: `${(v / max) * 100}%`, background: cor }} /></div>
-          <b style={{ textAlign: 'right' }}>{v}{sufixo}</b>
+          <b className="text-right">{v}{sufixo}</b>
         </div>
       ))}
     </div>

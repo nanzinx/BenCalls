@@ -58,7 +58,24 @@ Atrás de um proxy corporativo com inspeção de TLS, passe o certificado no bui
 | Security → Bots | **Bot Fight Mode** |
 | Caching → Cache Rules | `/assets/*` respeitando o cabeçalho da origem (já vem `immutable` por 1 ano) |
 
-## 5. O que o endurecimento cobre
+## 5. Bloqueio de IPs
+
+A lista fica em [`server/ips-bloqueados.txt`](../server/ips-bloqueados.txt) (IPv4 e IPv6, com ou sem `/prefixo`).
+O servidor responde **403** para esses endereços; atrás do túnel ele usa o IP real do usuário
+(`CF-Connecting-IP`). Vale também no `npm run dev` e no `npm run preview`. Para somar regras sem editar o
+arquivo, use `IPS_BLOQUEADOS=1.2.3.4,2001:db8::/32` no `.env`. Depois de mudar a lista: `./deploy/deploy.sh`.
+
+**Recomendado: bloquear também na borda da Cloudflare**, para o acesso nem chegar ao servidor.
+Security → WAF → Custom rules → Create rule → *Edit expression*, ação **Block**:
+
+```
+(ip.src in {201.93.163.133 201.93.159.169 2804:431:80f7::/48 2804:1b3:a5e7::/48})
+```
+
+(Na Cloudflare a faixa vai com o endereço de rede: `2804:431:80f7:7700::/48` é o mesmo bloco que
+`2804:431:80f7::/48`, e os três `2804:1b3:a5e7:…/48` são o mesmo `2804:1b3:a5e7::/48`.)
+
+## 6. O que o endurecimento cobre
 
 **Imagem (Dockerfile)**
 - Três etapas: o build com devDependencies, testes e typecheck não vai para a imagem final.
@@ -81,7 +98,7 @@ Atrás de um proxy corporativo com inspeção de TLS, passe o certificado no bui
 **pm2 (ecosystem.config.cjs)**
 - Modo cluster (2 cópias por padrão, `PM2_INSTANCIAS`), `wait_ready`, reinício com espera crescente, limite de memória por processo e desligamento gracioso.
 
-## 6. Sem Docker (pm2 direto no servidor)
+## 7. Sem Docker (pm2 direto no servidor)
 
 ```bash
 npm ci && npm run verificar
@@ -93,7 +110,7 @@ npx pm2 start ecosystem.config.cjs && npx pm2 save && npx pm2 startup
 
 E o túnel como serviço, usando `cloudflared/config.example.yml` (instruções no próprio arquivo).
 
-## 7. Operação
+## 8. Operação
 
 ```bash
 docker compose ps

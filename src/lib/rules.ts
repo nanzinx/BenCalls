@@ -1,57 +1,25 @@
-// Regras de negócio puras: status, SLA, prioridade, triagem, estoque.
+// Regras de negócio puras: status, prioridade, triagem, estoque.
+// Não há SLA nem prazo de resolução: o chamado é só prioritário ou normal.
 import { MIN, DIA } from './format.ts';
-import type { ChamadoBase, Historico, Prioridade, RegistroTriagem, StatusChamado, StatusItem, LocalFora } from './tipos.ts';
+import type { ChamadoBase, RegistroTriagem, StatusChamado, StatusItem, LocalFora } from './tipos.ts';
 
 export const STATUS: StatusChamado[] = ['Em Análise', 'Pendente', 'Em Execução', 'Aguardando Consenso', 'Concluído', 'Cancelado', 'Negado'];
 export const ABERTOS: StatusChamado[] = ['Em Análise', 'Pendente', 'Em Execução', 'Aguardando Consenso'];
 export const FINAIS: StatusChamado[] = ['Concluído', 'Cancelado', 'Negado'];
-/** O relógio do SLA só corre enquanto o chamado depende do TI. */
-export const SLA_CORRE: StatusChamado[] = ['Em Análise', 'Em Execução'];
-
-export const PRIORIDADES: Prioridade[] = ['Crítica', 'Alta', 'Média', 'Baixa'];
-export const SLA_POR_PRIORIDADE: Record<Prioridade, number> = { Crítica: 60, Alta: 120, Média: 240, Baixa: 480 };
 
 export const CAUSAS = ['Desgaste natural', 'Defeito de fábrica', 'Problema da baia', 'Mau uso', 'Sem dano físico'];
 
-/** RF12: prioridade automática por impacto. Operador parado sobe para no mínimo Alta. */
-export function prioridadePorImpacto(prioBase: Prioridade, operadorParado: boolean): Prioridade {
-  if (!operadorParado) return prioBase;
-  const i = Math.min(PRIORIDADES.indexOf(prioBase), PRIORIDADES.indexOf('Alta'));
-  return PRIORIDADES[Math.max(0, i)];
-}
-
-export function slaDaPrioridade(prio: Prioridade, slaSub?: number): number {
-  const p = SLA_POR_PRIORIDADE[prio] ?? 240;
-  return slaSub ? Math.min(slaSub, p) : p;
-}
-
 /**
- * Minutos de SLA consumidos: soma só os intervalos em que o status estava
- * em SLA_CORRE (Pendente e Aguardando Consenso pausam o relógio).
+ * Prioridade é sim ou não. Nasce prioritário quando o tipo está marcado como prioritário no
+ * catálogo ou quando alguma situação deixa o operador sem trabalhar. O TI pode mudar depois.
  */
-export function minutosConsumidos(hist: Historico[], agora: number = Date.now()): number {
-  let total = 0;
-  for (let i = 0; i < hist.length; i++) {
-    const h = hist[i];
-    const fim = i + 1 < hist.length ? hist[i + 1].at : agora;
-    if (SLA_CORRE.includes(h.status)) total += Math.max(0, fim - h.at);
-  }
-  return total / MIN;
+export function ehPrioritario(o: { tipoPrioritario?: boolean; operadorParado?: boolean }): boolean {
+  return !!(o.tipoPrioritario || o.operadorParado);
 }
 
-/** Situação do SLA de um chamado. */
-export type NivelSla = 'ok' | 'alerta' | 'estourado';
-export interface SlaInfo { usados: number; resta: number; pausado: boolean; finalizado: boolean; nivel: NivelSla; pct: number }
-
-export function slaInfo(ch: ChamadoBase, agora: number = Date.now()): SlaInfo {
-  const usados = minutosConsumidos(ch.hist, agora);
-  const resta = Math.round(ch.slaMin - usados);
-  const pausado = !SLA_CORRE.includes(ch.status);
-  const finalizado = FINAIS.includes(ch.status);
-  let nivel: NivelSla = 'ok';
-  if (resta < 0) nivel = 'estourado';
-  else if (resta <= Math.max(10, ch.slaMin * 0.25)) nivel = 'alerta';
-  return { usados, resta, pausado, finalizado, nivel, pct: Math.min(100, Math.max(0, (usados / ch.slaMin) * 100)) };
+/** Ordem da fila: prioritários primeiro; dentro de cada grupo, o mais antigo primeiro. */
+export function ordemFila<C extends { prioritario?: boolean; criadoEm?: number }>(a: C, b: C): number {
+  return Number(!!b.prioritario) - Number(!!a.prioritario) || (a.criadoEm ?? 0) - (b.criadoEm ?? 0);
 }
 
 /**

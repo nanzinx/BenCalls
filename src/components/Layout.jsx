@@ -1,8 +1,9 @@
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import clsx from 'clsx';
 import { NavLink, Outlet, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import {
   Inbox, PlusCircle, KanbanSquare, Map, Package, ClipboardCheck, ShieldAlert, BarChart3, Users, ListTree,
-  LayoutGrid, Palette, ScrollText, Search, Bell, Menu, LogOut, Moon, Sun, RotateCcw, MessageSquare, FileSignature, X
+  LayoutGrid, Palette, ScrollText, Search, Bell, Menu, LogOut, Moon, Sun, RotateCcw, MessageSquare, FileSignature, X, ChevronDown, PanelLeftClose, PanelLeftOpen
 } from 'lucide-react';
 import { useStore } from '../store/store.jsx';
 import { tem, estoquePorTipo, layoutsDoUsuario } from '../store/selectors.js';
@@ -17,10 +18,10 @@ import BaiaDetail from './BaiaDetail.jsx';
 import { Drawer } from './ui.jsx';
 import { Entrada } from './Entrada.tsx';
 import { deveMostrarEntrada, diaDe, lerVistoEm, loginRecente, limparLogin, marcarVisto, marcarAtividade, inativo } from '../lib/entrada.ts';
-import { slaInfo, ABERTOS } from '../lib/rules.ts';
+import { ABERTOS } from '../lib/rules.ts';
 
 /** Números que aparecem na entrada, conforme o perfil. */
-function selosDaEntrada(st, user, agora) {
+function selosDaEntrada(st, user) {
   const abertos = st.chamados.filter((c) => ABERTOS.includes(c.status));
   if (user.perfil === 'supervisor') {
     const eq = new Set(user.equipes || []);
@@ -38,14 +39,14 @@ function selosDaEntrada(st, user, agora) {
     const t = Object.values(st.termos).filter((x) => !x.assinadoEm).length;
     return [{ valor: d, texto: 'dossiês para analisar', tom: d ? 'alerta' : 'ok' }, { valor: t, texto: 'termos aguardando aceite' }];
   }
-  const risco = abertos.filter((c) => { const i = slaInfo(c, agora); return !i.pausado && i.nivel !== 'ok'; }).length;
+  const prioritarios = abertos.filter((c) => c.prioritario).length;
   const analise = abertos.filter((c) => c.status === 'Em Análise').length;
   const sel = [
     { valor: analise, texto: 'em análise' },
     { valor: abertos.length, texto: 'em andamento' },
-    { valor: risco, texto: 'com SLA em risco', tom: risco ? 'alerta' : 'ok' }
+    { valor: prioritarios, texto: prioritarios === 1 ? 'prioritário' : 'prioritários', tom: prioritarios ? 'alerta' : 'ok' }
   ];
-  if (user.perfil === 'ti') sel.push({ valor: abertos.filter((c) => c.alerta).length, texto: 'alertas de triagem' });
+  if (user.perfil === 'ti') { const n = abertos.filter((c) => c.alerta).length; sel.push({ valor: n, texto: n === 1 ? 'alerta de triagem' : 'alertas de triagem' }); }
   return sel;
 }
 
@@ -96,30 +97,80 @@ function Notificacoes({ onClose }) {
   }, [onClose]);
   return (
     <div className="popover" ref={ref} role="dialog" aria-label="Notificações">
-      <div className="row-between" style={{ padding: '12px 14px' }}>
+      <div className="flex flex-wrap items-center justify-between gap-3 py-3 px-3.5">
         <div>
           <b>Notificações</b>
-          <div className="tiny muted">Cópia do que foi enviado aos grupos do {st.modulos.benhub ? 'BenHub' : 'e-mail'}</div>
+          <div className="text-[11px] text-mudo">Cópia do que foi enviado aos grupos do {st.modulos.benhub ? 'BenHub' : 'e-mail'}</div>
         </div>
         <button type="button" className="btn btn-sm btn-ghost" onClick={actions.marcarLidas}>Marcar todas como lidas</button>
       </div>
-      <div style={{ maxHeight: 420, overflow: 'auto' }}>
+      <div className="max-h-[420px] overflow-auto">
         {st.notificacoes.slice(0, 30).map((n) => (
           <div key={n.id} className={`notif${n.lida ? '' : ' unread'}`}>
             <span className="n-ic"><MessageSquare size={15} /></span>
-            <div className="grow">
+            <div className="min-w-0 flex-auto">
               <div>{n.texto}</div>
-              <div className="tiny muted" style={{ marginTop: 3 }}>{n.canal} · grupo <b>{n.grupo}</b> · {idade(n.at)}</div>
+              <div className="text-[11px] text-mudo mt-[3px]">{n.canal} · grupo <b>{n.grupo}</b> · {idade(n.at)}</div>
             </div>
           </div>
         ))}
-        {!st.notificacoes.length && <div className="notif muted">Nenhuma notificação.</div>}
+        {!st.notificacoes.length && <div className="notif text-mudo">Nenhuma notificação.</div>}
       </div>
     </div>
   );
 }
 
 const OCUPACOES = ['Disponível', 'Em atendimento', 'Almoço', 'Inoperante'];
+
+/** Menu no avatar: quem está logado, situação do técnico, tema, reiniciar a demonstração e sair. */
+function MenuUsuario({ user, modo, setModo, ocup, setOcup, onReset, onSair }) {
+  const [aberto, setAberto] = useState(false);
+  const ref = useRef(null);
+  useEffect(() => {
+    if (!aberto) return undefined;
+    const fora = (e) => { if (ref.current && !ref.current.contains(e.target)) setAberto(false); };
+    const esc = (e) => { if (e.key === 'Escape') setAberto(false); };
+    document.addEventListener('mousedown', fora);
+    window.addEventListener('keydown', esc);
+    return () => { document.removeEventListener('mousedown', fora); window.removeEventListener('keydown', esc); };
+  }, [aberto]);
+  const escuro = modo === 'escuro';
+  return (
+    <div className="relative" ref={ref}>
+      <button type="button" className="me" aria-haspopup="menu" aria-expanded={aberto} aria-label={`Menu de ${user.nome}`} onClick={() => setAberto((x) => !x)}>
+        <span className="me-txt"><b>{user.nome}</b><span>{user.cargo}</span></span>
+        <span className="avatar">{iniciais(user.nome)}{tem(user, 'ROA') && <span className={clsx('me-status', ocup === 'Disponível' ? 'bg-[#3ddc84]' : ocup === 'Inoperante' ? 'bg-[#ff6b6b]' : 'bg-destaque')} aria-hidden="true" />}</span>
+        <ChevronDown size={15} className={clsx('opacity-70 transition-transform max-sm:hidden', aberto && 'rotate-180')} />
+      </button>
+      {aberto && (
+        <div className="popover w-72 animate-pop" role="menu">
+          <div className="flex items-center gap-3 px-4 py-3.5">
+            <span className="avatar bg-marca-suave text-marca-txt">{iniciais(user.nome)}</span>
+            <span className="flex min-w-0 flex-col"><b className="truncate">{user.nome}</b><span className="truncate text-xs text-mudo">{user.cargo} · {user.depto}</span></span>
+          </div>
+          {tem(user, 'ROA') && (
+            <div className="flex flex-col gap-1.5 border-t border-linha px-4 py-3">
+              <span className="text-[11px] font-semibold uppercase tracking-wide text-mudo">Minha situação</span>
+              <div className="grid grid-cols-2 gap-1.5">
+                {OCUPACOES.map((o) => (
+                  <button key={o} type="button" className="pill min-h-8 justify-center px-2 text-xs" aria-pressed={ocup === o} onClick={() => setOcup(o)}>{o}</button>
+                ))}
+              </div>
+            </div>
+          )}
+          <div className="flex flex-col border-t border-linha p-1.5">
+            <button type="button" role="menuitemcheckbox" aria-checked={escuro} className="menu-item" onClick={() => setModo(escuro ? 'claro' : 'escuro')}>
+              {escuro ? <Sun size={16} /> : <Moon size={16} />}<span className="flex-1">Tema escuro</span>
+              <span className={clsx('chave', escuro && 'on')} aria-hidden="true"><i /></span>
+            </button>
+            <button type="button" role="menuitem" className="menu-item" onClick={() => { setAberto(false); onReset(); }}><RotateCcw size={16} /> Reiniciar demonstração</button>
+            <button type="button" role="menuitem" className="menu-item text-ruim" onClick={onSair}><LogOut size={16} /> Sair</button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function Layout() {
   const { st, user, actions, toasts, fecharToast } = useStore();
@@ -128,13 +179,16 @@ export default function Layout() {
   const [busca, setBusca] = useState(false);
   const [notif, setNotif] = useState(false);
   const [modo, setModo] = useModo();
-  const [ocup, setOcup] = useState(() => localStorage.getItem('bencalls:ocupacao') || 'Disponível');
+  const [ocup, setOcupEstado] = useState(() => localStorage.getItem('bencalls:ocupacao') || 'Disponível');
+  const setOcup = (o) => { setOcupEstado(o); localStorage.setItem('bencalls:ocupacao', o); };
+  const [recolhido, setRecolhidoEstado] = useState(() => localStorage.getItem('bencalls:menu-recolhido') === '1');
+  const setRecolhido = (f) => setRecolhidoEstado((x) => { const v = typeof f === 'function' ? f(x) : f; localStorage.setItem('bencalls:menu-recolhido', v ? '1' : '0'); return v; });
   const [sp, setSp] = useSearchParams();
   const loc = useLocation();
   const nav = useNavigate();
   const [entrada, setEntrada] = useState(() => deveMostrarEntrada({ vistoEm: lerVistoEm(), hoje: diaDe(new Date()), acabouDeEntrar: loginRecente() }));
   const [cascataEntrada, setCascataEntrada] = useState(false);
-  const selos = useMemo(() => selosDaEntrada(st, user, Date.now()), []); // eslint-disable-line react-hooks/exhaustive-deps
+  const selos = useMemo(() => selosDaEntrada(st, user), []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Sessão expira após 30 min sem uso (como no BenHeimdall).
   useEffect(() => {
@@ -196,53 +250,38 @@ export default function Layout() {
           <Logo tema={st.tema} />
           <span className="brand-txt"><b><NomeMarca nome={st.tema.nomeSistema} /></b><span>{st.tema.empresa} · Central de Chamados</span></span>
         </NavLink>
-        <span className="spacer" />
+        <span className="flex-1" />
         <button type="button" className="tb-btn tb-search" onClick={() => setBusca(true)} aria-label="Busca global (Ctrl+K)">
           <Search size={16} /><span className="lbl">Buscar chamado, etiqueta, baia…</span><kbd>Ctrl K</kbd>
         </button>
-        <div style={{ position: 'relative' }}>
+        <div className="relative">
           <button type="button" data-notif-btn className="tb-btn" aria-label={`Notificações (${naoLidas} não lidas)`} aria-expanded={notif} onClick={() => setNotif((x) => !x)}>
             <Bell size={17} />{naoLidas > 0 && <span className="tb-badge">{naoLidas}</span>}
           </button>
           {notif && <Notificacoes onClose={() => setNotif(false)} />}
         </div>
-        <button type="button" className="tb-btn tb-theme" aria-label={modo === 'escuro' ? 'Usar tema claro' : 'Usar tema escuro'} onClick={() => setModo(modo === 'escuro' ? 'claro' : 'escuro')}>
-          {modo === 'escuro' ? <Sun size={17} /> : <Moon size={17} />}
-        </button>
-        <div className="me">
-          <span className="me-txt"><b>{user.nome}</b><span>{user.cargo} · {user.depto}</span></span>
-          <span className="avatar" aria-hidden="true">{iniciais(user.nome)}</span>
-          <button type="button" className="tb-btn" onClick={() => { actions.logout(); nav('/login'); }} aria-label="Sair"><LogOut size={16} /></button>
-        </div>
+        <MenuUsuario user={user} modo={modo} setModo={setModo} ocup={ocup} setOcup={setOcup}
+          onReset={() => { if (confirm('Reiniciar a demonstração? Tudo o que foi feito nesta sessão será apagado.')) actions.resetDemo(); }}
+          onSair={() => { actions.logout(); nav('/login'); }} />
       </header>
 
       <div className="body">
         <div className={`scrim${aberto ? ' open' : ''}`} onClick={() => setAberto(false)} />
-        <nav className={`sidebar${aberto ? ' open' : ''}`} aria-label="Menu principal">
+        <nav className={clsx('sidebar', aberto && 'open', recolhido && 'recolhido')} aria-label="Menu principal">
           {menu.map((m, i) => m.secao
             ? <span key={`s${i}`} className="nav-sec">{m.secao}</span>
             : (
-              <NavLink key={m.to} to={m.to} className={({ isActive }) => `nav-item${isActive ? ' active' : ''}`}>
-                <m.icon size={17} />
-                <span>{m.label}</span>
+              <NavLink key={m.to} to={m.to} title={recolhido ? m.label : undefined} className={({ isActive }) => `nav-item${isActive ? ' active' : ''}`}>
+                <m.icon size={18} className="flex-none" />
+                <span className="nav-txt">{m.label}</span>
                 {m.badge > 0 && <span className={`nav-badge${m.warn ? ' warn' : ''}`}>{m.badge}</span>}
               </NavLink>
             ))}
           <div className="sidebar-foot">
-            {tem(user, 'ROA') && (
-              <div className="stack-sm">
-                <span className="small bold" style={{ color: 'var(--text-2)' }}>Minha situação agora</span>
-                <div className="row" style={{ gap: 6 }}>
-                  {OCUPACOES.map((o) => (
-                    <button key={o} type="button" className="pill" style={{ minHeight: 30, fontSize: 12, padding: '0 10px' }} aria-pressed={ocup === o}
-                      onClick={() => { setOcup(o); localStorage.setItem('bencalls:ocupacao', o); }}>{o}</button>
-                  ))}
-                </div>
-              </div>
-            )}
-            <button type="button" className="btn btn-sm btn-ghost" style={{ justifyContent: 'flex-start' }}
-              onClick={() => { if (confirm('Reiniciar a demonstração? Tudo o que foi feito nesta sessão será apagado.')) actions.resetDemo(); }}>
-              <RotateCcw size={14} /> Reiniciar demonstração
+            <button type="button" className="nav-item w-full cursor-pointer border-0 bg-transparent text-mudo max-[900px]:hidden" onClick={() => setRecolhido((x) => !x)}
+              aria-label={recolhido ? 'Expandir menu' : 'Recolher menu'} title={recolhido ? 'Expandir menu' : undefined}>
+              {recolhido ? <PanelLeftOpen size={18} className="flex-none" /> : <PanelLeftClose size={18} className="flex-none" />}
+              <span className="nav-txt">Recolher menu</span>
             </button>
           </div>
         </nav>
@@ -273,8 +312,8 @@ export default function Layout() {
       <div className="toasts" aria-live="polite">
         {toasts.map((t) => (
           <div key={t.id} className={`toast ${t.tipo}`} role="status">
-            <span className="grow">{t.texto}</span>
-            <button type="button" className="btn btn-ghost btn-sm btn-icon" style={{ width: 28, minHeight: 28 }} aria-label="Fechar aviso" onClick={() => fecharToast(t.id)}><X size={14} /></button>
+            <span className="min-w-0 flex-auto">{t.texto}</span>
+            <button type="button" className="btn btn-ghost btn-sm btn-icon w-7 min-h-[28px]" aria-label="Fechar aviso" onClick={() => fecharToast(t.id)}><X size={14} /></button>
           </div>
         ))}
       </div>

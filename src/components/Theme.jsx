@@ -1,12 +1,14 @@
 import { useEffect, useState } from 'react';
 import { useStore } from '../store/store.jsx';
-import { contraste, misturar, textoSobre } from '../lib/contrast.ts';
+import { contraste, misturar, textoSobre, hexParaRgb } from '../lib/contrast.ts';
+
+/** "#0B3A82" → "11 58 130" (formato das variáveis do Tailwind). */
+const trinca = (hex) => (hexParaRgb(hex) || [0, 0, 0]).join(' ');
 import { Marca } from './Marca.tsx';
 
 /** Fontes servidas pelo próprio site (sem CDN externo, o CSP fica fechado). */
 export const FONTES = {
   Inter: "'Inter Variable', 'Segoe UI', Roboto, Arial, sans-serif",
-  'Space Grotesk': "'Space Grotesk Variable', 'Segoe UI', sans-serif",
   Sistema: "system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif"
 };
 
@@ -33,15 +35,15 @@ export function varsDoTema(tema, escuro) {
     ? (contraste(misturar(p, 0.55), '#151d2c') >= 4.5 ? misturar(p, 0.55) : '#9cbcf2')
     : (contraste(p, '#FFFFFF') >= 4.5 ? p : misturar(p, -0.45));
   return {
-    '--p': p,
-    '--p-hover': misturar(p, -0.3),
-    '--p-soft': escuro ? misturar(p, -0.62) : misturar(p, 0.9),
-    '--p-soft-2': escuro ? misturar(p, -0.72) : misturar(p, 0.95),
-    '--p-ink': ink,
-    '--on-p': textoSobre(p),
-    '--a': a,
-    '--on-a': onA,
-    '--font': FONTES[tema.fonte] || FONTES.Inter
+    '--marca': trinca(p),
+    '--marca-2': trinca(misturar(p, -0.3)),
+    '--marca-suave': trinca(escuro ? misturar(p, -0.62) : misturar(p, 0.9)),
+    '--marca-suave-2': trinca(escuro ? misturar(p, -0.72) : misturar(p, 0.95)),
+    '--marca-txt': trinca(ink),
+    '--sobre-marca': trinca(textoSobre(p)),
+    '--destaque': trinca(a),
+    '--sobre-destaque': trinca(onA),
+    '--fonte': FONTES[tema.fonte] || FONTES.Inter
   };
 }
 

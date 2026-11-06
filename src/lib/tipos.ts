@@ -9,8 +9,6 @@ export type StatusChamado =
   | 'Cancelado'
   | 'Negado';
 
-export type Prioridade = 'Crítica' | 'Alta' | 'Média' | 'Baixa';
-
 export type StatusItem =
   | 'Novo'
   | 'Em uso'
@@ -62,7 +60,7 @@ export interface RegistroTriagem {
 export interface ChamadoBase {
   id?: number;
   status: StatusChamado;
-  slaMin: number;
+  prioritario?: boolean;
   hist: Historico[];
   criadoEm?: number;
   sitId?: string | null;

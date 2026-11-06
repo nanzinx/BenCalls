@@ -18,27 +18,27 @@ export default function MapaGeral() {
 
   return (
     <>
-      <PageHead title="Mapa geral" desc={`Todas as salas e mesas no layout físico. ${total} posições cadastradas. Clique numa baia para ver o histórico, os itens e os chamados.`}>
+      <PageHead title="Mapa geral" desc={`${total} posições em todas as salas. Clique numa baia para ver o histórico.`}>
         <Legenda />
       </PageHead>
       <BannerIncidentes />
       <div className="grid-kpi">
-        {Object.entries(cont).map(([k, v]) => <Kpi key={k} label={ST_BAIA[k].label} valor={v} sub={`${Math.round((v / total) * 100)}% das posições`} destaque={k === 'parado' && v > 0} />)}
+        {Object.entries(cont).map(([k, v]) => <Kpi key={k} label={ST_BAIA[k].label} valor={v} sub={`${Math.round((v / total) * 100)}% das posições`} tom={{ ok: 'ok', aberto: 'aviso', parado: 'ruim', vazia: 'marca' }[k]} destaque={k === 'parado' && v > 0} />)}
       </div>
       {salas.map((sala) => {
         let mesas = st.layouts.filter((l) => l.sala === sala);
         // As equipes do operacional são numeradas da direita para a esquerda (§4.2).
         if (sala === 'Operacional') mesas = [...mesas].reverse();
         return (
-          <section key={sala} className="card stack">
-            <div className="row-between">
+          <section key={sala} className="card flex flex-col gap-3">
+            <div className="flex flex-wrap items-center justify-between gap-3">
               <h2>{sala}</h2>
-              <span className="small muted">{sala === 'Operacional' ? 'Vista de frente: equipes numeradas da direita para a esquerda' : `${mesas.length} mesa(s)`}</span>
+              <span className="text-xs text-mudo">{sala === 'Operacional' ? 'Vista de frente: equipes numeradas da direita para a esquerda' : `${mesas.length} mesa(s)`}</span>
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(230px, 1fr))', gap: 14 }}>
+            <div className="grid grid-cols-[repeat(auto-fill,_minmax(230px,_1fr))] gap-3.5">
               {mesas.map((L) => (
-                <div key={L.id} className="stack-sm">
-                  <div className="row-between"><b>{L.base}</b><span className="tiny muted">{L.nome}{user.perfil !== 'supervisor' && L.supervisorId ? ` · ${st.usuarios.find((u) => u.id === L.supervisorId)?.nome || ''}` : ''}</span></div>
+                <div key={L.id} className="flex flex-col gap-1.5">
+                  <div className="flex flex-wrap items-center justify-between gap-3"><b>{L.base}</b><span className="text-[11px] text-mudo">{L.nome}{user.perfil !== 'supervisor' && L.supervisorId ? ` · ${st.usuarios.find((u) => u.id === L.supervisorId)?.nome || ''}` : ''}</span></div>
                   <DeskMap layout={L} compact mostrarChamado onPick={(k) => abrir({ baia: `${L.id}:${k}` })} />
                 </div>
               ))}
