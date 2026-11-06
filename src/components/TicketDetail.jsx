@@ -33,18 +33,18 @@ function SolucaoForm({ c, onDone, onCancel }) {
   };
 
   return (
-    <div className="card card-flat stack" style={{ background: 'var(--surface-2)' }}>
-      <b className="row"><Wrench size={16} /> Registrar solução</b>
+    <div className="card card-flat flex flex-col gap-3 bg-superficie-2">
+      <b className="flex flex-wrap items-center gap-2"><Wrench size={16} /> Registrar solução</b>
       <label className="field">Descreva a solução
         <textarea className="textarea" rows={3} value={texto} onChange={(e) => setTexto(e.target.value)} placeholder="O que foi feito para resolver?" />
       </label>
       {precisaLaudo && (
-        <div className="stack-sm">
-          <span className="small bold">Laudo técnico: qual foi a causa? <span className="muted">(obrigatório — RN02)</span></span>
-          <div className="row" style={{ gap: 6 }}>
+        <div className="flex flex-col gap-1.5">
+          <span className="text-xs font-semibold">Laudo técnico: qual foi a causa? <span className="text-mudo">(obrigatório — RN02)</span></span>
+          <div className="flex flex-wrap items-center gap-1.5">
             {CAUSAS.map((k) => (
               <button key={k} type="button" className="pill" aria-pressed={causa === k} onClick={() => setCausa(k)}
-                style={causa === k && k === 'Mau uso' ? { background: 'var(--bad-dot)', borderColor: 'var(--bad-dot)' } : undefined}>{k}</button>
+                style={causa === k && k === 'Mau uso' ? { background: 'rgb(var(--ruim-ponto))', borderColor: 'rgb(var(--ruim-ponto))' } : undefined}>{k}</button>
             ))}
           </div>
           {causa === 'Mau uso' && (
@@ -53,18 +53,18 @@ function SolucaoForm({ c, onDone, onCancel }) {
         </div>
       )}
       {itensChamado.length > 0 && (
-        <div className="stack-sm">
-          <span className="small bold row"><ArrowRightLeft size={14} /> Troca de item (baixa automática no estoque — RF16)</span>
+        <div className="flex flex-col gap-1.5">
+          <span className="text-xs font-semibold flex flex-wrap items-center gap-2"><ArrowRightLeft size={14} /> Troca de item (baixa automática no estoque — RF16)</span>
           {itensChamado.map((it) => {
             const t = trocas[it.id] || { on: false, novoId: '', destino: 'Em manutenção' };
             const set = (patch) => setTrocas((x) => ({ ...x, [it.id]: { ...t, ...patch } }));
             const disponiveis = st.itens.filter((x) => x.tipo === it.tipo && DISPONIVEL.includes(x.status));
             return (
-              <div key={it.id} className="item-pick stack-sm" style={{ padding: 10 }}>
+              <div key={it.id} className="item-pick flex flex-col gap-1.5 p-2.5">
                 <label className="check"><input type="checkbox" checked={t.on} onChange={(e) => set({ on: e.target.checked })} />
-                  Retirar <span className="tag">{codigoItem(st, it)}</span> <span className="muted small">{it.id}</span></label>
+                  Retirar <span className="tag">{codigoItem(st, it)}</span> <span className="text-mudo text-xs">{it.id}</span></label>
                 {t.on && (
-                  <div className="grid-2" style={{ gap: 10 }}>
+                  <div className="grid grid-cols-[repeat(auto-fit,minmax(320px,1fr))] items-start gap-2.5">
                     <label className="field">Item retirado vai para
                       <select className="select" value={t.destino} onChange={(e) => set({ destino: e.target.value })}>
                         {['Em manutenção', 'Em garantia', 'Quebrado', 'Disponível (usado)'].map((d) => <option key={d}>{d}</option>)}
@@ -82,13 +82,13 @@ function SolucaoForm({ c, onDone, onCancel }) {
               </div>
             );
           })}
-          <span className="tiny muted">A etiqueta nova é gerada na hora: o item instalado assume o código da baia e o retirado ganha código do local (ALM/MNT/GAR). O ID interno não muda.</span>
+          <span className="text-[11px] text-mudo">A etiqueta nova é gerada na hora: o item instalado assume o código da baia e o retirado ganha código do local (ALM/MNT/GAR). O ID interno não muda.</span>
         </div>
       )}
-      <div className="row">
+      <div className="flex flex-wrap items-center gap-2">
         <button type="button" className="btn btn-primary" disabled={!ok} onClick={salvar}>Registrar solução</button>
         <button type="button" className="btn" onClick={onCancel}>Voltar</button>
-        {!ok && <span className="small muted">{texto.trim().length < 5 ? 'Descreva a solução.' : 'Escolha a causa do laudo.'}</span>}
+        {!ok && <span className="text-xs text-mudo">{texto.trim().length < 5 ? 'Descreva a solução.' : 'Escolha a causa do laudo.'}</span>}
       </div>
     </div>
   );
@@ -135,12 +135,12 @@ export default function TicketDetail({ id, onClose, abrir }) {
   const podeVirarPasso = ti && c.solucao && sit && !sit.outros && !sit.dano && !sit.solicitacao && !(sit.passos || []).includes(c.solucao.texto);
 
   return (
-    <div className="stack" style={{ padding: 20 }}>
-      <div className="row-between" style={{ alignItems: 'flex-start' }}>
-        <div className="stack-sm" style={{ minWidth: 0, flex: 1 }}>
-          <span className="small bold muted">{numeroChamado(c.id)} · {c.categoria} › {c.sub}</span>
-          <h2 style={{ fontSize: 19, color: 'var(--p-ink)' }}>{c.titulo}</h2>
-          <div className="row" style={{ gap: 6 }}>
+    <div className="flex flex-col gap-3 p-5">
+      <div className="flex flex-wrap justify-between gap-3 items-start">
+        <div className="flex flex-col gap-1.5 min-w-0 flex-1">
+          <span className="text-xs font-semibold text-mudo">{numeroChamado(c.id)} · {c.categoria} › {c.sub}</span>
+          <h2 className="text-[19px] text-marca-txt">{c.titulo}</h2>
+          <div className="flex flex-wrap items-center gap-1.5">
             <StatusBadge status={c.status} />
             <PrioBadge prio={c.prioridade} sm={false} />
             {c.operadorParado && !['Concluído', 'Cancelado', 'Negado'].includes(c.status) && <span className="badge b-bad">Operador parado</span>}
@@ -150,31 +150,31 @@ export default function TicketDetail({ id, onClose, abrir }) {
         <button type="button" className="btn btn-icon" onClick={onClose} aria-label="Fechar detalhe"><X size={18} /></button>
       </div>
 
-      <div className="row" style={{ alignItems: 'flex-start', flexWrap: 'nowrap' }}><div className="grow"><Sla ch={c} agora={agora} bar /></div><AjudaSla /></div>
+      <div className="flex gap-2 items-start flex-nowrap"><div className="min-w-0 flex-auto"><Sla ch={c} agora={agora} bar /></div><AjudaSla /></div>
 
       <div className="detail-grid">
-        <div><div className="lbl">Baia</div><div className="val">{baia ? <button type="button" className="btn btn-sm btn-ghost" style={{ padding: 0, minHeight: 0 }} onClick={() => abrir({ baia: `${c.layoutId}:${c.pos}` })}><MapPin size={13} /> {baia}</button> : '—'}</div></div>
+        <div><div className="lbl">Baia</div><div className="val">{baia ? <button type="button" className="btn btn-sm btn-ghost p-0 min-h-0" onClick={() => abrir({ baia: `${c.layoutId}:${c.pos}` })}><MapPin size={13} /> {baia}</button> : '—'}</div></div>
         <div><div className="lbl">Ocupante na abertura</div><div className="val">{c.ocupante}</div></div>
         <div><div className="lbl">Aberto por</div><div className="val">{nomeUser(st, c.remetenteId)}</div></div>
         <div><div className="lbl">Aberto em</div><div className="val">{dataHora(c.criadoEm, agora)} · {idade(c.criadoEm, agora)}</div></div>
-        <div><div className="lbl">Atendimento</div><div className="val">{c.depto} · {c.tecnicoId ? nomeUser(st, c.tecnicoId) : <span className="muted">sem técnico</span>}</div></div>
+        <div><div className="lbl">Atendimento</div><div className="val">{c.depto} · {c.tecnicoId ? nomeUser(st, c.tecnicoId) : <span className="text-mudo">sem técnico</span>}</div></div>
         <div><div className="lbl">SLA da prioridade (prazo)</div><div className="val">{c.slaMin >= 60 ? `${c.slaMin / 60}h` : `${c.slaMin} min`}</div></div>
-        {c.local && <div style={{ gridColumn: '1 / -1' }}><div className="lbl">Onde</div><div className="val">{c.local}</div></div>}
+        {c.local && <div className="col-span-full"><div className="lbl">Onde</div><div className="val">{c.local}</div></div>}
       </div>
 
       {c.alerta && <Note tipo="bad"><b>Alerta de triagem:</b> {c.alerta}</Note>}
       {c.outros && !c.outrosRevisado && <Note tipo="gray"><b>“Outros”:</b> está na fila de revisão do TI para ser reclassificado.</Note>}
 
       {c.itens.length > 0 && (
-        <div className="stack-sm">
-          <span className="small bold muted">Itens</span>
+        <div className="flex flex-col gap-1.5">
+          <span className="text-xs font-semibold text-mudo">Itens</span>
           {c.itens.map((i, k) => {
             const it = st.itens.find((x) => x.id === i.assetId);
             return (
-              <div key={k} className="row" style={{ border: '1px solid var(--border)', borderRadius: 10, padding: '8px 10px' }}>
+              <div key={k} className="flex flex-wrap items-center gap-2 border border-linha rounded-[10px] py-2 px-2.5">
                 <span className="tag">{it ? codigoItem(st, it) : '—'}</span>
                 <b>{nomeItem(i.tipo)}</b>
-                <span className="small muted grow">{i.situacao}</span>
+                <span className="text-xs text-mudo min-w-0 flex-auto">{i.situacao}</span>
                 {it && <ItemBadge status={it.status} />}
                 {it && tem(user, 'EST') && <button type="button" className="btn btn-sm btn-ghost" onClick={() => abrir({ item: it.id })} aria-label={`Abrir item ${it.id}`}><ExternalLink size={13} /> {it.id}</button>}
               </div>
@@ -184,16 +184,16 @@ export default function TicketDetail({ id, onClose, abrir }) {
       )}
 
       {c.descricao && (
-        <div className="stack-sm">
-          <span className="small bold muted">Descrição</span>
-          <p style={{ whiteSpace: 'pre-line', lineHeight: 1.55 }}>{c.descricao}</p>
+        <div className="flex flex-col gap-1.5">
+          <span className="text-xs font-semibold text-mudo">Descrição</span>
+          <p className="whitespace-pre-line leading-[1.55]">{c.descricao}</p>
         </div>
       )}
 
-      <div className="row">
+      <div className="flex flex-wrap items-center gap-2">
         {c.anexos.map((a) => <span key={a} className="badge b-blue"><Paperclip size={12} /> {a}</span>)}
         {!['Concluído', 'Cancelado', 'Negado'].includes(c.status) && (
-          <label className="btn btn-sm btn-dashed" style={{ cursor: 'pointer' }}>
+          <label className="btn btn-sm btn-dashed cursor-pointer">
             <Paperclip size={13} /> Anexar arquivo
             <input type="file" className="sr-only" onChange={(e) => { const f = e.target.files?.[0]; if (f) { actions.anexar(c.id, f.name); toast(`Anexo “${f.name}” enviado (BenTabularium).`); } }} />
           </label>
@@ -201,26 +201,26 @@ export default function TicketDetail({ id, onClose, abrir }) {
       </div>
 
       {c.triagem.length > 0 && (
-        <div className="stack-sm">
-          <span className="small bold muted row"><ListChecks size={14} /> Registro da triagem</span>
+        <div className="flex flex-col gap-1.5">
+          <span className="text-xs font-semibold text-mudo flex flex-wrap items-center gap-2"><ListChecks size={14} /> Registro da triagem</span>
           {c.triagem.map((t, k) => (
-            <div key={k} className="row" style={{ alignItems: 'baseline', borderBottom: '1px solid var(--border)', paddingBottom: 6, gap: '4px 10px' }}>
-              <span className="mono tiny muted">{hhmmss(t.at)}</span>
-              <span style={{ flex: '1 1 200px' }}>{t.texto}</span>
-              <span className="small bold" style={{ color: t.st === 'feito' ? 'var(--ok)' : 'var(--orange)' }}>{t.st === 'feito' ? 'Feito' : `Não foi possível: ${t.motivo}`}</span>
+            <div key={k} className="flex flex-wrap items-baseline gap-x-2.5 gap-y-1 border-b border-linha pb-1.5">
+              <span className="font-mono text-[11px] text-mudo">{hhmmss(t.at)}</span>
+              <span className="flex-[1_1_200px]">{t.texto}</span>
+              <span className="text-xs font-semibold" style={{ color: t.st === 'feito' ? 'rgb(var(--ok))' : 'rgb(var(--laranja))' }}>{t.st === 'feito' ? 'Feito' : `Não foi possível: ${t.motivo}`}</span>
             </div>
           ))}
         </div>
       )}
 
       {c.solucao && (
-        <div className="card card-flat stack-sm">
-          <span className="small bold muted">Solução · {nomeUser(st, c.solucao.user)} · {dataHora(c.solucao.at, agora)}</span>
-          <p style={{ lineHeight: 1.55 }}>{c.solucao.texto}</p>
-          {c.solucao.causa && <span className="small bold" style={{ color: 'var(--info)' }}>Laudo técnico: {c.solucao.causa}</span>}
-          {st.dossies.some((d) => d.ticketId === c.id) && <span className="small bold" style={{ color: 'var(--bad)' }}>Dossiê enviado ao RH para análise do termo de responsabilidade.</span>}
+        <div className="card card-flat flex flex-col gap-1.5">
+          <span className="text-xs font-semibold text-mudo">Solução · {nomeUser(st, c.solucao.user)} · {dataHora(c.solucao.at, agora)}</span>
+          <p className="leading-[1.55]">{c.solucao.texto}</p>
+          {c.solucao.causa && <span className="text-xs font-semibold text-info">Laudo técnico: {c.solucao.causa}</span>}
+          {st.dossies.some((d) => d.ticketId === c.id) && <span className="text-xs font-semibold text-ruim">Dossiê enviado ao RH para análise do termo de responsabilidade.</span>}
           {podeVirarPasso && (
-            <button type="button" className="btn btn-sm" style={{ alignSelf: 'flex-start' }} onClick={() => { actions.adicionarPasso(sit.id, c.solucao.texto); toast(`Novo passo adicionado à triagem de “${sit.nome}”.`); }}>
+            <button type="button" className="btn btn-sm self-start" onClick={() => { actions.adicionarPasso(sit.id, c.solucao.texto); toast(`Novo passo adicionado à triagem de “${sit.nome}”.`); }}>
               <Sparkles size={14} /> Transformar em passo de triagem (RF08)
             </button>
           )}
@@ -232,51 +232,51 @@ export default function TicketDetail({ id, onClose, abrir }) {
       )}
 
       {acoes.length > 0 && (
-        <div className="row">
+        <div className="flex flex-wrap items-center gap-2">
           {acoes.map((a) => <button key={a.l} type="button" className={`btn ${a.cls || ''}`} onClick={a.run}><a.i size={15} />{a.l}</button>)}
         </div>
       )}
 
       {form === 'solucao' && <SolucaoForm c={c} onCancel={() => setForm(null)} onDone={(m) => { setForm(null); toast(m); }} />}
       {F && (
-        <div className="card card-flat stack-sm" style={{ background: 'var(--surface-2)' }}>
+        <div className="card card-flat flex flex-col gap-1.5 bg-superficie-2">
           <label className="field">{F.titulo}
             <textarea className="textarea" rows={3} value={txt} onChange={(e) => setTxt(e.target.value)} placeholder={F.ph} autoFocus />
           </label>
-          {form === 'devolver' && <span className="small muted">Volta para “Em Execução” com o seu comentário no histórico.</span>}
-          {form === 'reabrir' && <span className="small muted">Reabertura em até 7 dias volta para o mesmo técnico e conta como reabertura nos relatórios (RN07).</span>}
-          <div className="row">
+          {form === 'devolver' && <span className="text-xs text-mudo">Volta para “Em Execução” com o seu comentário no histórico.</span>}
+          {form === 'reabrir' && <span className="text-xs text-mudo">Reabertura em até 7 dias volta para o mesmo técnico e conta como reabertura nos relatórios (RN07).</span>}
+          <div className="flex flex-wrap items-center gap-2">
             <button type="button" className={`btn ${form === 'negar' || form === 'cancelar' ? 'btn-danger' : 'btn-primary'}`} disabled={txt.trim().length < 5} onClick={confirmar}>{F.botao}</button>
             <button type="button" className="btn" onClick={() => { setForm(null); setTxt(''); }}>Voltar</button>
           </div>
         </div>
       )}
 
-      <div className="stack-sm">
-        <span className="small bold muted">Comentários</span>
+      <div className="flex flex-col gap-1.5">
+        <span className="text-xs font-semibold text-mudo">Comentários</span>
         {(c.comentarios || []).map((m, k) => (
-          <div key={k} className="card card-flat" style={{ padding: 10 }}>
-            <div className="tiny muted">{nomeUser(st, m.user)} · {dataHora(m.at, agora)}</div>
-            <div style={{ whiteSpace: 'pre-line' }}>{m.texto}</div>
+          <div key={k} className="card card-flat p-2.5">
+            <div className="text-[11px] text-mudo">{nomeUser(st, m.user)} · {dataHora(m.at, agora)}</div>
+            <div className="whitespace-pre-line">{m.texto}</div>
           </div>
         ))}
-        <div className="row" style={{ alignItems: 'stretch' }}>
-          <input className="input grow" value={coment} onChange={(e) => setComent(e.target.value)} placeholder="Escreva um comentário para o TI ou para quem abriu…"
+        <div className="flex flex-wrap gap-2 items-stretch">
+          <input className="input min-w-0 flex-auto" value={coment} onChange={(e) => setComent(e.target.value)} placeholder="Escreva um comentário para o TI ou para quem abriu…"
             onKeyDown={(e) => { if (e.key === 'Enter' && coment.trim()) { actions.comentar(c.id, coment.trim()); setComent(''); } }} aria-label="Novo comentário" />
           <button type="button" className="btn" disabled={!coment.trim()} onClick={() => { actions.comentar(c.id, coment.trim()); setComent(''); }}><MessageSquarePlus size={15} /> Enviar</button>
         </div>
       </div>
 
-      <div className="stack-sm">
-        <span className="small bold muted">Histórico</span>
+      <div className="flex flex-col gap-1.5">
+        <span className="text-xs font-semibold text-mudo">Histórico</span>
         <div className="timeline">
           {[...c.hist].reverse().map((h, k) => (
             <div key={k} className="tl-item">
-              <span className="tl-dot" style={{ background: PONTO_STATUS[h.status], boxShadow: k === 0 ? `0 0 0 3px var(--surface-3)` : 'none' }} />
-              <div className="stack-sm" style={{ gap: 1 }}>
-                <span><b>{h.status}</b> <span className="muted">· {nomeUser(st, h.user)}</span></span>
-                <span className="tiny muted">{dataHora(h.at, agora)} · {idade(h.at, agora)}</span>
-                {h.just && <span className="small" style={{ color: 'var(--text-2)' }}>{h.just}</span>}
+              <span className="tl-dot" style={{ background: PONTO_STATUS[h.status], boxShadow: k === 0 ? `0 0 0 3px rgb(var(--superficie-3))` : 'none' }} />
+              <div className="flex flex-col gap-px">
+                <span><b>{h.status}</b> <span className="text-mudo">· {nomeUser(st, h.user)}</span></span>
+                <span className="text-[11px] text-mudo">{dataHora(h.at, agora)} · {idade(h.at, agora)}</span>
+                {h.just && <span className="text-xs text-tinta-2">{h.just}</span>}
               </div>
             </div>
           ))}
@@ -284,16 +284,16 @@ export default function TicketDetail({ id, onClose, abrir }) {
       </div>
 
       {baia && (
-        <div className="stack-sm">
-          <span className="small bold muted row"><AlertTriangle size={14} /> Outros chamados desta baia</span>
+        <div className="flex flex-col gap-1.5">
+          <span className="text-xs font-semibold text-mudo flex flex-wrap items-center gap-2"><AlertTriangle size={14} /> Outros chamados desta baia</span>
           {st.chamados.filter((x) => x.layoutId === c.layoutId && x.pos === c.pos && x.id !== c.id).sort((a, b) => b.criadoEm - a.criadoEm).slice(0, 5).map((x) => (
-            <button key={x.id} type="button" className="ticket" style={{ padding: '8px 10px' }} onClick={() => abrir({ ch: x.id })}>
+            <button key={x.id} type="button" className="ticket py-2 px-2.5" onClick={() => abrir({ ch: x.id })}>
               <span className="t-top"><span className="t-num">{numeroChamado(x.id)} · {idade(x.criadoEm, agora)}</span><StatusBadge status={x.status} sm /></span>
-              <span className="small">{x.titulo}</span>
+              <span className="text-xs">{x.titulo}</span>
             </button>
           ))}
-          {!st.chamados.some((x) => x.layoutId === c.layoutId && x.pos === c.pos && x.id !== c.id) && <span className="small muted">Nenhum outro chamado nesta baia.</span>}
-          {itensDaBaia(st, c.layoutId, c.pos).length === 0 && <span className="small muted">Baia sem itens cadastrados.</span>}
+          {!st.chamados.some((x) => x.layoutId === c.layoutId && x.pos === c.pos && x.id !== c.id) && <span className="text-xs text-mudo">Nenhum outro chamado nesta baia.</span>}
+          {itensDaBaia(st, c.layoutId, c.pos).length === 0 && <span className="text-xs text-mudo">Baia sem itens cadastrados.</span>}
         </div>
       )}
     </div>

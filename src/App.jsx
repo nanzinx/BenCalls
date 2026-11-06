@@ -71,7 +71,7 @@ export default function App() {
     <StoreProvider>
       <ThemeApplier />
       <BrowserRouter>
-        <Suspense fallback={<div className="empty" style={{ margin: 24 }}>Carregando…</div>}>
+        <Suspense fallback={<div className="empty m-6">Carregando…</div>}>
           <Rotas />
         </Suspense>
       </BrowserRouter>

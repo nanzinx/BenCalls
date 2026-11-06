@@ -34,8 +34,8 @@ function Contraste({ a, b, rotulo }) {
   const n = nivelContraste(r);
   const I = !n.ok ? XCircle : n.aviso ? AlertTriangle : CheckCircle2;
   return (
-    <div className="row-between" style={{ borderTop: '1px solid var(--border)', paddingTop: 8 }}>
-      <span className="row small"><span style={{ background: b, color: a, padding: '2px 8px', borderRadius: 6, fontWeight: 700, border: '1px solid var(--border)' }}>Aa</span>{rotulo}</span>
+    <div className="flex flex-wrap items-center justify-between gap-3 border-t border-linha pt-2">
+      <span className="flex flex-wrap items-center gap-2 text-xs"><span className="py-0.5 px-2 rounded-[6px] font-bold border border-linha" style={{ background: b, color: a }}>Aa</span>{rotulo}</span>
       <span className={`badge badge-sm ${!n.ok ? 'b-bad' : n.aviso ? 'b-warn' : 'b-ok'}`}><I size={12} /> {r.toFixed(2)}:1 · {n.nivel}</span>
     </div>
   );
@@ -58,49 +58,49 @@ export default function Personalizacao() {
 
       {aba === 'tema' && (
         <div className="split">
-          <section className="main card stack-lg">
-            <div className="grid-2" style={{ gap: 12 }}>
+          <section className="main card flex flex-col gap-5">
+            <div className="grid grid-cols-[repeat(auto-fit,minmax(320px,1fr))] items-start gap-3">
               <Field label="Nome do sistema"><input className="input" value={t.nomeSistema} onChange={(e) => set({ nomeSistema: e.target.value })} /></Field>
               <Field label="Nome da empresa"><input className="input" value={t.empresa} onChange={(e) => set({ empresa: e.target.value })} /></Field>
               <Field label="Letra do logo (sem imagem)"><input className="input" maxLength={2} value={t.logoTexto} onChange={(e) => set({ logoTexto: e.target.value })} /></Field>
               <div className="field">Logo (imagem)
-                <div className="row">
-                  <label className="btn btn-sm" style={{ cursor: 'pointer' }}><Upload size={14} /> Enviar<input type="file" accept="image/*" className="sr-only" onChange={async (e) => { try { const f = e.target.files?.[0]; if (f) set({ logoImg: await lerImagem(f, 200_000) }); setErro(''); } catch (x) { setErro(x.message); } }} /></label>
-                  {t.logoImg && <><img src={t.logoImg} alt="Logo atual" style={{ width: 34, height: 34, borderRadius: 8, objectFit: 'cover' }} /><button type="button" className="btn btn-sm btn-ghost" onClick={() => set({ logoImg: '' })}>Remover</button></>}
+                <div className="flex flex-wrap items-center gap-2">
+                  <label className="btn btn-sm cursor-pointer"><Upload size={14} /> Enviar<input type="file" accept="image/*" className="sr-only" onChange={async (e) => { try { const f = e.target.files?.[0]; if (f) set({ logoImg: await lerImagem(f, 200_000) }); setErro(''); } catch (x) { setErro(x.message); } }} /></label>
+                  {t.logoImg && <><img className="w-[34px] h-[34px] rounded-[8px] object-cover" src={t.logoImg} alt="Logo atual" /><button type="button" className="btn btn-sm btn-ghost" onClick={() => set({ logoImg: '' })}>Remover</button></>}
                 </div>
               </div>
             </div>
-            <div className="stack-sm">
-              <b className="small">Cores</b>
-              <div className="row" style={{ gap: 6 }}>{PRESETS.map((p) => (
+            <div className="flex flex-col gap-1.5">
+              <b className="text-xs">Cores</b>
+              <div className="flex flex-wrap items-center gap-1.5">{PRESETS.map((p) => (
                 <button key={p.nome} type="button" className="pill" onClick={() => set({ primaria: p.primaria, destaque: p.destaque })}>
                   <span className="dot" style={{ background: p.primaria }} /><span className="dot" style={{ background: p.destaque }} />{p.nome}
                 </button>
               ))}</div>
-              <div className="grid-2" style={{ gap: 12 }}>
+              <div className="grid grid-cols-[repeat(auto-fit,minmax(320px,1fr))] items-start gap-3">
                 {[['primaria', 'Cor principal'], ['destaque', 'Cor de destaque']].map(([k, l]) => (
                   <Field key={k} label={l} hint={hexOk(t[k]) ? '' : 'Use o formato #RRGGBB'} hintTone="bad">
-                    <span className="row" style={{ flexWrap: 'nowrap' }}>
-                      <input type="color" value={hexOk(t[k]) ? t[k] : '#000000'} onChange={(e) => set({ [k]: e.target.value.toUpperCase() })} style={{ width: 48, height: 42, border: 0, background: 'none', padding: 0 }} aria-label={`${l} (seletor)`} />
-                      <input className="input mono" value={t[k]} onChange={(e) => set({ [k]: e.target.value })} />
+                    <span className="flex items-center gap-2 flex-nowrap">
+                      <input className="w-12 h-[42px] border-0 bg-transparent p-0" type="color" value={hexOk(t[k]) ? t[k] : '#000000'} onChange={(e) => set({ [k]: e.target.value.toUpperCase() })} aria-label={`${l} (seletor)`} />
+                      <input className="input font-mono" value={t[k]} onChange={(e) => set({ [k]: e.target.value })} />
                     </span>
                   </Field>
                 ))}
               </div>
             </div>
-            <div className="stack-sm">
-              <b className="small">Validação de contraste (RF37)</b>
+            <div className="flex flex-col gap-1.5">
+              <b className="text-xs">Validação de contraste (RF37)</b>
               <Contraste a={textoSobre(t.primaria)} b={t.primaria} rotulo="Texto sobre a cor principal (barra, botões)" />
               <Contraste a={t.primaria} b="#FFFFFF" rotulo="Cor principal como texto em fundo branco" />
               <Contraste a={contraste(t.destaque, t.primaria) >= 4.5 ? t.primaria : textoSobre(t.destaque)} b={t.destaque} rotulo="Texto sobre o destaque (selos, foco)" />
-              <span className="tiny muted">Quando a cor principal fica ilegível como texto, o sistema escurece automaticamente o tom usado em títulos e links.</span>
+              <span className="text-[11px] text-mudo">Quando a cor principal fica ilegível como texto, o sistema escurece automaticamente o tom usado em títulos e links.</span>
             </div>
-            <div className="grid-2" style={{ gap: 12 }}>
+            <div className="grid grid-cols-[repeat(auto-fit,minmax(320px,1fr))] items-start gap-3">
               <Field label="Fonte"><select className="select" value={t.fonte} onChange={(e) => set({ fonte: e.target.value })}>{FONTES.map((f) => <option key={f}>{f}</option>)}</select></Field>
               <Field label="Frase da tela de login"><input className="input" value={t.loginTitulo} onChange={(e) => set({ loginTitulo: e.target.value })} /></Field>
               <div className="field">Imagem da tela de login
-                <div className="row">
-                  <label className="btn btn-sm" style={{ cursor: 'pointer' }}><Upload size={14} /> Enviar<input type="file" accept="image/*" className="sr-only" onChange={async (e) => { try { const f = e.target.files?.[0]; if (f) set({ loginImg: await lerImagem(f) }); setErro(''); } catch (x) { setErro(x.message); } }} /></label>
+                <div className="flex flex-wrap items-center gap-2">
+                  <label className="btn btn-sm cursor-pointer"><Upload size={14} /> Enviar<input type="file" accept="image/*" className="sr-only" onChange={async (e) => { try { const f = e.target.files?.[0]; if (f) set({ loginImg: await lerImagem(f) }); setErro(''); } catch (x) { setErro(x.message); } }} /></label>
                   {t.loginImg && <button type="button" className="btn btn-sm btn-ghost" onClick={() => set({ loginImg: '' })}>Remover</button>}
                 </div>
               </div>
@@ -108,21 +108,21 @@ export default function Personalizacao() {
             </div>
             {erro && <Note tipo="bad">{erro}</Note>}
             {ilegivel && <Note tipo="bad">A cor principal deixa o texto ilegível. Escolha um tom mais escuro ou mais claro.</Note>}
-            <div className="row">
+            <div className="flex flex-wrap items-center gap-2">
               <button type="button" className="btn btn-primary btn-lg" disabled={!mudou || !hexOk(t.primaria) || !hexOk(t.destaque) || ilegivel} onClick={() => { actions.salvarTema({ ...t, primaria: t.primaria.toUpperCase(), destaque: t.destaque.toUpperCase() }); toast('Tema aplicado para todos os usuários desta instalação.'); }}><Save size={16} /> Salvar e aplicar</button>
               <button type="button" className="btn btn-lg" disabled={!mudou} onClick={() => setT(st.tema)}><RotateCcw size={15} /> Descartar</button>
             </div>
           </section>
 
-          <aside className="side stack sticky">
+          <aside className="side flex flex-col gap-3 sticky-lado">
             <section className="card card-pad-0" aria-label="Prévia do tema">
-              <div style={{ background: t.primaria, color: textoSobre(t.primaria), padding: '12px 14px', borderBottom: '4px solid #F5B800', display: 'flex', alignItems: 'center', gap: 10 }}>
+              <div className="py-3 px-3.5 border-b-4 border-[#F5B800] flex items-center gap-2.5" style={{ background: t.primaria, color: textoSobre(t.primaria) }}>
                 <span className="logo" style={{ background: t.destaque, color: contraste(t.destaque, t.primaria) >= 4.5 ? t.primaria : textoSobre(t.destaque) }}>{t.logoImg ? <img src={t.logoImg} alt="" /> : t.logoTexto}</span>
                 <span className="brand-txt"><b>{t.nomeSistema}</b><span>{t.empresa}</span></span>
               </div>
-              <div className="stack" style={{ padding: 16, fontFamily: MAPA_FONTES[t.fonte] || MAPA_FONTES.Inter }}>
-                <b style={{ fontSize: 18, color: contraste(t.primaria, '#fff') >= 4.5 ? t.primaria : undefined }}>Olá, Carla</b>
-                <div className="row">
+              <div className="flex flex-col gap-3 p-4" style={{ fontFamily: MAPA_FONTES[t.fonte] || MAPA_FONTES.Inter }}>
+                <b className="text-[18px]" style={{ color: contraste(t.primaria, '#fff') >= 4.5 ? t.primaria : undefined }}>Olá, Carla</b>
+                <div className="flex flex-wrap items-center gap-2">
                   <span className="btn" style={{ background: t.primaria, color: textoSobre(t.primaria), borderColor: t.primaria }}>Novo chamado</span>
                   <span className="badge" style={{ background: t.destaque, color: contraste(t.destaque, t.primaria) >= 4.5 ? t.primaria : textoSobre(t.destaque) }}>NOVO</span>
                 </div>
@@ -135,11 +135,11 @@ export default function Personalizacao() {
       )}
 
       {aba === 'modulos' && (
-        <section className="card stack">
-          <p className="small muted">Recursos próprios da Benconsig viram módulos opcionais que cada empresa cliente liga ou desliga (RF41).</p>
+        <section className="card flex flex-col gap-3">
+          <p className="text-xs text-mudo">Recursos próprios da Benconsig viram módulos opcionais que cada empresa cliente liga ou desliga (RF41).</p>
           {MODULOS.map(([k, nome, desc]) => (
-            <div key={k} className="row-between" style={{ borderTop: '1px solid var(--border)', paddingTop: 12 }}>
-              <div><b>{nome}</b><div className="small muted">{desc}</div></div>
+            <div key={k} className="flex flex-wrap items-center justify-between gap-3 border-t border-linha pt-3">
+              <div><b>{nome}</b><div className="text-xs text-mudo">{desc}</div></div>
               <label className="check"><input type="checkbox" role="switch" checked={!!st.modulos[k]} onChange={() => { actions.alternarModulo(k); toast(`${nome} ${st.modulos[k] ? 'desligado' : 'ligado'}.`); }} />{st.modulos[k] ? 'Ligado' : 'Desligado'}</label>
             </div>
           ))}
@@ -148,18 +148,18 @@ export default function Personalizacao() {
 
       {aba === 'canais' && (
         <section className="card card-pad-0 table-wrap">
-          <table className="table" style={{ minWidth: 720 }}>
+          <table className="table min-w-[720px]">
             <thead><tr><th>Evento</th><th>Grupo de destino</th><th>Canal</th><th>Ativo</th></tr></thead>
             <tbody>{st.canais.map((c) => (
               <tr key={c.id}>
                 <td><b>{c.evento}</b></td>
-                <td><input className="input" style={{ minHeight: 36 }} defaultValue={c.grupo} aria-label={`Grupo para ${c.evento}`} onBlur={(e) => e.target.value !== c.grupo && actions.salvarCanal({ ...c, grupo: e.target.value })} /></td>
-                <td><select className="select" style={{ minHeight: 36 }} value={c.canal} onChange={(e) => actions.salvarCanal({ ...c, canal: e.target.value })} aria-label={`Canal para ${c.evento}`}>{['BenHub', 'E-mail', 'Microsoft Teams', 'WhatsApp', 'Webhook'].map((x) => <option key={x}>{x}</option>)}</select></td>
-                <td><input type="checkbox" checked={c.ativo} onChange={(e) => actions.salvarCanal({ ...c, ativo: e.target.checked })} aria-label={`Ativar ${c.evento}`} style={{ width: 18, height: 18, accentColor: 'var(--p)' }} /></td>
+                <td><input className="input min-h-[36px]" defaultValue={c.grupo} aria-label={`Grupo para ${c.evento}`} onBlur={(e) => e.target.value !== c.grupo && actions.salvarCanal({ ...c, grupo: e.target.value })} /></td>
+                <td><select className="select min-h-[36px]" value={c.canal} onChange={(e) => actions.salvarCanal({ ...c, canal: e.target.value })} aria-label={`Canal para ${c.evento}`}>{['BenHub', 'E-mail', 'Microsoft Teams', 'WhatsApp', 'Webhook'].map((x) => <option key={x}>{x}</option>)}</select></td>
+                <td><input className="w-[18px] h-[18px] accent-marca" type="checkbox" checked={c.ativo} onChange={(e) => actions.salvarCanal({ ...c, ativo: e.target.checked })} aria-label={`Ativar ${c.evento}`} /></td>
               </tr>
             ))}</tbody>
           </table>
-          <div className="small muted" style={{ padding: 12 }}>Pendência técnica (§2.5): confirmar como o BenHub recebe mensagens de outro sistema (API, webhook, bot ou e-mail). Até lá, o e-mail fica como canal reserva.</div>
+          <div className="text-xs text-mudo p-3">Pendência técnica (§2.5): confirmar como o BenHub recebe mensagens de outro sistema (API, webhook, bot ou e-mail). Até lá, o e-mail fica como canal reserva.</div>
         </section>
       )}
     </>

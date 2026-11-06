@@ -30,15 +30,15 @@ export default function MapaGeral() {
         // As equipes do operacional são numeradas da direita para a esquerda (§4.2).
         if (sala === 'Operacional') mesas = [...mesas].reverse();
         return (
-          <section key={sala} className="card stack">
-            <div className="row-between">
+          <section key={sala} className="card flex flex-col gap-3">
+            <div className="flex flex-wrap items-center justify-between gap-3">
               <h2>{sala}</h2>
-              <span className="small muted">{sala === 'Operacional' ? 'Vista de frente: equipes numeradas da direita para a esquerda' : `${mesas.length} mesa(s)`}</span>
+              <span className="text-xs text-mudo">{sala === 'Operacional' ? 'Vista de frente: equipes numeradas da direita para a esquerda' : `${mesas.length} mesa(s)`}</span>
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(230px, 1fr))', gap: 14 }}>
+            <div className="grid grid-cols-[repeat(auto-fill,_minmax(230px,_1fr))] gap-3.5">
               {mesas.map((L) => (
-                <div key={L.id} className="stack-sm">
-                  <div className="row-between"><b>{L.base}</b><span className="tiny muted">{L.nome}{user.perfil !== 'supervisor' && L.supervisorId ? ` · ${st.usuarios.find((u) => u.id === L.supervisorId)?.nome || ''}` : ''}</span></div>
+                <div key={L.id} className="flex flex-col gap-1.5">
+                  <div className="flex flex-wrap items-center justify-between gap-3"><b>{L.base}</b><span className="text-[11px] text-mudo">{L.nome}{user.perfil !== 'supervisor' && L.supervisorId ? ` · ${st.usuarios.find((u) => u.id === L.supervisorId)?.nome || ''}` : ''}</span></div>
                   <DeskMap layout={L} compact mostrarChamado onPick={(k) => abrir({ baia: `${L.id}:${k}` })} />
                 </div>
               ))}

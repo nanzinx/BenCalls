@@ -16,15 +16,15 @@ export default function TicketCard({ c, onClick, sel, modo = 'lista' }) {
         {modo === 'kanban' ? <PrioBadge prio={c.prioridade} /> : <StatusBadge status={c.status} />}
       </span>
       <span className="t-title">{c.titulo}</span>
-      <span className="row" style={{ gap: 6 }}>
+      <span className="flex flex-wrap items-center gap-1.5">
         <span className="tag">{baia}</span>
         {modo === 'lista' && <PrioBadge prio={c.prioridade} />}
-        <span className="small" style={{ color: 'var(--text-2)' }}>{c.layoutId ? c.ocupante : nomeUser(st, c.remetenteId)}</span>
-        {c.anexos.length > 0 && <Paperclip size={13} className="muted" aria-label="Tem anexo" />}
+        <span className="text-xs text-tinta-2">{c.layoutId ? c.ocupante : nomeUser(st, c.remetenteId)}</span>
+        {c.anexos.length > 0 && <Paperclip size={13} className="text-mudo" aria-label="Tem anexo" />}
       </span>
       <Sla ch={c} agora={agora} bar={modo === 'kanban'} />
       {(c.alerta || (c.outros && !c.outrosRevisado) || precisaConfirmar) && (
-        <span className="row" style={{ gap: 6 }}>
+        <span className="flex flex-wrap items-center gap-1.5">
           {c.alerta && <span className="badge badge-sm b-bad"><AlertTriangle size={11} /> Alerta de triagem</span>}
           {c.outros && !c.outrosRevisado && <span className="badge badge-sm b-outline">Outros · revisar</span>}
           {precisaConfirmar && <span className="badge badge-sm b-warn"><MessageCircleQuestion size={11} /> Confirme se resolveu</span>}

@@ -24,7 +24,7 @@ function NovoItem({ onClose }) {
         toast(`${ids.length} item(ns) cadastrado(s) no almoxarifado: ${ids[0]}${ids.length > 1 ? ` … ${ids[ids.length - 1]}` : ''}.`);
         onClose();
       }}>Cadastrar</button></>}>
-      <div className="grid-2" style={{ gap: 12 }}>
+      <div className="grid grid-cols-[repeat(auto-fit,minmax(320px,1fr))] items-start gap-3">
         <Field label="Tipo"><select className="select" value={f.tipo} onChange={(e) => { const t = st.tipos.find((x) => x.sigla === e.target.value); setF({ ...f, tipo: t.sigla, modelo: t.modelos[0] || '' }); }}>{st.tipos.map((t) => <option key={t.sigla} value={t.sigla}>{t.nome} ({t.sigla})</option>)}</select></Field>
         <Field label="Marca / modelo"><input className="input" list="modelos" value={f.modelo} onChange={set('modelo')} /><datalist id="modelos">{tipo.modelos.map((m) => <option key={m} value={m} />)}</datalist></Field>
         <Field label="Nº de série" hint="Com quantidade > 1, vira prefixo (-1, -2…)"><input className="input" value={f.serie} onChange={set('serie')} /></Field>
@@ -47,8 +47,8 @@ function NovoTipo({ onClose }) {
     <Modal title="Novo tipo de item (RF40)" onClose={onClose} footer={<>
       <button type="button" className="btn" onClick={onClose}>Cancelar</button>
       <button type="button" className="btn btn-primary" disabled={!!erro} onClick={() => { actions.cadastrarTipo({ sigla, nome: f.nome.trim(), minimo: f.minimo, modelos: f.modelos.split(',').map((x) => x.trim()).filter(Boolean) }); toast(`Tipo ${f.nome} (${sigla}) criado.`); onClose(); }}>Criar tipo</button></>}>
-      <div className="grid-2" style={{ gap: 12 }}>
-        <Field label="Sigla" hint={erro || 'Entra no fim da etiqueta: OP1-E2-' + (sigla || 'XX')} hintTone={erro ? 'bad' : ''}><input className="input" value={f.sigla} maxLength={2} onChange={(e) => setF({ ...f, sigla: e.target.value })} style={{ textTransform: 'uppercase' }} /></Field>
+      <div className="grid grid-cols-[repeat(auto-fit,minmax(320px,1fr))] items-start gap-3">
+        <Field label="Sigla" hint={erro || 'Entra no fim da etiqueta: OP1-E2-' + (sigla || 'XX')} hintTone={erro ? 'bad' : ''}><input className="input uppercase" value={f.sigla} maxLength={2} onChange={(e) => setF({ ...f, sigla: e.target.value })} /></Field>
         <Field label="Nome"><input className="input" value={f.nome} onChange={(e) => setF({ ...f, nome: e.target.value })} placeholder="Tablet" /></Field>
         <Field label="Estoque mínimo"><input className="input" type="number" min="0" value={f.minimo} onChange={(e) => setF({ ...f, minimo: e.target.value })} /></Field>
         <Field label="Modelos (separados por vírgula)"><input className="input" value={f.modelos} onChange={(e) => setF({ ...f, modelos: e.target.value })} /></Field>
@@ -121,7 +121,7 @@ export default function Estoque() {
       {pendentes.length > 0 && (
         <Note tipo="info" icon={ShieldCheck}>
           <b>{pendentes.length} descarte(s) aguardando aprovação do gestor:</b>{' '}
-          {pendentes.map((i) => <button key={i.id} type="button" className="btn btn-sm btn-ghost" style={{ minHeight: 0, padding: '0 4px' }} onClick={() => abrir({ item: i.id })}>{i.id}</button>)}
+          {pendentes.map((i) => <button key={i.id} type="button" className="btn btn-sm btn-ghost min-h-0 py-0 px-1" onClick={() => abrir({ item: i.id })}>{i.id}</button>)}
           {tem(user, 'APROV') ? ' — abra o item para aprovar ou recusar.' : ''}
         </Note>
       )}
@@ -130,44 +130,44 @@ export default function Estoque() {
 
       {aba === 'itens' && (
         <>
-          <div className="card stack" style={{ padding: 14 }}>
-            <div className="row-between">
-              <div className="search-wrap" style={{ flex: '1 1 260px', maxWidth: 420 }}>
+          <div className="card flex flex-col gap-3 p-3.5">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="search-wrap flex-[1_1_260px] max-w-[420px]">
                 <Search size={16} />
                 <input className="input input-search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Etiqueta (OP1-E2-HS), ID (BEN-0412), modelo, série ou local" aria-label="Buscar item" />
               </div>
-              <div className="row">
-                <select className="select" style={{ width: 'auto' }} value={tipo} onChange={(e) => setTipo(e.target.value)} aria-label="Tipo"><option value="Todos">Todos os tipos</option>{st.tipos.map((t) => <option key={t.sigla} value={t.sigla}>{t.nome}</option>)}</select>
+              <div className="flex flex-wrap items-center gap-2">
+                <select className="select w-auto" value={tipo} onChange={(e) => setTipo(e.target.value)} aria-label="Tipo"><option value="Todos">Todos os tipos</option>{st.tipos.map((t) => <option key={t.sigla} value={t.sigla}>{t.nome}</option>)}</select>
                 <button type="button" className="btn" onClick={exportar}><Download size={15} /> Excel (CSV)</button>
               </div>
             </div>
             <Pills label="Status" value={status} onChange={setStatus} options={['Todos', ...STATUS_ITEM].map((s) => ({ value: s, label: s, count: s === 'Todos' ? st.itens.length : cont[s] || 0 }))} />
           </div>
           <div className="card card-pad-0 table-wrap">
-            <table className="table" style={{ minWidth: 760 }}>
+            <table className="table min-w-[760px]">
               <thead><tr><th>Etiqueta</th><th>ID interno</th><th>Item</th><th>Local</th><th>Status</th><th>Garantia</th></tr></thead>
               <tbody>
                 {lista.slice(0, 150).map((i) => (
                   <tr key={i.id} className="clickable" tabIndex={0} onClick={() => abrir({ item: i.id })} onKeyDown={(e) => e.key === 'Enter' && abrir({ item: i.id })}>
-                    <td><span className="mono bold" style={{ color: 'var(--p-ink)' }}>{codigoItem(st, i)}</span></td>
-                    <td className="mono small">{i.id}</td>
-                    <td>{nomeItem(i.tipo)}<div className="tiny muted">{i.modelo}</div></td>
-                    <td className="small">{localItem(st, i)}</td>
-                    <td><ItemBadge status={i.status} />{i.descartePendente && <span className="badge badge-sm b-warn" style={{ marginLeft: 4 }}>descarte pendente</span>}</td>
-                    <td className="small" style={{ color: i.garantiaAte < agora ? 'var(--muted)' : i.garantiaAte - agora < 45 * DIA ? 'var(--orange)' : undefined }}>{dataCurta(i.garantiaAte)}</td>
+                    <td><span className="font-mono font-semibold text-marca-txt">{codigoItem(st, i)}</span></td>
+                    <td className="font-mono text-xs">{i.id}</td>
+                    <td>{nomeItem(i.tipo)}<div className="text-[11px] text-mudo">{i.modelo}</div></td>
+                    <td className="text-xs">{localItem(st, i)}</td>
+                    <td><ItemBadge status={i.status} />{i.descartePendente && <span className="badge badge-sm b-warn ml-1">descarte pendente</span>}</td>
+                    <td className="text-xs" style={{ color: i.garantiaAte < agora ? 'rgb(var(--mudo))' : i.garantiaAte - agora < 45 * DIA ? 'rgb(var(--laranja))' : undefined }}>{dataCurta(i.garantiaAte)}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
-            {lista.length === 0 && <div style={{ padding: 20 }}><Empty title="Nenhum item encontrado" /></div>}
-            {lista.length > 150 && <div className="small muted" style={{ padding: 12 }}>Mostrando 150 de {lista.length}. Refine a busca ou exporte para ver todos.</div>}
+            {lista.length === 0 && <div className="p-5"><Empty title="Nenhum item encontrado" /></div>}
+            {lista.length > 150 && <div className="text-xs text-mudo p-3">Mostrando 150 de {lista.length}. Refine a busca ou exporte para ver todos.</div>}
           </div>
         </>
       )}
 
       {aba === 'tipos' && (
         <div className="card card-pad-0 table-wrap">
-          <table className="table" style={{ minWidth: 700 }}>
+          <table className="table min-w-[700px]">
             <thead><tr><th>Tipo</th><th>Total</th><th>Em uso</th><th>Disponíveis</th><th>Mínimo</th><th>Consumo/mês</th><th>Sugestão</th></tr></thead>
             <tbody>
               {resumo.map((t) => {
@@ -176,9 +176,9 @@ export default function Estoque() {
                   <tr key={t.sigla}>
                     <td><b>{t.nome}</b> <span className="tag">{t.sigla}</span></td>
                     <td>{t.total}</td><td>{t.emUso}</td>
-                    <td><b style={{ color: t.abaixo ? 'var(--bad)' : 'var(--ok)' }}>{t.disponiveis}</b></td>
+                    <td><b style={{ color: t.abaixo ? 'rgb(var(--ruim))' : 'rgb(var(--ok))' }}>{t.disponiveis}</b></td>
                     <td>{podeEditar
-                      ? <input className="input" type="number" min="0" style={{ width: 80, minHeight: 34 }} defaultValue={t.minimo} aria-label={`Mínimo de ${t.nome}`} onBlur={(e) => { const v = Number(e.target.value); if (v !== t.minimo && v >= 0) { actions.definirMinimo(t.sigla, v); toast(`Mínimo de ${t.nome}: ${v}.`); } }} />
+                      ? <input className="input w-20 min-h-[34px]" type="number" min="0" defaultValue={t.minimo} aria-label={`Mínimo de ${t.nome}`} onBlur={(e) => { const v = Number(e.target.value); if (v !== t.minimo && v >= 0) { actions.definirMinimo(t.sigla, v); toast(`Mínimo de ${t.nome}: ${v}.`); } }} />
                       : t.minimo}</td>
                     <td>{s.mensal}</td>
                     <td>{s.sugerir > 0 ? <span className="badge b-warn">Comprar {s.sugerir}</span> : <span className="badge b-ok">OK</span>}</td>
@@ -187,48 +187,48 @@ export default function Estoque() {
               })}
             </tbody>
           </table>
-          <div className="small muted" style={{ padding: 12 }}>Sugestão = mínimo + consumo médio mensal (instalações nos últimos 90 dias) − disponíveis. O sistema só sugere: compras e notas fiscais ficam fora do escopo.</div>
+          <div className="text-xs text-mudo p-3">Sugestão = mínimo + consumo médio mensal (instalações nos últimos 90 dias) − disponíveis. O sistema só sugere: compras e notas fiscais ficam fora do escopo.</div>
         </div>
       )}
 
       {aba === 'alertas' && (
-        <div className="grid-2">
-          <section className="card stack-sm">
+        <div className="grid grid-cols-[repeat(auto-fit,minmax(320px,1fr))] items-start gap-4">
+          <section className="card flex flex-col gap-1.5">
             <div className="card-title"><CalendarClock size={16} /> Garantias vencendo em 45 dias (RF28)</div>
             {garantia.map((i) => (
-              <button key={i.id} type="button" className="ticket" style={{ padding: '8px 10px', flexDirection: 'row', alignItems: 'center' }} onClick={() => abrir({ item: i.id })}>
-                <span className="tag">{codigoItem(st, i)}</span><span className="grow small">{nomeItem(i.tipo)} · {i.modelo}</span>
+              <button key={i.id} type="button" className="ticket py-2 px-2.5 flex-row items-center" onClick={() => abrir({ item: i.id })}>
+                <span className="tag">{codigoItem(st, i)}</span><span className="min-w-0 flex-auto text-xs">{nomeItem(i.tipo)} · {i.modelo}</span>
                 <span className="badge badge-sm b-orange">{Math.round((i.garantiaAte - agora) / DIA)} dias</span>
               </button>
             ))}
-            {!garantia.length && <span className="small muted">Nenhuma garantia vencendo.</span>}
+            {!garantia.length && <span className="text-xs text-mudo">Nenhuma garantia vencendo.</span>}
           </section>
-          <section className="card stack-sm">
+          <section className="card flex flex-col gap-1.5">
             <div className="card-title"><AlertOctagon size={16} /> Defeitos recorrentes por modelo</div>
             {defeitos.map((d) => (
-              <div key={d.modelo} className="row-between" style={{ borderTop: '1px solid var(--border)', paddingTop: 8 }}>
-                <span><b>{d.modelo}</b><div className="tiny muted">{nomeItem(d.tipo)} · {d.unidades} unidades</div></span>
-                <span className="row" style={{ gap: 6 }}>
+              <div key={d.modelo} className="flex flex-wrap items-center justify-between gap-3 border-t border-linha pt-2">
+                <span><b>{d.modelo}</b><div className="text-[11px] text-mudo">{nomeItem(d.tipo)} · {d.unidades} unidades</div></span>
+                <span className="flex flex-wrap items-center gap-1.5">
                   <span className="badge badge-sm b-blue">{d.chamados} chamados</span>
                   {d.fabrica > 0 && <span className="badge badge-sm b-bad">{d.fabrica} defeito de fábrica</span>}
                 </span>
               </div>
             ))}
-            <span className="tiny muted">Use para conversar com o fornecedor ou trocar de modelo na próxima compra.</span>
+            <span className="text-[11px] text-mudo">Use para conversar com o fornecedor ou trocar de modelo na próxima compra.</span>
           </section>
         </div>
       )}
 
       {aba === 'etiquetas' && (
-        <section className="card stack">
-          <div className="row-between no-print">
-            <div className="row">
-              <span className="small bold">Mesa</span>
-              <select className="select" style={{ width: 'auto' }} value={mesaEtq} onChange={(e) => setMesaEtq(e.target.value)}>{st.layouts.map((l) => <option key={l.id} value={l.id}>{l.base} · {l.sala} {l.nome}</option>)}</select>
+        <section className="card flex flex-col gap-3">
+          <div className="flex flex-wrap items-center justify-between gap-3 no-print">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-xs font-semibold">Mesa</span>
+              <select className="select w-auto" value={mesaEtq} onChange={(e) => setMesaEtq(e.target.value)}>{st.layouts.map((l) => <option key={l.id} value={l.id}>{l.base} · {l.sala} {l.nome}</option>)}</select>
             </div>
             <button type="button" className="btn btn-primary" onClick={() => window.print()}><Printer size={15} /> Imprimir folha</button>
           </div>
-          <p className="small muted no-print">Folha pronta para etiqueta adesiva. Se o padrão de etiqueta mudar, a folha é recalculada; o histórico fica no ID interno (RN12).</p>
+          <p className="text-xs text-mudo no-print">Folha pronta para etiqueta adesiva. Se o padrão de etiqueta mudar, a folha é recalculada; o histórico fica no ID interno (RN12).</p>
           <div className="labels">
             {posicoesDaMesa(LE).flatMap((p) => itensDaBaia(st, LE.id, posKey(p))).map((i) => <EtiquetaImpressa key={i.id} code={codigoItem(st, i)} item={i} empresa={st.tema.empresa} />)}
           </div>

@@ -15,9 +15,9 @@ const S2 = '#eb6834';
 function Tip({ active, payload, label, sufixo = '' }) {
   if (!active || !payload?.length) return null;
   return (
-    <div className="card" style={{ padding: '8px 10px', fontSize: 12.5 }}>
+    <div className="card py-2 px-2.5 text-[12.5px]">
       <b>{label}</b>
-      {payload.map((p) => <div key={p.dataKey} className="row" style={{ gap: 6 }}><span className="dot" style={{ background: p.color }} />{p.name}: <b>{p.value}{sufixo}</b></div>)}
+      {payload.map((p) => <div key={p.dataKey} className="flex flex-wrap items-center gap-1.5"><span className="dot" style={{ background: p.color }} />{p.name}: <b>{p.value}{sufixo}</b></div>)}
     </div>
   );
 }
@@ -25,14 +25,14 @@ function Tip({ active, payload, label, sufixo = '' }) {
 function BarrasH({ dados, cor = S1, sufixo = '', nome = 'Chamados', altura }) {
   const h = altura || Math.max(160, dados.length * 34 + 30);
   return (
-    <div style={{ width: '100%', height: h }}>
+    <div className="w-full" style={{ height: h }}>
       <ResponsiveContainer>
         <BarChart data={dados} layout="vertical" margin={{ top: 4, right: 36, left: 4, bottom: 4 }} barCategoryGap={6}>
-          <CartesianGrid horizontal={false} stroke="var(--border)" />
-          <XAxis type="number" tick={{ fontSize: 11, fill: 'var(--muted)' }} axisLine={false} tickLine={false} allowDecimals={false} />
-          <YAxis type="category" dataKey="nome" width={120} tick={{ fontSize: 12, fill: 'var(--text-2)' }} axisLine={false} tickLine={false} />
-          <Tooltip cursor={{ fill: 'var(--surface-3)' }} content={<Tip sufixo={sufixo} />} />
-          <Bar isAnimationActive={false} dataKey="valor" name={nome} fill={cor} radius={[0, 4, 4, 0]} maxBarSize={18} label={{ position: 'right', fontSize: 11, fill: 'var(--text-2)', formatter: (v) => `${v}${sufixo}` }} />
+          <CartesianGrid horizontal={false} stroke="rgb(var(--linha))" />
+          <XAxis type="number" tick={{ fontSize: 11, fill: 'rgb(var(--mudo))' }} axisLine={false} tickLine={false} allowDecimals={false} />
+          <YAxis type="category" dataKey="nome" width={120} tick={{ fontSize: 12, fill: 'rgb(var(--tinta-2))' }} axisLine={false} tickLine={false} />
+          <Tooltip cursor={{ fill: 'rgb(var(--superficie-3))' }} content={<Tip sufixo={sufixo} />} />
+          <Bar isAnimationActive={false} dataKey="valor" name={nome} fill={cor} radius={[0, 4, 4, 0]} maxBarSize={18} label={{ position: 'right', fontSize: 11, fill: 'rgb(var(--tinta-2))', formatter: (v) => `${v}${sufixo}` }} />
         </BarChart>
       </ResponsiveContainer>
     </div>
@@ -41,9 +41,9 @@ function BarrasH({ dados, cor = S1, sufixo = '', nome = 'Chamados', altura }) {
 
 function Painel({ titulo, desc, children, onCsv }) {
   return (
-    <section className="card stack-sm">
-      <div className="row-between">
-        <div><div className="card-title">{titulo}</div>{desc && <div className="tiny muted">{desc}</div>}</div>
+    <section className="card flex flex-col gap-1.5">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div><div className="card-title">{titulo}</div>{desc && <div className="text-[11px] text-mudo">{desc}</div>}</div>
         {onCsv && <button type="button" className="btn btn-sm btn-ghost no-print" onClick={onCsv} aria-label={`Exportar ${titulo} em CSV`}><Download size={14} /> CSV</button>}
       </div>
       {children}
@@ -132,22 +132,22 @@ export default function Relatorios() {
       </div>
 
       <Painel titulo="Chamados abertos × fechados por dia" desc="Últimos 30 dias no máximo" onCsv={csv('abertos-fechados', ['Dia', 'Abertos', 'Fechados'], r.serie.map((d) => [d.dia, d.abertos, d.fechados]))}>
-        <div style={{ width: '100%', height: 240 }}>
+        <div className="w-full h-[240px]">
           <ResponsiveContainer>
             <LineChart data={r.serie} margin={{ top: 8, right: 16, left: -16, bottom: 0 }}>
-              <CartesianGrid vertical={false} stroke="var(--border)" />
-              <XAxis dataKey="dia" tick={{ fontSize: 11, fill: 'var(--muted)' }} axisLine={false} tickLine={false} interval="preserveStartEnd" minTickGap={18} />
-              <YAxis tick={{ fontSize: 11, fill: 'var(--muted)' }} axisLine={false} tickLine={false} allowDecimals={false} />
-              <Tooltip content={<Tip />} cursor={{ stroke: 'var(--border-strong)' }} />
-              <Legend iconType="circle" wrapperStyle={{ fontSize: 12, color: 'var(--text-2)' }} />
-              <Line isAnimationActive={false} type="monotone" dataKey="abertos" name="Abertos" stroke={S1} strokeWidth={2} dot={false} activeDot={{ r: 5, stroke: 'var(--surface)', strokeWidth: 2 }} />
-              <Line isAnimationActive={false} type="monotone" dataKey="fechados" name="Fechados" stroke={S2} strokeWidth={2} dot={false} activeDot={{ r: 5, stroke: 'var(--surface)', strokeWidth: 2 }} />
+              <CartesianGrid vertical={false} stroke="rgb(var(--linha))" />
+              <XAxis dataKey="dia" tick={{ fontSize: 11, fill: 'rgb(var(--mudo))' }} axisLine={false} tickLine={false} interval="preserveStartEnd" minTickGap={18} />
+              <YAxis tick={{ fontSize: 11, fill: 'rgb(var(--mudo))' }} axisLine={false} tickLine={false} allowDecimals={false} />
+              <Tooltip content={<Tip />} cursor={{ stroke: 'rgb(var(--linha-forte))' }} />
+              <Legend iconType="circle" wrapperStyle={{ fontSize: 12, color: 'rgb(var(--tinta-2))' }} />
+              <Line isAnimationActive={false} type="monotone" dataKey="abertos" name="Abertos" stroke={S1} strokeWidth={2} dot={false} activeDot={{ r: 5, stroke: 'rgb(var(--superficie))', strokeWidth: 2 }} />
+              <Line isAnimationActive={false} type="monotone" dataKey="fechados" name="Fechados" stroke={S2} strokeWidth={2} dot={false} activeDot={{ r: 5, stroke: 'rgb(var(--superficie))', strokeWidth: 2 }} />
             </LineChart>
           </ResponsiveContainer>
         </div>
       </Painel>
 
-      <div className="grid-2">
+      <div className="grid grid-cols-[repeat(auto-fit,minmax(320px,1fr))] items-start gap-4">
         <Painel titulo="Chamados por categoria" onCsv={csv('por-categoria', ['Categoria', 'Chamados'], r.porCat.map((d) => [d.nome, d.valor]))}><BarrasH dados={r.porCat} /></Painel>
         <Painel titulo="Baias críticas" desc="Ranking de baias com mais chamados — revela cabo ruim, porta USB com defeito…" onCsv={csv('baias-criticas', ['Baia', 'Chamados'], r.porBaia.map((d) => [d.nome, d.valor]))}><BarrasH dados={r.porBaia} /></Painel>
         <Painel titulo="Resolvido na triagem, por situação" desc="% de problemas resolvidos sem abrir chamado (mín. 3 ocorrências)" onCsv={csv('triagem', ['Situação', '% resolvido', 'Resolvidos', 'Viraram chamado'], r.triagemPct.map((d) => [d.nome, d.valor, d.r, d.a]))}><BarrasH dados={r.triagemPct} sufixo="%" nome="Resolvido na triagem" /></Painel>

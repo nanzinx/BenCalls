@@ -70,10 +70,10 @@ export default function Login() {
       <div className="gate-bolha b1" aria-hidden="true" />
       <div className="gate-bolha b2" aria-hidden="true" />
       <div className="gate-grade" aria-hidden="true" />
-      <div className="stack" style={{ width: '100%', maxWidth: 420, position: 'relative', zIndex: 1, gap: 18 }}>
+      <div className="flex flex-col w-full max-w-[420px] relative z-[1] gap-[18px]">
         <form className="login-card" onSubmit={enviar} noValidate>
-          <div className="stack-sm" style={{ gap: 6 }}>
-            <span className="marca-hover" style={{ marginBottom: 8, width: 44 }}><Logo tema={t} size={44} /></span>
+          <div className="flex flex-col gap-1.5">
+            <span className="marca-hover mb-2 w-11"><Logo tema={t} size={44} /></span>
             <b className="gate-nome"><NomeMarca nome={t.nomeSistema} /></b>
             <span className="gate-sub">{t.empresa} · Central de Chamados</span>
           </div>
@@ -82,9 +82,9 @@ export default function Login() {
             <input value={usuario} onChange={(e) => setUsuario(e.target.value)} placeholder="nome.sobrenome@benconsig.com" autoComplete="username" autoCapitalize="none" spellCheck={false} autoFocus disabled={bloqueado} />
           </label>
           <label>Senha
-            <span style={{ position: 'relative' }}>
-              <input type={ver ? 'text' : 'password'} value={senha} onChange={(e) => setSenha(e.target.value)} autoComplete="current-password" style={{ paddingRight: 46 }} disabled={bloqueado} />
-              <button type="button" className="btn btn-ghost btn-icon" style={{ position: 'absolute', right: 3, top: 3, color: '#a9b5c9' }} onClick={() => setVer((x) => !x)} aria-label={ver ? 'Esconder senha' : 'Mostrar senha'}>{ver ? <EyeOff size={16} /> : <Eye size={16} />}</button>
+            <span className="relative">
+              <input className="pr-[46px]" type={ver ? 'text' : 'password'} value={senha} onChange={(e) => setSenha(e.target.value)} autoComplete="current-password" disabled={bloqueado} />
+              <button type="button" className="btn btn-ghost btn-icon absolute right-[3px] top-[3px] text-[#a9b5c9]" onClick={() => setVer((x) => !x)} aria-label={ver ? 'Esconder senha' : 'Mostrar senha'}>{ver ? <EyeOff size={16} /> : <Eye size={16} />}</button>
             </span>
           </label>
           <p className="gate-msg" role="alert">{bloqueado ? `Bloqueado por excesso de tentativas. Tente de novo em ${Math.floor(restante / 60)}:${String(restante % 60).padStart(2, '0')}.` : erro}</p>

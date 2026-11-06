@@ -19,19 +19,19 @@ function TermoDoc({ chave, onClose }) {
       <button type="button" className="btn" onClick={() => window.print()}><Printer size={15} /> Imprimir</button>
       {!t.assinadoEm && <button type="button" className="btn btn-primary" disabled={!confere} onClick={() => { actions.assinarTermo(chave); toast(`Termo assinado por ${t.ocupante}.`); onClose(); }}><PenLine size={15} /> Registrar aceite</button>}
     </>}>
-      <div className="stack" style={{ lineHeight: 1.6 }}>
-        <div className="row-between">
-          <b style={{ fontSize: 16 }}>{st.tema.empresa} · Termo de entrega de equipamentos</b>
-          <span className="small muted">Versão {t.versao} · gerado em {dataCurta(t.geradoEm)}</span>
+      <div className="flex flex-col gap-3 leading-[1.6]">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <b className="text-[16px]">{st.tema.empresa} · Termo de entrega de equipamentos</b>
+          <span className="text-xs text-mudo">Versão {t.versao} · gerado em {dataCurta(t.geradoEm)}</span>
         </div>
         <p>Eu, <b>{t.ocupante}</b>, recebo para uso na posição <b>{baiaCodigo(st, layoutId, pos)}</b> ({L.sala} · {L.nome}) os equipamentos abaixo, no estado descrito, e me comprometo a zelar pelo seu bom uso.</p>
-        <div className="table-wrap" style={{ border: '1px solid var(--border)', borderRadius: 10 }}>
+        <div className="table-wrap border border-linha rounded-[10px]">
           <table className="table">
             <thead><tr><th>Etiqueta</th><th>Patrimônio</th><th>Item</th><th>Estado na entrega</th></tr></thead>
-            <tbody>{itens.map((i) => <tr key={i.id}><td className="mono bold">{codigoItem(st, i)}</td><td className="mono">{i.id}</td><td>{nomeItem(i.tipo)} · {i.modelo}</td><td>{i.status === 'Novo' ? 'Novo' : 'Em uso, funcionando, sem avarias aparentes'}</td></tr>)}</tbody>
+            <tbody>{itens.map((i) => <tr key={i.id}><td className="font-mono font-semibold">{codigoItem(st, i)}</td><td className="font-mono">{i.id}</td><td>{nomeItem(i.tipo)} · {i.modelo}</td><td>{i.status === 'Novo' ? 'Novo' : 'Em uso, funcionando, sem avarias aparentes'}</td></tr>)}</tbody>
           </table>
         </div>
-        <p className="small">Defeitos causados por desgaste natural, defeito de fábrica ou problemas da baia <b>não</b> são de responsabilidade do colaborador. Danos só são analisados com laudo técnico do TI e decisão do RH; o sistema não aplica descontos.</p>
+        <p className="text-xs">Defeitos causados por desgaste natural, defeito de fábrica ou problemas da baia <b>não</b> são de responsabilidade do colaborador. Danos só são analisados com laudo técnico do TI e decisão do RH; o sistema não aplica descontos.</p>
         <Note tipo="warn">Texto de exemplo. Antes de usar em produção, validar com o RH/jurídico (CLT, art. 462, §1º: desconto por dano só quando previsto em acordo).</Note>
         {t.assinadoEm ? (
           <Note tipo="ok">Aceite digital registrado por <b>{t.ocupante}</b> em {dataCurta(t.assinadoEm)}. O registro fica na auditoria e não pode ser apagado.</Note>
@@ -68,9 +68,9 @@ export default function Termos() {
         <Kpi icon={FileSignature} label="Aguardando aceite" valor={pend} destaque={pend > 0} onClick={() => setFiltro('pendentes')} />
         <Kpi icon={FileSignature} label="Assinados" valor={todos.length - pend} onClick={() => setFiltro('assinados')} />
       </div>
-      <div className="row-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <Pills label="Filtro" value={filtro} onChange={setFiltro} options={[{ value: 'pendentes', label: 'Aguardando aceite' }, { value: 'assinados', label: 'Assinados' }, { value: 'todos', label: 'Todos' }]} />
-        <div className="search-wrap" style={{ minWidth: 240 }}><Search size={16} /><input className="input input-search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Baia ou operador" aria-label="Buscar termo" /></div>
+        <div className="search-wrap min-w-[240px]"><Search size={16} /><input className="input input-search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Baia ou operador" aria-label="Buscar termo" /></div>
       </div>
       {!lista.length ? <Empty title="Nenhum termo aqui" /> : (
         <div className="card card-pad-0 table-wrap">
@@ -78,7 +78,7 @@ export default function Termos() {
             <thead><tr><th>Baia</th><th>Operador</th><th>Gerado em</th><th>Situação</th><th /></tr></thead>
             <tbody>{lista.map((t) => (
               <tr key={t.k} className="clickable" onClick={() => setSp({ baia: t.k })}>
-                <td className="mono bold">{t.code}</td><td>{t.ocupante}</td><td className="small">{dataCurta(t.geradoEm)}</td>
+                <td className="font-mono font-semibold">{t.code}</td><td>{t.ocupante}</td><td className="text-xs">{dataCurta(t.geradoEm)}</td>
                 <td>{t.assinadoEm ? <span className="badge badge-sm b-ok">Assinado em {dataCurta(t.assinadoEm)}</span> : <span className="badge badge-sm b-warn">Aguardando aceite</span>}</td>
                 <td><button type="button" className="btn btn-sm">{t.assinadoEm ? 'Ver' : 'Colher aceite'}</button></td>
               </tr>

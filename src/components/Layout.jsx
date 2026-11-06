@@ -96,24 +96,24 @@ function Notificacoes({ onClose }) {
   }, [onClose]);
   return (
     <div className="popover" ref={ref} role="dialog" aria-label="Notificações">
-      <div className="row-between" style={{ padding: '12px 14px' }}>
+      <div className="flex flex-wrap items-center justify-between gap-3 py-3 px-3.5">
         <div>
           <b>Notificações</b>
-          <div className="tiny muted">Cópia do que foi enviado aos grupos do {st.modulos.benhub ? 'BenHub' : 'e-mail'}</div>
+          <div className="text-[11px] text-mudo">Cópia do que foi enviado aos grupos do {st.modulos.benhub ? 'BenHub' : 'e-mail'}</div>
         </div>
         <button type="button" className="btn btn-sm btn-ghost" onClick={actions.marcarLidas}>Marcar todas como lidas</button>
       </div>
-      <div style={{ maxHeight: 420, overflow: 'auto' }}>
+      <div className="max-h-[420px] overflow-auto">
         {st.notificacoes.slice(0, 30).map((n) => (
           <div key={n.id} className={`notif${n.lida ? '' : ' unread'}`}>
             <span className="n-ic"><MessageSquare size={15} /></span>
-            <div className="grow">
+            <div className="min-w-0 flex-auto">
               <div>{n.texto}</div>
-              <div className="tiny muted" style={{ marginTop: 3 }}>{n.canal} · grupo <b>{n.grupo}</b> · {idade(n.at)}</div>
+              <div className="text-[11px] text-mudo mt-[3px]">{n.canal} · grupo <b>{n.grupo}</b> · {idade(n.at)}</div>
             </div>
           </div>
         ))}
-        {!st.notificacoes.length && <div className="notif muted">Nenhuma notificação.</div>}
+        {!st.notificacoes.length && <div className="notif text-mudo">Nenhuma notificação.</div>}
       </div>
     </div>
   );
@@ -196,11 +196,11 @@ export default function Layout() {
           <Logo tema={st.tema} />
           <span className="brand-txt"><b><NomeMarca nome={st.tema.nomeSistema} /></b><span>{st.tema.empresa} · Central de Chamados</span></span>
         </NavLink>
-        <span className="spacer" />
+        <span className="flex-1" />
         <button type="button" className="tb-btn tb-search" onClick={() => setBusca(true)} aria-label="Busca global (Ctrl+K)">
           <Search size={16} /><span className="lbl">Buscar chamado, etiqueta, baia…</span><kbd>Ctrl K</kbd>
         </button>
-        <div style={{ position: 'relative' }}>
+        <div className="relative">
           <button type="button" data-notif-btn className="tb-btn" aria-label={`Notificações (${naoLidas} não lidas)`} aria-expanded={notif} onClick={() => setNotif((x) => !x)}>
             <Bell size={17} />{naoLidas > 0 && <span className="tb-badge">{naoLidas}</span>}
           </button>
@@ -230,17 +230,17 @@ export default function Layout() {
             ))}
           <div className="sidebar-foot">
             {tem(user, 'ROA') && (
-              <div className="stack-sm">
-                <span className="small bold" style={{ color: 'var(--text-2)' }}>Minha situação agora</span>
-                <div className="row" style={{ gap: 6 }}>
+              <div className="flex flex-col gap-1.5">
+                <span className="text-xs font-semibold text-tinta-2">Minha situação agora</span>
+                <div className="flex flex-wrap items-center gap-1.5">
                   {OCUPACOES.map((o) => (
-                    <button key={o} type="button" className="pill" style={{ minHeight: 30, fontSize: 12, padding: '0 10px' }} aria-pressed={ocup === o}
+                    <button key={o} type="button" className="pill min-h-[30px] text-[12px] py-0 px-2.5" aria-pressed={ocup === o}
                       onClick={() => { setOcup(o); localStorage.setItem('bencalls:ocupacao', o); }}>{o}</button>
                   ))}
                 </div>
               </div>
             )}
-            <button type="button" className="btn btn-sm btn-ghost" style={{ justifyContent: 'flex-start' }}
+            <button type="button" className="btn btn-sm btn-ghost justify-start"
               onClick={() => { if (confirm('Reiniciar a demonstração? Tudo o que foi feito nesta sessão será apagado.')) actions.resetDemo(); }}>
               <RotateCcw size={14} /> Reiniciar demonstração
             </button>
@@ -273,8 +273,8 @@ export default function Layout() {
       <div className="toasts" aria-live="polite">
         {toasts.map((t) => (
           <div key={t.id} className={`toast ${t.tipo}`} role="status">
-            <span className="grow">{t.texto}</span>
-            <button type="button" className="btn btn-ghost btn-sm btn-icon" style={{ width: 28, minHeight: 28 }} aria-label="Fechar aviso" onClick={() => fecharToast(t.id)}><X size={14} /></button>
+            <span className="min-w-0 flex-auto">{t.texto}</span>
+            <button type="button" className="btn btn-ghost btn-sm btn-icon w-7 min-h-[28px]" aria-label="Fechar aviso" onClick={() => fecharToast(t.id)}><X size={14} /></button>
           </div>
         ))}
       </div>

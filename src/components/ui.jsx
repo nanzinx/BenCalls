@@ -9,8 +9,8 @@ export const COR_STATUS = {
   Concluído: 'b-ok', Cancelado: 'b-gray', Negado: 'b-bad'
 };
 export const PONTO_STATUS = {
-  'Em Análise': 'var(--p)', Pendente: '#b26a00', 'Em Execução': '#6b4bb0', 'Aguardando Consenso': 'var(--warn-dot)',
-  Concluído: 'var(--ok-dot)', Cancelado: 'var(--gray-dot)', Negado: 'var(--bad-dot)'
+  'Em Análise': 'rgb(var(--marca))', Pendente: '#b26a00', 'Em Execução': '#6b4bb0', 'Aguardando Consenso': 'rgb(var(--aviso-ponto))',
+  Concluído: 'rgb(var(--ok-ponto))', Cancelado: 'rgb(var(--cinza-ponto))', Negado: 'rgb(var(--ruim-ponto))'
 };
 export const COR_PRIO = { Crítica: 'b-bad', Alta: 'b-orange', Média: 'b-warn', Baixa: 'b-gray' };
 export const COR_ITEM = {
@@ -39,9 +39,9 @@ export function Sla({ ch, agora, bar }) {
   const txt = s.pausado
     ? `SLA pausado · ${s.resta >= 0 ? `restam ${duracao(s.resta)}` : `estourou ${duracao(-s.resta)}`}`
     : s.resta >= 0 ? `SLA vence em ${duracao(s.resta)}` : `SLA estourado há ${duracao(-s.resta)}`;
-  const cor = { ok: 'var(--ok-dot)', alerta: 'var(--warn-dot)', estourado: 'var(--bad-dot)', pausado: 'var(--gray-dot)' }[cls];
+  const cor = { ok: 'rgb(var(--ok-ponto))', alerta: 'rgb(var(--aviso-ponto))', estourado: 'rgb(var(--ruim-ponto))', pausado: 'rgb(var(--cinza-ponto))' }[cls];
   return (
-    <span className="stack-sm" style={{ gap: 4 }}>
+    <span className="flex flex-col gap-1">
       <span className={`sla sla-${cls}`}>{s.pausado ? <PauseCircle size={13} /> : <Clock size={13} />}{txt}</span>
       {bar && <span className="sla-bar"><i style={{ width: `${s.pct}%`, background: cor }} /></span>}
     </span>
@@ -93,10 +93,10 @@ export function PageHead({ title, desc, children, badge }) {
   return (
     <div className="page-head">
       <div>
-        <div className="row" style={{ gap: 10 }}><h1>{title}</h1>{badge}</div>
+        <div className="flex flex-wrap items-center gap-2.5"><h1>{title}</h1>{badge}</div>
         {desc && <p>{desc}</p>}
       </div>
-      {children && <div className="row">{children}</div>}
+      {children && <div className="flex flex-wrap items-center gap-2">{children}</div>}
     </div>
   );
 }
@@ -105,8 +105,8 @@ export function Empty({ icon: Icon = Inbox, title, children }) {
   return (
     <div className="empty">
       <Icon size={34} />
-      <b style={{ color: 'var(--text)' }}>{title}</b>
-      {children && <div className="small">{children}</div>}
+      <b className="text-tinta">{title}</b>
+      {children && <div className="text-xs">{children}</div>}
     </div>
   );
 }
@@ -163,7 +163,7 @@ export function Field({ label, hint, hintTone, children }) {
 
 export function Pills({ options, value, onChange, accent, label }) {
   return (
-    <div className="row" role="group" aria-label={label} style={{ gap: 6 }}>
+    <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label={label}>
       {options.map((o) => {
         const v = typeof o === 'string' ? o : o.value;
         const l = typeof o === 'string' ? o : o.label;
@@ -189,15 +189,15 @@ export function Seg({ options, value, onChange, label }) {
   );
 }
 
-export function Bars({ dados, cor = 'var(--p)', sufixo = '' }) {
+export function Bars({ dados, cor = 'rgb(var(--marca))', sufixo = '' }) {
   const max = Math.max(1, ...dados.map((d) => d[1]));
   return (
     <div className="bars">
       {dados.map(([l, v]) => (
         <div className="bar-row" key={l}>
-          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={l}>{l}</span>
+          <span className="overflow-hidden text-ellipsis whitespace-nowrap" title={l}>{l}</span>
           <div className="bar-track"><div className="bar-fill" style={{ width: `${(v / max) * 100}%`, background: cor }} /></div>
-          <b style={{ textAlign: 'right' }}>{v}{sufixo}</b>
+          <b className="text-right">{v}{sufixo}</b>
         </div>
       ))}
     </div>
