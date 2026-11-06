@@ -1,0 +1,91 @@
+{
+  "eventos": [
+    {
+      "id": "wpp:OP1-E3:2026-11-06T09:12:00.000Z:ANALISE",
+      "tipo": "whatsapp.situacao",
+      "em": "2026-11-06T09:12:00.000Z",
+      "dados": {
+        "codigo": "OP1-E3",
+        "de": "BANIDO",
+        "para": "ANALISE",
+        "acao": "PEDIU_ANALISE",
+        "estado": {
+          "situacao": "ANALISE",
+          "mudouEm": "2026-11-06T09:12:00.000Z",
+          "analisePedidaEm": "2026-11-06T09:12:00.000Z"
+        },
+        "manutencao": {
+          "id": "ec7418cf-a6b2-44fa-bfda-d7a17675df5b",
+          "janela": "MANHA"
+        }
+      }
+    },
+    {
+      "id": "wpp:OP1-D2:2026-11-06T09:14:00.000Z:OK",
+      "tipo": "whatsapp.situacao",
+      "em": "2026-11-06T09:14:00.000Z",
+      "dados": {
+        "codigo": "OP1-D2",
+        "de": "PERMANENTE",
+        "para": "OK",
+        "acao": "TROCOU_CHIP",
+        "estado": {
+          "situacao": "OK",
+          "mudouEm": "2026-11-06T09:14:00.000Z"
+        },
+        "numeroNovo": "(11) 98888-1234",
+        "manutencao": {
+          "id": "ec7418cf-a6b2-44fa-bfda-d7a17675df5b",
+          "janela": "MANHA"
+        }
+      }
+    },
+    {
+      "id": "wpp:OP1-E1:2026-11-06T09:16:00.000Z:RESTRINGIDO",
+      "tipo": "whatsapp.situacao",
+      "em": "2026-11-06T09:16:00.000Z",
+      "dados": {
+        "codigo": "OP1-E1",
+        "de": "OK",
+        "para": "RESTRINGIDO",
+        "acao": "RESTRINGIDO",
+        "estado": {
+          "situacao": "RESTRINGIDO",
+          "mudouEm": "2026-11-06T09:16:00.000Z",
+          "restritoAte": "2026-11-07T09:16:00.000Z"
+        },
+        "manutencao": {
+          "id": "ec7418cf-a6b2-44fa-bfda-d7a17675df5b",
+          "janela": "MANHA"
+        }
+      }
+    },
+    {
+      "id": "manut:ec7418cf-a6b2-44fa-bfda-d7a17675df5b",
+      "tipo": "manutencao.concluida",
+      "em": "2026-11-06T09:40:00.000Z",
+      "dados": {
+        "id": "ec7418cf-a6b2-44fa-bfda-d7a17675df5b",
+        "inicio": "2026-11-06T09:10:00.000Z",
+        "fim": "2026-11-06T09:40:00.000Z",
+        "janela": "MANHA",
+        "conferidos": 0,
+        "acoes": [
+          {
+            "acao": "PEDIU_ANALISE",
+            "codigo": "OP1-E3"
+          },
+          {
+            "acao": "TROCOU_CHIP",
+            "codigo": "OP1-D2"
+          },
+          {
+            "acao": "RESTRINGIDO",
+            "codigo": "OP1-E1"
+          }
+        ],
+        "texto": "🔧 *REGISTRO DE MANUTENÇÃO — WHATSAPP*\n📅 06/11/2026 · Manhã (09:10–09:40)\n✅ 0 celulares conferidos · 7 WhatsApps OK\n\n*O que foi feito*\n📨 Pedi análise: OP1-E3 (vaga vazia)\n🔁 Chip trocado: OP1-D2 (vaga vazia)\n⏳ Restringido: OP1-E1 (vaga vazia) até 07/11 09:16\n\n*Como ficou*\n🔎 1 em análise · ⏳ 1 restringido\n\n📱 Sem celular ⬜\n📝 Obs: ok\n🎥 Vídeos a seguir"
+      }
+    }
+  ]
+}

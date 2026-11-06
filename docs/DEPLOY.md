@@ -58,6 +58,13 @@ Atrás de um proxy corporativo com inspeção de TLS, passe o certificado no bui
 | Security → Bots | **Bot Fight Mode** |
 | Caching → Cache Rules | `/assets/*` respeitando o cabeçalho da origem (já vem `immutable` por 1 ano) |
 
+### Integração com o BenHermes atrás do Cloudflare Access
+
+O BenHermes manda os eventos de servidor para servidor, então ele não passa pelo login do Access. Crie uma
+segunda aplicação *self-hosted* só para o caminho `chamados.benconsig.com/api/integracoes/benhermes/eventos`
+com a política **Bypass** (ou **Service Auth** com um *service token*, se quiser mais uma camada). A rota já
+exige a assinatura HMAC e recusa o resto. Detalhes: [`API-INTEGRACAO.md`](API-INTEGRACAO.md).
+
 ## 5. Bloqueio de IPs
 
 A lista fica em [`server/ips-bloqueados.txt`](../server/ips-bloqueados.txt) (IPv4 e IPv6, com ou sem `/prefixo`).

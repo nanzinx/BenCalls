@@ -43,6 +43,11 @@ if docker image inspect bencalls:local >/dev/null 2>&1; then
 fi
 
 log "Construindo a versão $VERSAO (typecheck + testes + build dentro do Docker)…"
+# Segredo da integração com o BenHermes: arquivo vazio = integração desligada (o compose exige o arquivo).
+if [ ! -f deploy/benhermes_segredo.txt ]; then
+  install -m 644 /dev/null deploy/benhermes_segredo.txt
+  echo "Integração BenHermes desligada (deploy/benhermes_segredo.txt vazio). Veja docs/API-INTEGRACAO.md."
+fi
 docker compose build --pull bencalls
 
 log "Subindo…"

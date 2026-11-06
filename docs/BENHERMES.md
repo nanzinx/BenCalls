@@ -61,25 +61,9 @@ O mapa é o `.json` **versão 3** do BenHermes (`tipo: benhermes-whatsapp-baias`
 Situações, celulares, histórico (12 meses) e manutenções vão juntos. As mesas são casadas pela **sigla**
 (`OP1`, `DG-M1`), que é a base do código da baia nos dois sistemas.
 
-## Ligação direta (versão com servidor)
+## Tempo real: API de integração
 
-Na demonstração o mapa fica no navegador. Com servidor, os dois leem e gravam o **mesmo mapa** e a manutenção
-feita num aparece no outro na hora. O BenHermes já tem a API:
-
-| Método | Caminho | O que faz |
-|---|---|---|
-| `GET` | `/api/whatsapp` | `{ mapa }` (operador recebe 403) |
-| `PUT` | `/api/whatsapp` | grava `{ mapa }`; supervisor só altera a própria mesa (`validateWhatsappPermissions`) |
-
-Para o BenCalls usar essa API:
-
-1. **Mesmo domínio** (recomendado): publicar o BenHermes em `/benhermes` atrás do mesmo Cloudflare Tunnel, para o
-   cookie de sessão (`HttpOnly; SameSite=Lax`) valer nas duas telas. Sem domínio comum, o BenHermes precisa liberar
-   CORS para o endereço do BenCalls ou aceitar um token de serviço.
-2. **Usuários:** o login do BenCalls e o do BenHermes devem apontar para a mesma pessoa (o `supervisorUserId` da
-   mesa é o id do usuário).
-3. No [`src/store/store.jsx`](../src/store/store.jsx), as ações `whatsappAcao`, `whatsappMudar` e
-   `whatsappSubstituir` passam a fazer `PUT /api/whatsapp` com o mapa novo, e o carregamento faz `GET /api/whatsapp`.
-   As regras continuam rodando no navegador (são as mesmas dos dois lados); o servidor confere as permissões.
-4. Para duas pessoas mexendo ao mesmo tempo, vale gravar só o que mudou (ou conferir `atualizadoEm` antes do
-   `PUT`) para uma não sobrescrever a outra. Hoje o BenHermes grava o mapa inteiro.
+Além do arquivo, os dois conversam sozinhos por uma **API de eventos assinados**: quando a manutenção é salva
+no BenHermes, o BenCalls deixa o WhatsApp da baia OK e **conclui o chamado** daquela baia; os chamados de
+WhatsApp abertos no BenCalls aparecem no BenHermes. Como ligar, os eventos e a segurança:
+[`API-INTEGRACAO.md`](API-INTEGRACAO.md).

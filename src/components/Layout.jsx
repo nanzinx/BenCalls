@@ -20,6 +20,7 @@ import { Entrada } from './Entrada.tsx';
 import { deveMostrarEntrada, diaDe, lerVistoEm, loginRecente, limparLogin, marcarVisto, marcarAtividade, inativo } from '../lib/entrada.ts';
 import { ABERTOS } from '../lib/rules.ts';
 import { alertasUrgentes } from '../lib/whatsapp-baias.ts';
+import { useIntegracaoBenHermes } from './IntegracaoBenHermes.jsx';
 import { filtrarMapaParaSupervisor } from '../lib/benhermes/whatsappBaias.ts';
 import { AvisoParaVoce, LinhaParaVoce, useAlertasEmTempoReal, useTituloComContador, useAvisoDeEntrada, avisosDoNavegadorLigados, ligarAvisosDoNavegador } from './ParaVoce.jsx';
 
@@ -271,6 +272,7 @@ export default function Layout() {
   const [avisoEntrada, fecharAvisoEntrada] = useAvisoDeEntrada({ entrada, itens: paraMim });
   useAlertasEmTempoReal(paraMim, { ativo: !entrada, onAbrir: abrirChamado });
   useTituloComContador(paraMim.length, st.tema.nomeSistema);
+  useIntegracaoBenHermes({ onAbrir: abrirChamado });
   const totalSino = naoLidas + paraMim.length;
   const chId = sp.get('ch') ? Number(sp.get('ch')) : null;
   const itemId = sp.get('item');

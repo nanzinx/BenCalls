@@ -1,6 +1,8 @@
 // WhatsApp das Baias dentro do BenCalls: as mesmas regras e o mesmo mapa (.json versão 3) do
 // BenHermes, ligados às baias, aos ocupantes e aos chamados daqui.
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { statusDaIntegracao } from '../components/IntegracaoBenHermes.jsx';
+import { numeroChamado } from '../lib/format.ts';
 import { VERSAO_BENHERMES } from '../lib/benhermes/versao.ts';
 import clsx from 'clsx';
 import { useOutletContext, useSearchParams } from 'react-router-dom';
@@ -481,13 +483,7 @@ function AbaIntegracao({ d }) {
         </div>
       </section>
 
-      <section className="card flex flex-col gap-2">
-        <h2>Ligação direta com o BenHermes</h2>
-        <p className="text-sm text-tinta-2">
-          Na versão com servidor, o BenCalls lê e grava o mesmo mapa pela API do BenHermes (<span className="font-mono">GET/PUT /api/whatsapp</span>),
-          então a manutenção feita num aparece no outro sem exportar arquivo. Veja <span className="font-mono">docs/BENHERMES.md</span>.
-        </p>
-      </section>
+      <ApiIntegracao />
 
       {previa && (
         <Modal title="Importar mapa do BenHermes" onClose={() => setPrevia(null)}
@@ -511,3 +507,63 @@ function AbaIntegracao({ d }) {
   );
 }
 
+// ------------------------------------------------------------------ API de integração (tempo real)
+const ACAO_PARA_OK = { ANALISE: 'LIBERADO', PERMANENTE: 'TROCOU_CHIP', RESTRINGIDO: 'VOLTOU', BANIDO: 'LIBERADO' };
+function ApiIntegracao() {
+  const { st, actions, toast } = useStore();
+  const [status, setStatus] = useState(null);
+  const [baia, setBaia] = useState('');
+  useEffect(() => { statusDaIntegracao().then(setStatus); }, []);
+  const reg = st.integracao?.benhermes;
+  // Baias com problema: as que o simulador pode "liberar" como se fosse a manutenção do BenHermes.
+  const comProblema = useMemo(() => st.whatsapp.salas.flatMap((s) => s.mesas.flatMap((m) =>
+    Object.entries(m.lugares).filter(([p, l]) => p !== 'SUB' && l.whatsapp.situacao !== 'OK' && l.whatsapp.situacao !== 'NAO_TEM')
+      .map(([p, l]) => ({ codigo: `${m.sigla}-${p}`, situacao: l.whatsapp.situacao })))), [st.whatsapp]);
+  const escolhida = comProblema.find((x) => x.codigo === baia) || comProblema[0];
+  const simular = () => {
+    if (!escolhida) return;
+    const em = new Date().toISOString();
+    const ev = {
+      id: `simulado:${Date.now()}`, tipo: 'whatsapp.situacao', em,
+      dados: { codigo: escolhida.codigo, de: escolhida.situacao, para: 'OK', acao: ACAO_PARA_OK[escolhida.situacao], estado: { situacao: 'OK', mudouEm: em }, manutencao: { id: 'simulada', janela: 'MANHA' } }
+    };
+    const efeitos = actions.aplicarEventosBenHermes([ev]);
+    const fechados = efeitos.filter((e) => e.tipo === 'chamado-concluido');
+    toast(fechados.length ? `${escolhida.codigo} OK. Chamado ${fechados.map((e) => numeroChamado(e.chamadoId)).join(', ')} concluído.` : `${escolhida.codigo} OK (não havia chamado de WhatsApp aberto nesta baia).`);
+    setBaia('');
+  };
+  return (
+    <section className="card flex flex-col gap-3">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h2>API de integração (tempo real)</h2>
+        {status && <span className={clsx('badge', status.ativa ? 'b-ok' : 'b-gray')}>{status.ativa ? 'Ligada · recebendo do BenHermes' : 'Desligada neste servidor'}</span>}
+      </div>
+      <p className="text-sm text-tinta-2">
+        O BenHermes avisa o BenCalls a cada mudança de WhatsApp e a cada manutenção concluída
+        (<span className="font-mono">POST /api/integracoes/benhermes/eventos</span>, assinado com um segredo combinado).
+        Quando um número volta a ficar OK, o WhatsApp da baia é atualizado aqui e o chamado de WhatsApp aberto naquela baia é <b>concluído</b>.
+        {!status?.ativa && <> Para ligar, configure <span className="font-mono">BENHERMES_SEGREDO</span> nos dois servidores (veja <span className="font-mono">docs/API-INTEGRACAO.md</span>).</>}
+      </p>
+      <div className="flex flex-wrap items-end gap-2 rounded-xl bg-superficie-2 p-3">
+        <label className="field min-w-[220px] flex-1">Testar: simular a manutenção do BenHermes liberando a baia
+          <select className="select" value={escolhida?.codigo || ''} onChange={(e) => setBaia(e.target.value)} disabled={!comProblema.length}>
+            {comProblema.map((x) => <option key={x.codigo} value={x.codigo}>{x.codigo} · {TEXTO_SITUACAO[x.situacao]}</option>)}
+            {!comProblema.length && <option>Nenhuma baia com problema</option>}
+          </select>
+        </label>
+        <button type="button" className="btn btn-primary" disabled={!escolhida} onClick={simular}><PlugZap size={15} /> Simular evento</button>
+      </div>
+      <div className="flex flex-col gap-1">
+        <span className="text-xs font-semibold text-mudo">Últimos eventos recebidos</span>
+        {!reg?.log?.length && <span className="text-sm text-mudo">Nenhum ainda.</span>}
+        {(reg?.log || []).slice(0, 10).map((l) => (
+          <div key={l.id} className="flex flex-wrap items-center gap-2 text-sm">
+            <span className={clsx('badge badge-sm', l.resultado === 'aplicado' ? 'b-ok' : 'b-gray')}>{l.resultado}</span>
+            <span>{l.texto}</span>
+            <span className="text-xs text-mudo">· {dataHora(l.em)}{l.motivo ? ` · ${l.motivo}` : ''}{l.id.startsWith('simulado:') ? ' · simulado' : ''}</span>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}

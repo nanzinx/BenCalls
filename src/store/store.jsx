@@ -15,6 +15,7 @@ import { paraVoce } from '../lib/notificacoes.ts';
 import { whatsappDaBaia, trocarOperador } from '../lib/whatsapp-baias.ts';
 import { aplicarAcao, ACAO } from '../lib/benhermes/whatsappManutencao.ts';
 import { gravarAlteracao } from '../lib/benhermes/whatsappHistorico.ts';
+import { aplicarEventos } from '../lib/integracao-benhermes.ts';
 
 const KEY = 'bencalls:demo:v7';
 const SESS = 'bencalls:sessao';
@@ -540,6 +541,26 @@ export function StoreProvider({ children }) {
           s.whatsapp = gravarAlteracao(antes, depois, d);
           if (auditoria) ctx.audit(auditoria.acao, auditoria.alvo || 'WhatsApp das Baias', auditoria.detalhe || '');
           return r;
+        });
+      },
+      /**
+       * Eventos que chegaram do BenHermes pela API de integração (ou do simulador): atualiza o
+       * WhatsApp das baias e conclui os chamados de WhatsApp quando o número volta a ficar OK.
+       */
+      aplicarEventosBenHermes(eventos, cursor) {
+        return mutate((s, ctx) => {
+          const sitsWhatsapp = new Set(Object.values(indiceCatalogo(s).sits).filter((x) => x.whatsapp).map((x) => x.id));
+          const efeitos = aplicarEventos(s, eventos, sitsWhatsapp, ctx.agora);
+          if (cursor) s.integracao.benhermes.cursor = Math.max(s.integracao.benhermes.cursor || 0, cursor);
+          for (const e of efeitos) {
+            if (e.tipo === 'chamado-concluido') {
+              ctx.audit('Chamado concluído pelo BenHermes', numeroChamado(e.chamadoId), e.texto);
+              ctx.notificar(e.grupo, `${numeroChamado(e.chamadoId)} concluído: ${e.texto}`);
+            } else if (e.tipo === 'whatsapp') ctx.notificar(e.grupo, e.texto);
+            else ctx.notificar('TI', e.texto);
+          }
+          if (eventos.length) ctx.audit('Integração BenHermes', `${eventos.length} evento(s)`, efeitos.length ? `${efeitos.length} efeito(s)` : 'sem efeito');
+          return efeitos;
         });
       },
       /** Troca o mapa inteiro (importar o .json do BenHermes). O histórico vem junto com o arquivo. */
