@@ -307,7 +307,8 @@ export function seed(agora = Date.now()) {
       descricao: sit.outros ? 'Problema descrito pelo supervisor.' : '', triagem: passos, alerta: null,
       outros: !!sit.outros, outrosRevisado: true, anexos: sit.dano ? ['foto-item.jpg'] : [], operadorParado: !!sit.para,
       solucao: status === 'Concluído' ? { texto: 'Atendimento realizado na baia.', causa, user: tecnico, at: solucao } : null,
-      reaberturas: rnd() < 0.05 ? 1 : 0, hist
+      reaberturas: rnd() < 0.05 ? 1 : 0, hist,
+      direcionadoEm: criado, direcionadoPor: remetente, motivoDirecionamento: 'fila'
     });
     // ~1 em cada 3 problemas com triagem é resolvido sem abrir chamado (RF06)
     if (sit.passos.length && rnd() < 0.55) {
@@ -325,7 +326,7 @@ export function seed(agora = Date.now()) {
     const it = sub.item && o.layoutId ? itemNaBaia(o.layoutId, o.pos, sub.item) : null;
     chamados.push({
       id: ++id, titulo: `${sub.nome} — ${o.tituloSit || sit.nome}`, catId: sub.cat.id, subId: sub.id, sitId: sit.id,
-      categoria: sub.cat.nome, sub: sub.nome, situacao: sit.nome, prioritario, depto: sub.cat.equipe,
+      categoria: sub.cat.nome, sub: sub.nome, situacao: sit.nome, prioritario, depto: o.depto || sub.cat.equipe,
       layoutId: o.layoutId || null, pos: o.pos || null, local: o.local || '',
       itens: it ? [{ assetId: it.id, tipo: it.tipo, situacao: sit.nome, sitId: sit.id }] : [],
       ocupante: o.layoutId ? ocupacao[`${o.layoutId}:${o.pos}`]?.nome || 'Sem ocupante' : '—',
@@ -333,7 +334,11 @@ export function seed(agora = Date.now()) {
       descricao: o.descricao || '', triagem: o.triagem || [], alerta: o.alerta || null, outros: !!sit.outros, outrosRevisado: false,
       anexos: o.anexos || [], operadorParado: !!sit.para, solucao: o.solucao ? { ...o.solucao, at: agora - o.solucao.min * MIN } : null,
       reaberturas: 0,
-      hist: o.hist.map(([status, m, just, user]) => ({ status, at: agora - m * MIN, just, user }))
+      hist: o.hist.map(([status, m, just, user]) => ({ status, at: agora - m * MIN, just, user })),
+      // Direcionamento: quando chegou para quem vai resolver (abertura ou encaminhamento).
+      direcionadoEm: agora - (o.encaminhado ? o.encaminhado.min : o.hist[0][1]) * MIN,
+      direcionadoPor: o.encaminhado ? o.encaminhado.por : o.remetente,
+      motivoDirecionamento: o.encaminhado || o.tecnico ? 'encaminhado' : 'fila'
     });
   };
   ativo({ subId: 'b4', sit: 'Não liga', layoutId: 'OP1', pos: 'D2', remetente: 'u1', descricao: 'Operador sem conseguir trabalhar desde o início do turno.',
@@ -358,9 +363,12 @@ export function seed(agora = Date.now()) {
   ativo({ subId: 'b1', sit: 'Microfone não capta', layoutId: 'OP3', pos: 'E1', remetente: 'u8', tecnico: 'u4',
     triagem: reg(['Verificar se o microfone está no mudo', 'Trocar o headset de porta USB'], 52, 40),
     hist: [['Em Análise', 50, 'Chamado registrado no sistema.', 'u8'], ['Em Execução', 20, 'Atendimento iniciado.', 'u4']] });
-  ativo({ subId: 'b6', sit: 'Erro ao entrar', layoutId: 'OP2', pos: 'D4', remetente: 'u7',
+  ativo({ subId: 'b6', sit: 'Erro ao entrar', layoutId: 'OP2', pos: 'D4', remetente: 'u7', tecnico: 'u3', encaminhado: { por: 'u4', min: 8 },
     triagem: reg(['Conferir usuário e senha (caps lock)', 'Fechar e abrir a Argus novamente'], 47, 35),
-    hist: [['Em Análise', 45, 'Chamado registrado no sistema.', 'u7']] });
+    hist: [['Em Análise', 45, 'Chamado registrado no sistema.', 'u7'], ['Em Análise', 8, 'Encaminhado para Diego Lima.', 'u4']] });
+  ativo({ subId: 'b11', sit: 'Novo colaborador', remetente: 'u1', depto: 'RH',
+    descricao: 'Nova operadora começa segunda na Equipe 1 (baia OP1-E4): precisa de crachá, cadastro e treinamento.',
+    hist: [['Em Análise', 20, 'Chamado registrado pelo formulário (destino: RH).', 'u1']] });
   ativo({ subId: 'b10', sit: 'Outros', tituloSit: 'Outros: projetor da sala 2 não liga', local: 'Sala de reunião 2', remetente: 'u6',
     descricao: 'Projetor não liga, reunião com cliente às 15h.', hist: [['Em Análise', 35, 'Chamado registrado no sistema (formulário, destino: Facilities).', 'u6']] });
 
@@ -379,8 +387,17 @@ export function seed(agora = Date.now()) {
     termos[key] = { ocupante: oc.nome, geradoEm: oc.desde, assinadoEm: assinado ? oc.desde + DIA : null, versao: 1 };
   }
 
+  // Ciência (o que cada pessoa já viu): o que chegou há mais de 1 hora já foi visto,
+  // então ao entrar aparecem só os chamados recentes.
+  const ciencia = {};
+  for (const u of usuarios) {
+    ciencia[u.id] = {};
+    for (const c of chamados) if ((c.direcionadoEm ?? c.criadoEm) < agora - 60 * MIN) ciencia[u.id][c.id] = c.direcionadoEm ?? c.criadoEm;
+  }
+
   return {
-    versao: 5,
+    versao: 6,
+    ciencia,
     criadoEm: agora,
     usuarios, layouts, catalogo, tipos, itens, chamados, triagensResolvidas, ocupacao, ocupHist, dossies, termos,
     seqChamado: id + 1, seqItem: seqId + 1, seqLocal,

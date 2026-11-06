@@ -10,9 +10,10 @@ import {
   alertaTriagem, passoOk, ehPrioritario,
   podeTransicionar, LOCAL_DO_STATUS, podeReabrir, ABERTOS
 } from '../lib/rules.ts';
-import { baiaCodigo, codigoItem, indiceCatalogo, layoutById, nomeUser, estoquePorTipo } from './selectors.js';
+import { acessosDe, baiaCodigo, codigoItem, indiceCatalogo, layoutById, nomeUser, estoquePorTipo } from './selectors.js';
+import { paraVoce } from '../lib/notificacoes.ts';
 
-const KEY = 'bencalls:demo:v5';
+const KEY = 'bencalls:demo:v6';
 const SESS = 'bencalls:sessao';
 const SESSAO_HORAS = 8;
 
@@ -21,17 +22,21 @@ function carregar() {
     const raw = localStorage.getItem(KEY);
     if (raw) {
       const st = JSON.parse(raw);
-      if (st && st.versao === 5) return st;
+      if (st && st.versao === 6) return st;
     }
   } catch { /* storage indisponível */ }
   return seed();
 }
 
+// Sessão: cada aba guarda a sua (sessionStorage), e uma aba nova começa com o último login
+// (localStorage). Assim dá para ter o TI numa aba e a supervisora em outra.
 function carregarSessao() {
-  try {
-    const s = JSON.parse(localStorage.getItem(SESS) || 'null');
-    if (s && s.expira > Date.now()) return s;
-  } catch { /* ignora */ }
+  for (const armazem of [() => sessionStorage, () => localStorage]) {
+    try {
+      const s = JSON.parse(armazem().getItem(SESS) || 'null');
+      if (s && s.expira > Date.now()) return s;
+    } catch { /* ignora */ }
+  }
   return null;
 }
 
@@ -46,21 +51,43 @@ export function StoreProvider({ children }) {
   const stRef = useRef(st);
   stRef.current = st;
 
+  const salvo = useRef('');
   useEffect(() => {
     const t = setTimeout(() => {
-      try { localStorage.setItem(KEY, JSON.stringify(st)); } catch { /* cheio ou bloqueado */ }
+      try {
+        const txt = JSON.stringify(st);
+        if (txt !== salvo.current) { salvo.current = txt; localStorage.setItem(KEY, txt); }
+      } catch { /* cheio ou bloqueado */ }
     }, 250);
     return () => clearTimeout(t);
   }, [st]);
+
+  // Tempo real entre abas: o que outra aba gravar (ex.: um chamado novo) chega aqui na hora.
+  // Na versão final, isso vem da BenApi (WebSocket ou Server-Sent Events).
+  useEffect(() => {
+    const f = (e) => {
+      if (e.key !== KEY || !e.newValue) return;
+      try {
+        const novo = JSON.parse(e.newValue);
+        if (novo?.versao !== stRef.current.versao) return;
+        salvo.current = e.newValue;
+        stRef.current = novo;
+        setSt(novo);
+      } catch { /* ignora */ }
+    };
+    window.addEventListener('storage', f);
+    return () => window.removeEventListener('storage', f);
+  }, []);
 
   const user = sessao ? st.usuarios.find((u) => u.id === sessao.userId) : null;
   const userRef = useRef(user);
   userRef.current = user;
 
-  const toast = useCallback((texto, tipo = 'ok') => {
+  // acao (opcional): { l: 'Abrir', run } vira um botão no aviso.
+  const toast = useCallback((texto, tipo = 'ok', acao = null) => {
     const id = uid('t');
-    setToasts((ts) => [...ts, { id, texto, tipo }]);
-    setTimeout(() => setToasts((ts) => ts.filter((x) => x.id !== id)), 5200);
+    setToasts((ts) => [...ts, { id, texto, tipo, acao }]);
+    setTimeout(() => setToasts((ts) => ts.filter((x) => x.id !== id)), acao ? 9000 : 5200);
   }, []);
   const fecharToast = useCallback((id) => setToasts((ts) => ts.filter((x) => x.id !== id)), []);
 
@@ -102,6 +129,16 @@ export function StoreProvider({ children }) {
       ctx.notificar(grupoSup(s, c), `${numeroChamado(c.id)} · ${c.titulo} agora está "${status}"${just ? `: ${just}` : ''}`);
     };
     const achar = (s, id) => s.chamados.find((c) => c.id === id);
+    const direcionar = (s, ctx, c, paraId, motivo) => {
+      c.tecnicoId = paraId;
+      c.direcionadoEm = ctx.agora;
+      c.direcionadoPor = ctx.eu;
+      c.motivoDirecionamento = motivo;
+    };
+    const verPorMim = (s, ctx, id) => {
+      s.ciencia ||= {};
+      (s.ciencia[ctx.eu] ||= {})[id] = ctx.agora;
+    };
     const proxSeqLocal = (s, local, tipo) => {
       s.seqLocal[local] ||= {};
       const usados = s.itens.filter((i) => i.local.kind === local && i.tipo === tipo).map((i) => i.local.seq);
@@ -134,11 +171,13 @@ export function StoreProvider({ children }) {
       login(userId) {
         const s = { userId, expira: Date.now() + SESSAO_HORAS * 3600_000 };
         localStorage.setItem(SESS, JSON.stringify(s));
+        try { sessionStorage.setItem(SESS, JSON.stringify(s)); } catch { /* ignora */ }
         setSessao(s);
         mutate((n, ctx) => { n.auditoria.unshift({ id: uid('a'), at: ctx.agora, user: userId, acao: 'Login', alvo: 'sessão', detalhe: '' }); });
       },
       logout() {
         localStorage.removeItem(SESS);
+        try { sessionStorage.removeItem(SESS); } catch { /* ignora */ }
         setSessao(null);
       },
       resetDemo() {
@@ -180,7 +219,8 @@ export function StoreProvider({ children }) {
             descricao: (p.descricao || '').trim(), triagem: p.triagem || [], alerta,
             outros: sitsUsadas.some((x) => x.outros), outrosRevisado: false, anexos: p.anexos || [], operadorParado: parado,
             solucao: null, reaberturas: 0,
-            hist: [{ status: 'Em Análise', at: ctx.agora, just: p.layoutId ? 'Chamado registrado pelo mapa.' : `Chamado registrado pelo formulário (destino: ${p.depto || princ.cat.equipe}).`, user: ctx.eu }]
+            hist: [{ status: 'Em Análise', at: ctx.agora, just: p.layoutId ? 'Chamado registrado pelo mapa.' : `Chamado registrado pelo formulário (destino: ${p.depto || princ.cat.equipe}).`, user: ctx.eu }],
+            direcionadoEm: ctx.agora, direcionadoPor: ctx.eu, motivoDirecionamento: 'fila'
           };
           s.chamados.push(c);
           const onde = c.layoutId ? baiaCodigo(s, c.layoutId, c.pos) : c.local || 'sem baia';
@@ -203,7 +243,8 @@ export function StoreProvider({ children }) {
       iniciarExecucao(id) {
         mutate((s, ctx) => {
           const c = achar(s, id);
-          c.tecnicoId = c.tecnicoId || ctx.eu;
+          if (!c.tecnicoId) direcionar(s, ctx, c, ctx.eu, 'encaminhado');
+          verPorMim(s, ctx, c.id);
           mudar(s, ctx, c, 'Em Execução', 'Atendimento iniciado.');
         });
       },
@@ -217,10 +258,27 @@ export function StoreProvider({ children }) {
           ctx.audit(prioritario ? 'Marcado como prioritário' : 'Prioridade retirada', numeroChamado(id), nomeUser(s, ctx.eu));
         });
       },
+      // Encaminhar o chamado para um técnico específico: ele é avisado ao entrar no site.
+      encaminhar(id, paraId) {
+        mutate((s, ctx) => {
+          const c = achar(s, id);
+          direcionar(s, ctx, c, paraId, 'encaminhado');
+          if (paraId === ctx.eu) verPorMim(s, ctx, id);
+          const nome = nomeUser(s, paraId);
+          c.hist.push({ status: c.status, at: ctx.agora, just: `Encaminhado para ${nome}.`, user: ctx.eu });
+          ctx.audit('Chamado encaminhado', numeroChamado(id), nome);
+          ctx.notificar('TI', `${numeroChamado(id)} · ${c.titulo} foi encaminhado para ${nome}.`);
+        });
+      },
+      // Marca como visto pela pessoa logada (some do aviso "para você").
+      marcarVistos(ids) {
+        mutate((s, ctx) => { ids.forEach((id) => verPorMim(s, ctx, id)); });
+      },
       assumir(id) {
         mutate((s, ctx) => {
           const c = achar(s, id);
-          c.tecnicoId = ctx.eu;
+          direcionar(s, ctx, c, ctx.eu, 'encaminhado');
+          verPorMim(s, ctx, c.id);
           ctx.audit('Chamado assumido', numeroChamado(id), nomeUser(s, ctx.eu));
         });
       },
@@ -269,6 +327,7 @@ export function StoreProvider({ children }) {
             c.reaberturas = (c.reaberturas || 0) + 1;
           }
           mudar(s, ctx, c, 'Em Execução', `Reaberto: ${just}`);
+          if (c.tecnicoId) { c.direcionadoEm = ctx.agora; c.direcionadoPor = ctx.eu; c.motivoDirecionamento = 'voltou'; }
           if (c.tecnicoId) ctx.notificar('TI', `${numeroChamado(id)} voltou para ${nomeUser(s, c.tecnicoId)}: ${just}`);
         });
       },
@@ -514,8 +573,12 @@ export function StoreProvider({ children }) {
     return () => clearInterval(t);
   }, []);
 
-  const value = useMemo(() => ({ st, user, actions, toast, toasts, fecharToast, agora, abertos: st.chamados.filter((c) => ABERTOS.includes(c.status)) }),
-    [st, user, actions, toast, toasts, fecharToast, agora]);
+  // O que chegou para a pessoa logada resolver e ela ainda não viu (aviso ao entrar, sino, "novo" nos cartões).
+  const paraMim = useMemo(() => (user ? paraVoce(st.chamados, { ...user, acessos: acessosDe(user) }, st.ciencia?.[user.id] || {}) : []),
+    [st.chamados, st.ciencia, user]);
+  const paraMimIds = useMemo(() => new Set(paraMim.map((x) => x.chamado.id)), [paraMim]);
+  const value = useMemo(() => ({ st, user, actions, toast, toasts, fecharToast, agora, paraMim, paraMimIds, abertos: st.chamados.filter((c) => ABERTOS.includes(c.status)) }),
+    [st, user, actions, toast, toasts, fecharToast, agora, paraMim, paraMimIds]);
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }
 

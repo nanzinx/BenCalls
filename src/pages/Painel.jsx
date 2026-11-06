@@ -1,6 +1,6 @@
-import { useMemo, useState } from 'react';
-import { useOutletContext } from 'react-router-dom';
-import { KanbanSquare, List, Search, Flame, AlertTriangle, ClipboardCheck, UserCheck, UserX } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import { useOutletContext, useSearchParams } from 'react-router-dom';
+import { KanbanSquare, List, Search, Flame, AlertTriangle, ClipboardCheck, UserCheck, UserX, BellRing } from 'lucide-react';
 import { useStore } from '../store/store.jsx';
 import { baiaCodigo, nomeUser } from '../store/selectors.js';
 import { ABERTOS, ordemFila } from '../lib/rules.ts';
@@ -12,18 +12,25 @@ import { BannerIncidentes } from './MeusChamados.jsx';
 const COLS = ['Em Análise', 'Pendente', 'Em Execução', 'Aguardando Consenso'];
 
 export default function Painel() {
-  const { st, user, agora } = useStore();
+  const { st, user, agora, paraMimIds } = useStore();
   const { abrir } = useOutletContext();
   const [vis, setVis] = useState(() => localStorage.getItem('bencalls:painel') || 'kanban');
   const [q, setQ] = useState('');
   const [depto, setDepto] = useState('Todos');
-  const [flag, setFlag] = useState('todos');
+  const [sp, setSp] = useSearchParams();
+  const [flag, setFlag] = useState(() => sp.get('mostrar') || 'todos');
+  // "Ver no painel" do aviso de entrada chega com ?mostrar=paravoce.
+  useEffect(() => {
+    const m = sp.get('mostrar');
+    if (m) { setFlag(m); const n = new URLSearchParams(sp); n.delete('mostrar'); setSp(n, { replace: true }); }
+  }, [sp, setSp]);
 
   const abertos = useMemo(() => st.chamados.filter((c) => ABERTOS.includes(c.status)), [st.chamados]);
   const filtrados = useMemo(() => {
     const nq = normalizar(q);
     return abertos.filter((c) => {
       if (flag === 'prioritarios' && !c.prioritario) return false;
+      if (flag === 'paravoce' && !paraMimIds.has(c.id)) return false;
       if (depto !== 'Todos' && c.depto !== depto) return false;
       if (flag === 'meus' && c.tecnicoId !== user.id) return false;
       if (flag === 'alerta' && !c.alerta) return false;
@@ -32,7 +39,7 @@ export default function Painel() {
       if (nq && !normalizar(`${numeroChamado(c.id)} ${c.titulo} ${c.ocupante} ${c.layoutId ? baiaCodigo(st, c.layoutId, c.pos) : c.local} ${nomeUser(st, c.remetenteId)}`).includes(nq)) return false;
       return true;
     }).sort(ordemFila);
-  }, [abertos, q, depto, flag, user.id, st]);
+  }, [abertos, q, depto, flag, user.id, st, paraMimIds]);
 
   const prioritarios = abertos.filter((c) => c.prioritario).length;
   const parados = abertos.filter((c) => c.operadorParado && c.status !== 'Aguardando Consenso').length;
@@ -50,6 +57,7 @@ export default function Painel() {
         <Kpi icon={UserX} tom="aviso" label="Operador parado" valor={parados} title="Operadores sem conseguir trabalhar" {...atalho('parado')} />
         <Kpi icon={AlertTriangle} tom="aviso" label="Alertas de triagem" valor={abertos.filter((c) => c.alerta).length} title="Passos da triagem marcados rápido demais" {...atalho('alerta')} />
         <Kpi icon={ClipboardCheck} label="“Outros” a revisar" valor={abertos.filter((c) => c.outros && !c.outrosRevisado).length} tom="info" title="Chamados fora do catálogo aguardando revisão" {...atalho('outros')} />
+        {paraMimIds.size > 0 && <Kpi icon={BellRing} label="Para você" valor={paraMimIds.size} destaque title="Chegaram para você e você ainda não abriu" {...atalho('paravoce')} />}
         <Kpi icon={UserCheck} label="Comigo" valor={abertos.filter((c) => c.tecnicoId === user.id).length} tom="ok" title="Chamados que você assumiu" {...atalho('meus')} />
       </div>
 
@@ -60,6 +68,7 @@ export default function Painel() {
         </div>
         <select className="select w-auto" value={flag} onChange={(e) => setFlag(e.target.value)} aria-label="Mostrar">
           <option value="todos">Todos os chamados</option>
+          <option value="paravoce">Novos para você</option>
           <option value="meus">Só os meus</option>
           <option value="parado">Operador parado</option>
           <option value="prioritarios">Só prioritários</option>

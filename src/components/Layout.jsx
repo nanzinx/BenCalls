@@ -3,7 +3,7 @@ import clsx from 'clsx';
 import { NavLink, Outlet, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import {
   Inbox, PlusCircle, KanbanSquare, Map, Package, ClipboardCheck, ShieldAlert, BarChart3, Users, ListTree,
-  LayoutGrid, Palette, ScrollText, Search, Bell, Menu, LogOut, Moon, Sun, RotateCcw, MessageSquare, FileSignature, X, ChevronDown, PanelLeftClose, PanelLeftOpen
+  LayoutGrid, Palette, ScrollText, Search, Bell, BellRing, Menu, LogOut, Moon, Sun, RotateCcw, MessageSquare, FileSignature, X, ChevronDown, PanelLeftClose, PanelLeftOpen
 } from 'lucide-react';
 import { useStore } from '../store/store.jsx';
 import { tem, estoquePorTipo, layoutsDoUsuario } from '../store/selectors.js';
@@ -19,9 +19,16 @@ import { Drawer } from './ui.jsx';
 import { Entrada } from './Entrada.tsx';
 import { deveMostrarEntrada, diaDe, lerVistoEm, loginRecente, limparLogin, marcarVisto, marcarAtividade, inativo } from '../lib/entrada.ts';
 import { ABERTOS } from '../lib/rules.ts';
+import { AvisoParaVoce, LinhaParaVoce, useAlertasEmTempoReal, useTituloComContador, useAvisoDeEntrada, avisosDoNavegadorLigados, ligarAvisosDoNavegador } from './ParaVoce.jsx';
 
 /** Números que aparecem na entrada, conforme o perfil. */
-function selosDaEntrada(st, user) {
+function selosDaEntrada(st, user, paraMim = 0) {
+  const sel = selosDoPerfil(st, user);
+  if (paraMim > 0) sel.unshift({ valor: paraMim, texto: 'para você', tom: 'alerta' });
+  return sel.slice(0, 4);
+}
+
+function selosDoPerfil(st, user) {
   const abertos = st.chamados.filter((c) => ABERTOS.includes(c.status));
   if (user.perfil === 'supervisor') {
     const eq = new Set(user.equipes || []);
@@ -87,8 +94,8 @@ export function rotaInicial(user) {
   return { supervisor: '/inicio', ti: '/painel', rh: '/rh', gestor: '/relatorios' }[user?.perfil] || '/inicio';
 }
 
-function Notificacoes({ onClose }) {
-  const { st, actions } = useStore();
+function Notificacoes({ onClose, onAbrir }) {
+  const { st, actions, paraMim } = useStore();
   const ref = useRef(null);
   useEffect(() => {
     const f = (e) => { if (ref.current && !ref.current.contains(e.target) && !e.target.closest('[data-notif-btn]')) onClose(); };
@@ -104,7 +111,16 @@ function Notificacoes({ onClose }) {
         </div>
         <button type="button" className="btn btn-sm btn-ghost" onClick={actions.marcarLidas}>Marcar todas como lidas</button>
       </div>
-      <div className="max-h-[420px] overflow-auto">
+      <div className="max-h-[460px] overflow-auto">
+        {paraMim.length > 0 && (
+          <div className="border-b border-linha pb-1">
+            <div className="flex items-center justify-between gap-2 px-3.5 pt-1 pb-1">
+              <span className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-marca-txt"><BellRing size={13} /> Para você · {paraMim.length}</span>
+              <button type="button" className="btn btn-sm btn-ghost min-h-[28px] text-xs" onClick={() => actions.marcarVistos(paraMim.map((x) => x.chamado.id))}>Marcar como vistos</button>
+            </div>
+            {paraMim.slice(0, 8).map((it) => <LinhaParaVoce key={it.chamado.id} item={it} compacta onAbrir={(id) => { onAbrir(id); onClose(); }} />)}
+          </div>
+        )}
         {st.notificacoes.slice(0, 30).map((n) => (
           <div key={n.id} className={`notif${n.lida ? '' : ' unread'}`}>
             <span className="n-ic"><MessageSquare size={15} /></span>
@@ -125,6 +141,8 @@ const OCUPACOES = ['Disponível', 'Em atendimento', 'Almoço', 'Inoperante'];
 /** Menu no avatar: quem está logado, situação do técnico, tema, reiniciar a demonstração e sair. */
 function MenuUsuario({ user, modo, setModo, ocup, setOcup, onReset, onSair }) {
   const [aberto, setAberto] = useState(false);
+  const [avisosNav, setAvisosNav] = useState(avisosDoNavegadorLigados);
+  const suportaAvisos = typeof window !== 'undefined' && 'Notification' in window;
   const ref = useRef(null);
   useEffect(() => {
     if (!aberto) return undefined;
@@ -163,6 +181,14 @@ function MenuUsuario({ user, modo, setModo, ocup, setOcup, onReset, onSair }) {
               {escuro ? <Sun size={16} /> : <Moon size={16} />}<span className="flex-1">Tema escuro</span>
               <span className={clsx('chave', escuro && 'on')} aria-hidden="true"><i /></span>
             </button>
+            {suportaAvisos && (
+              <button type="button" role="menuitemcheckbox" aria-checked={avisosNav} className="menu-item"
+                title="Avisa no canto da tela, mesmo com o site em outra aba, quando um chamado chegar para você."
+                onClick={async () => setAvisosNav(await ligarAvisosDoNavegador(!avisosNav))}>
+                <BellRing size={16} /><span className="flex-1">Avisos do navegador</span>
+                <span className={clsx('chave', avisosNav && 'on')} aria-hidden="true"><i /></span>
+              </button>
+            )}
             <button type="button" role="menuitem" className="menu-item" onClick={() => { setAberto(false); onReset(); }}><RotateCcw size={16} /> Reiniciar demonstração</button>
             <button type="button" role="menuitem" className="menu-item text-ruim" onClick={onSair}><LogOut size={16} /> Sair</button>
           </div>
@@ -173,7 +199,7 @@ function MenuUsuario({ user, modo, setModo, ocup, setOcup, onReset, onSair }) {
 }
 
 export default function Layout() {
-  const { st, user, actions, toasts, fecharToast } = useStore();
+  const { st, user, actions, toasts, fecharToast, paraMim } = useStore();
   const menu = useMenu();
   const [aberto, setAberto] = useState(false);
   const [busca, setBusca] = useState(false);
@@ -188,7 +214,7 @@ export default function Layout() {
   const nav = useNavigate();
   const [entrada, setEntrada] = useState(() => deveMostrarEntrada({ vistoEm: lerVistoEm(), hoje: diaDe(new Date()), acabouDeEntrar: loginRecente() }));
   const [cascataEntrada, setCascataEntrada] = useState(false);
-  const selos = useMemo(() => selosDaEntrada(st, user), []); // eslint-disable-line react-hooks/exhaustive-deps
+  const selos = useMemo(() => selosDaEntrada(st, user, paraMim.length), []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Sessão expira após 30 min sem uso (como no BenHeimdall).
   useEffect(() => {
@@ -235,6 +261,11 @@ export default function Layout() {
   const fechar = (k) => { const n = new URLSearchParams(sp); n.delete(k); setSp(n); };
 
   const naoLidas = st.notificacoes.filter((n) => !n.lida).length;
+  const abrirChamado = useCallback((id) => abrir({ ch: id }), [abrir]);
+  const [avisoEntrada, fecharAvisoEntrada] = useAvisoDeEntrada({ entrada, itens: paraMim });
+  useAlertasEmTempoReal(paraMim, { ativo: !entrada, onAbrir: abrirChamado });
+  useTituloComContador(paraMim.length, st.tema.nomeSistema);
+  const totalSino = naoLidas + paraMim.length;
   const chId = sp.get('ch') ? Number(sp.get('ch')) : null;
   const itemId = sp.get('item');
   const baiaKey = sp.get('baia');
@@ -255,10 +286,10 @@ export default function Layout() {
           <Search size={16} /><span className="lbl">Buscar chamado, etiqueta, baia…</span><kbd>Ctrl K</kbd>
         </button>
         <div className="relative">
-          <button type="button" data-notif-btn className="tb-btn" aria-label={`Notificações (${naoLidas} não lidas)`} aria-expanded={notif} onClick={() => setNotif((x) => !x)}>
-            <Bell size={17} />{naoLidas > 0 && <span className="tb-badge">{naoLidas}</span>}
+          <button type="button" data-notif-btn className="tb-btn" aria-label={`Notificações (${paraMim.length} para você, ${naoLidas} não lidas)`} aria-expanded={notif} onClick={() => setNotif((x) => !x)}>
+            {paraMim.length > 0 ? <BellRing size={17} className="origin-top animate-[sino_1.2s_ease-in-out_1]" /> : <Bell size={17} />}{totalSino > 0 && <span className="tb-badge">{totalSino}</span>}
           </button>
-          {notif && <Notificacoes onClose={() => setNotif(false)} />}
+          {notif && <Notificacoes onClose={() => setNotif(false)} onAbrir={abrirChamado} />}
         </div>
         <MenuUsuario user={user} modo={modo} setModo={setModo} ocup={ocup} setOcup={setOcup}
           onReset={() => { if (confirm('Reiniciar a demonstração? Tudo o que foi feito nesta sessão será apagado.')) actions.resetDemo(); }}
@@ -309,10 +340,17 @@ export default function Layout() {
           aoTerminar={() => { marcarVisto(diaDe(new Date())); limparLogin(); setEntrada(false); }} />
       )}
 
+      {avisoEntrada && !chId && (
+        <AvisoParaVoce itens={paraMim} onFechar={fecharAvisoEntrada}
+          onAbrir={(id) => { fecharAvisoEntrada(); abrirChamado(id); }}
+          onVerTodos={tem(user, 'PC') ? () => { fecharAvisoEntrada(); nav('/painel?mostrar=paravoce'); } : null} />
+      )}
+
       <div className="toasts" aria-live="polite">
         {toasts.map((t) => (
           <div key={t.id} className={`toast ${t.tipo}`} role="status">
             <span className="min-w-0 flex-auto">{t.texto}</span>
+            {t.acao && <button type="button" className="btn btn-sm min-h-[28px]" onClick={() => { t.acao.run(); fecharToast(t.id); }}>{t.acao.l}</button>}
             <button type="button" className="btn btn-ghost btn-sm btn-icon w-7 min-h-[28px]" aria-label="Fechar aviso" onClick={() => fecharToast(t.id)}><X size={14} /></button>
           </div>
         ))}
