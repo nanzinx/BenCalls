@@ -10,9 +10,14 @@ import {
   alertaTriagem, passoOk, ehPrioritario,
   podeTransicionar, LOCAL_DO_STATUS, podeReabrir, ABERTOS
 } from '../lib/rules.ts';
-import { baiaCodigo, codigoItem, indiceCatalogo, layoutById, nomeUser, estoquePorTipo } from './selectors.js';
+import { acessosDe, baiaCodigo, codigoItem, indiceCatalogo, layoutById, nomeUser, estoquePorTipo } from './selectors.js';
+import { paraVoce } from '../lib/notificacoes.ts';
+import { whatsappDaBaia, trocarOperador } from '../lib/whatsapp-baias.ts';
+import { aplicarAcao, ACAO } from '../lib/benhermes/whatsappManutencao.ts';
+import { gravarAlteracao } from '../lib/benhermes/whatsappHistorico.ts';
+import { aplicarEventos } from '../lib/integracao-benhermes.ts';
 
-const KEY = 'bencalls:demo:v5';
+const KEY = 'bencalls:demo:v7';
 const SESS = 'bencalls:sessao';
 const SESSAO_HORAS = 8;
 
@@ -21,17 +26,21 @@ function carregar() {
     const raw = localStorage.getItem(KEY);
     if (raw) {
       const st = JSON.parse(raw);
-      if (st && st.versao === 5) return st;
+      if (st && st.versao === 7) return st;
     }
   } catch { /* storage indisponível */ }
   return seed();
 }
 
+// Sessão: cada aba guarda a sua (sessionStorage), e uma aba nova começa com o último login
+// (localStorage). Assim dá para ter o TI numa aba e a supervisora em outra.
 function carregarSessao() {
-  try {
-    const s = JSON.parse(localStorage.getItem(SESS) || 'null');
-    if (s && s.expira > Date.now()) return s;
-  } catch { /* ignora */ }
+  for (const armazem of [() => sessionStorage, () => localStorage]) {
+    try {
+      const s = JSON.parse(armazem().getItem(SESS) || 'null');
+      if (s && s.expira > Date.now()) return s;
+    } catch { /* ignora */ }
+  }
   return null;
 }
 
@@ -46,21 +55,43 @@ export function StoreProvider({ children }) {
   const stRef = useRef(st);
   stRef.current = st;
 
+  const salvo = useRef('');
   useEffect(() => {
     const t = setTimeout(() => {
-      try { localStorage.setItem(KEY, JSON.stringify(st)); } catch { /* cheio ou bloqueado */ }
+      try {
+        const txt = JSON.stringify(st);
+        if (txt !== salvo.current) { salvo.current = txt; localStorage.setItem(KEY, txt); }
+      } catch { /* cheio ou bloqueado */ }
     }, 250);
     return () => clearTimeout(t);
   }, [st]);
+
+  // Tempo real entre abas: o que outra aba gravar (ex.: um chamado novo) chega aqui na hora.
+  // Na versão final, isso vem da BenApi (WebSocket ou Server-Sent Events).
+  useEffect(() => {
+    const f = (e) => {
+      if (e.key !== KEY || !e.newValue) return;
+      try {
+        const novo = JSON.parse(e.newValue);
+        if (novo?.versao !== stRef.current.versao) return;
+        salvo.current = e.newValue;
+        stRef.current = novo;
+        setSt(novo);
+      } catch { /* ignora */ }
+    };
+    window.addEventListener('storage', f);
+    return () => window.removeEventListener('storage', f);
+  }, []);
 
   const user = sessao ? st.usuarios.find((u) => u.id === sessao.userId) : null;
   const userRef = useRef(user);
   userRef.current = user;
 
-  const toast = useCallback((texto, tipo = 'ok') => {
+  // acao (opcional): { l: 'Abrir', run } vira um botão no aviso.
+  const toast = useCallback((texto, tipo = 'ok', acao = null) => {
     const id = uid('t');
-    setToasts((ts) => [...ts, { id, texto, tipo }]);
-    setTimeout(() => setToasts((ts) => ts.filter((x) => x.id !== id)), 5200);
+    setToasts((ts) => [...ts, { id, texto, tipo, acao }]);
+    setTimeout(() => setToasts((ts) => ts.filter((x) => x.id !== id)), acao ? 9000 : 5200);
   }, []);
   const fecharToast = useCallback((id) => setToasts((ts) => ts.filter((x) => x.id !== id)), []);
 
@@ -102,6 +133,16 @@ export function StoreProvider({ children }) {
       ctx.notificar(grupoSup(s, c), `${numeroChamado(c.id)} · ${c.titulo} agora está "${status}"${just ? `: ${just}` : ''}`);
     };
     const achar = (s, id) => s.chamados.find((c) => c.id === id);
+    const direcionar = (s, ctx, c, paraId, motivo) => {
+      c.tecnicoId = paraId;
+      c.direcionadoEm = ctx.agora;
+      c.direcionadoPor = ctx.eu;
+      c.motivoDirecionamento = motivo;
+    };
+    const verPorMim = (s, ctx, id) => {
+      s.ciencia ||= {};
+      (s.ciencia[ctx.eu] ||= {})[id] = ctx.agora;
+    };
     const proxSeqLocal = (s, local, tipo) => {
       s.seqLocal[local] ||= {};
       const usados = s.itens.filter((i) => i.local.kind === local && i.tipo === tipo).map((i) => i.local.seq);
@@ -134,11 +175,13 @@ export function StoreProvider({ children }) {
       login(userId) {
         const s = { userId, expira: Date.now() + SESSAO_HORAS * 3600_000 };
         localStorage.setItem(SESS, JSON.stringify(s));
+        try { sessionStorage.setItem(SESS, JSON.stringify(s)); } catch { /* ignora */ }
         setSessao(s);
         mutate((n, ctx) => { n.auditoria.unshift({ id: uid('a'), at: ctx.agora, user: userId, acao: 'Login', alvo: 'sessão', detalhe: '' }); });
       },
       logout() {
         localStorage.removeItem(SESS);
+        try { sessionStorage.removeItem(SESS); } catch { /* ignora */ }
         setSessao(null);
       },
       resetDemo() {
@@ -180,13 +223,24 @@ export function StoreProvider({ children }) {
             descricao: (p.descricao || '').trim(), triagem: p.triagem || [], alerta,
             outros: sitsUsadas.some((x) => x.outros), outrosRevisado: false, anexos: p.anexos || [], operadorParado: parado,
             solucao: null, reaberturas: 0,
-            hist: [{ status: 'Em Análise', at: ctx.agora, just: p.layoutId ? 'Chamado registrado pelo mapa.' : `Chamado registrado pelo formulário (destino: ${p.depto || princ.cat.equipe}).`, user: ctx.eu }]
+            hist: [{ status: 'Em Análise', at: ctx.agora, just: p.layoutId ? 'Chamado registrado pelo mapa.' : `Chamado registrado pelo formulário (destino: ${p.depto || princ.cat.equipe}).`, user: ctx.eu }],
+            direcionadoEm: ctx.agora, direcionadoPor: ctx.eu, motivoDirecionamento: 'fila'
           };
           s.chamados.push(c);
           const onde = c.layoutId ? baiaCodigo(s, c.layoutId, c.pos) : c.local || 'sem baia';
           ctx.audit('Chamado aberto', numeroChamado(id), `${c.titulo} · ${onde}`);
           ctx.notificar(c.depto === 'Facilities' ? 'Facilities' : 'TI', `Novo chamado ${numeroChamado(id)} · ${onde} · ${c.titulo}${prioritario ? ' · PRIORITÁRIO' : ''}${alerta ? ' · ⚠ alerta de triagem' : ''}`);
           if (c.layoutId) ctx.notificar(grupoSup(s, c), `Chamado ${numeroChamado(id)} aberto para ${onde}.`);
+          // Controle de WhatsApps: chamado "WhatsApp banido" já marca o número como banido no mapa.
+          if (princ.whatsapp === 'BANIDO' && c.layoutId && s.whatsapp && s.modulos.whatsapp) {
+            const L = layoutById(s, c.layoutId);
+            const d = new Date(ctx.agora);
+            const w = L && whatsappDaBaia(s.whatsapp, L.base, c.pos, d);
+            if (w && w.acoes.includes('BANIDO')) {
+              s.whatsapp = gravarAlteracao(s.whatsapp, aplicarAcao(s.whatsapp, w.alvo, 'BANIDO', d), d);
+              c.hist.push({ status: c.status, at: ctx.agora, just: `WhatsApp ${w.codigo} marcado como banido no Controle de WhatsApps.`, user: ctx.eu });
+            }
+          }
           return id;
         });
       },
@@ -203,7 +257,8 @@ export function StoreProvider({ children }) {
       iniciarExecucao(id) {
         mutate((s, ctx) => {
           const c = achar(s, id);
-          c.tecnicoId = c.tecnicoId || ctx.eu;
+          if (!c.tecnicoId) direcionar(s, ctx, c, ctx.eu, 'encaminhado');
+          verPorMim(s, ctx, c.id);
           mudar(s, ctx, c, 'Em Execução', 'Atendimento iniciado.');
         });
       },
@@ -217,10 +272,27 @@ export function StoreProvider({ children }) {
           ctx.audit(prioritario ? 'Marcado como prioritário' : 'Prioridade retirada', numeroChamado(id), nomeUser(s, ctx.eu));
         });
       },
+      // Encaminhar o chamado para um técnico específico: ele é avisado ao entrar no site.
+      encaminhar(id, paraId) {
+        mutate((s, ctx) => {
+          const c = achar(s, id);
+          direcionar(s, ctx, c, paraId, 'encaminhado');
+          if (paraId === ctx.eu) verPorMim(s, ctx, id);
+          const nome = nomeUser(s, paraId);
+          c.hist.push({ status: c.status, at: ctx.agora, just: `Encaminhado para ${nome}.`, user: ctx.eu });
+          ctx.audit('Chamado encaminhado', numeroChamado(id), nome);
+          ctx.notificar('TI', `${numeroChamado(id)} · ${c.titulo} foi encaminhado para ${nome}.`);
+        });
+      },
+      // Marca como visto pela pessoa logada (some do aviso "para você").
+      marcarVistos(ids) {
+        mutate((s, ctx) => { ids.forEach((id) => verPorMim(s, ctx, id)); });
+      },
       assumir(id) {
         mutate((s, ctx) => {
           const c = achar(s, id);
-          c.tecnicoId = ctx.eu;
+          direcionar(s, ctx, c, ctx.eu, 'encaminhado');
+          verPorMim(s, ctx, c.id);
           ctx.audit('Chamado assumido', numeroChamado(id), nomeUser(s, ctx.eu));
         });
       },
@@ -269,6 +341,7 @@ export function StoreProvider({ children }) {
             c.reaberturas = (c.reaberturas || 0) + 1;
           }
           mudar(s, ctx, c, 'Em Execução', `Reaberto: ${just}`);
+          if (c.tecnicoId) { c.direcionadoEm = ctx.agora; c.direcionadoPor = ctx.eu; c.motivoDirecionamento = 'voltou'; }
           if (c.tecnicoId) ctx.notificar('TI', `${numeroChamado(id)} voltou para ${nomeUser(s, c.tecnicoId)}: ${just}`);
         });
       },
@@ -416,6 +489,85 @@ export function StoreProvider({ children }) {
           if (n && s.modulos.termo) s.termos[key] = { ocupante: n, geradoEm: ctx.agora, assinadoEm: null, versao: (s.termos[key]?.versao || 0) + 1 };
           if (!n) delete s.termos[key];
           ctx.audit('Ocupação alterada', baiaCodigo(s, layoutId, pos), `${atual?.nome || 'vazia'} → ${n || 'vazia'}`);
+          // O Controle de WhatsApps acompanha quem senta na baia (o BenCalls é quem sabe).
+          const L = layoutById(s, layoutId);
+          if (L && s.whatsapp) s.whatsapp = trocarOperador(s.whatsapp, L.base, pos, n, new Date(ctx.agora));
+        });
+      },
+      // ---------- Controle de WhatsApps (regras do BenHermes; cada mudança entra no histórico dele)
+      /** Botão do ciclo do banimento (Caiu, Pedi análise, Liberado, Perdido, Troquei o chip, Voltou). */
+      whatsappAcao(alvo, acao, extra) {
+        return mutate((s, ctx) => {
+          const d = new Date(ctx.agora);
+          const antes = s.whatsapp;
+          const depois = aplicarAcao(antes, alvo, acao, d, extra);
+          if (depois === antes) return false;
+          s.whatsapp = gravarAlteracao(antes, depois, d);
+          const ev = s.whatsapp.historico.at(-1);
+          const onde = ev?.codigo || ev?.vaga || 'WhatsApp';
+          const quem = ev?.operador ? ` (${ev.operador})` : '';
+          ctx.audit(`WhatsApp: ${ACAO[acao].rotulo}`, onde, `${ev?.celular ? `${ev.celular} · ` : ''}${s.whatsapp.manutencaoAtual ? 'na manutenção' : 'pelo painel'}`);
+          // Avisa a supervisão da equipe quando um número cai ou é perdido.
+          if (alvo.tipo === 'lugar' && ['BANIDO', 'PERDIDO'].includes(acao)) {
+            const mesa = s.whatsapp.salas.flatMap((x) => x.mesas).find((m) => m.id === alvo.mesaId);
+            const L = mesa && s.layouts.find((l) => l.base.toUpperCase() === mesa.sigla.toUpperCase());
+            if (L) ctx.notificar(`Supervisão ${L.sala} · ${L.nome}`, acao === 'BANIDO' ? `WhatsApp ${onde}${quem} caiu. A análise será pedida na manutenção.` : `WhatsApp ${onde}${quem} foi perdido: o chip será trocado.`);
+          }
+          // Anota nos chamados de WhatsApp abertos daquela baia.
+          if (alvo.tipo === 'lugar') {
+            const mesa = s.whatsapp.salas.flatMap((x) => x.mesas).find((m) => m.id === alvo.mesaId);
+            const L = mesa && s.layouts.find((l) => l.base.toUpperCase() === mesa.sigla.toUpperCase());
+            if (L) {
+              for (const c of s.chamados) {
+                if (c.layoutId === L.id && c.pos === alvo.posicao && c.subId === 'b12' && ABERTOS.includes(c.status)) {
+                  c.hist.push({ status: c.status, at: ctx.agora, just: `Controle de WhatsApps: ${ACAO[acao].rotulo.toLowerCase()}${extra?.numeroNovo ? ` (número novo ${extra.numeroNovo})` : ''}.`, user: ctx.eu });
+                }
+              }
+            }
+          }
+          return true;
+        });
+      },
+      /**
+       * Qualquer outra mudança no mapa (manutenção, celulares, importação), sempre por uma função do
+       * BenHermes: mudar(mapa, agora) devolve o mapa novo (ou { mapa, ... }).
+       */
+      whatsappMudar(mudar, auditoria) {
+        return mutate((s, ctx) => {
+          const d = new Date(ctx.agora);
+          const antes = s.whatsapp;
+          const r = mudar(antes, d);
+          const depois = r && r.salas ? r : r.mapa;
+          s.whatsapp = gravarAlteracao(antes, depois, d);
+          if (auditoria) ctx.audit(auditoria.acao, auditoria.alvo || 'Controle de WhatsApps', auditoria.detalhe || '');
+          return r;
+        });
+      },
+      /**
+       * Eventos que chegaram do BenHermes pela API de integração (ou do simulador): atualiza o
+       * Controle de WhatsApps e conclui os chamados de WhatsApp quando o número volta a ficar OK.
+       */
+      aplicarEventosBenHermes(eventos, cursor) {
+        return mutate((s, ctx) => {
+          const sitsWhatsapp = new Set(Object.values(indiceCatalogo(s).sits).filter((x) => x.whatsapp).map((x) => x.id));
+          const efeitos = aplicarEventos(s, eventos, sitsWhatsapp, ctx.agora);
+          if (cursor) s.integracao.benhermes.cursor = Math.max(s.integracao.benhermes.cursor || 0, cursor);
+          for (const e of efeitos) {
+            if (e.tipo === 'chamado-concluido') {
+              ctx.audit('Chamado concluído pelo BenHermes', numeroChamado(e.chamadoId), e.texto);
+              ctx.notificar(e.grupo, `${numeroChamado(e.chamadoId)} concluído: ${e.texto}`);
+            } else if (e.tipo === 'whatsapp') ctx.notificar(e.grupo, e.texto);
+            else ctx.notificar('TI', e.texto);
+          }
+          if (eventos.length) ctx.audit('Integração BenHermes', `${eventos.length} evento(s)`, efeitos.length ? `${efeitos.length} efeito(s)` : 'sem efeito');
+          return efeitos;
+        });
+      },
+      /** Troca o mapa inteiro (importar o .json do BenHermes). O histórico vem junto com o arquivo. */
+      whatsappSubstituir(mapa, origem) {
+        mutate((s, ctx) => {
+          s.whatsapp = mapa;
+          ctx.audit('WhatsApp: mapa importado', 'Controle de WhatsApps', `${origem} · ${mapa.salas.reduce((n, x) => n + x.mesas.length, 0)} mesas · ${mapa.celulares.length} celulares`);
         });
       },
       // RF19: aceite digital do termo.
@@ -514,8 +666,12 @@ export function StoreProvider({ children }) {
     return () => clearInterval(t);
   }, []);
 
-  const value = useMemo(() => ({ st, user, actions, toast, toasts, fecharToast, agora, abertos: st.chamados.filter((c) => ABERTOS.includes(c.status)) }),
-    [st, user, actions, toast, toasts, fecharToast, agora]);
+  // O que chegou para a pessoa logada resolver e ela ainda não viu (aviso ao entrar, sino, "novo" nos cartões).
+  const paraMim = useMemo(() => (user ? paraVoce(st.chamados, { ...user, acessos: acessosDe(user) }, st.ciencia?.[user.id] || {}) : []),
+    [st.chamados, st.ciencia, user]);
+  const paraMimIds = useMemo(() => new Set(paraMim.map((x) => x.chamado.id)), [paraMim]);
+  const value = useMemo(() => ({ st, user, actions, toast, toasts, fecharToast, agora, paraMim, paraMimIds, abertos: st.chamados.filter((c) => ABERTOS.includes(c.status)) }),
+    [st, user, actions, toast, toasts, fecharToast, agora, paraMim, paraMimIds]);
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }
 

@@ -3,23 +3,36 @@ import { baiaCodigo, statusBaia, chamadosDaBaia } from '../store/selectors.js';
 import { linhasDaMesa, posKey, PAPEIS, montarCodigo } from '../lib/labels.ts';
 import { numeroChamado } from '../lib/format.ts';
 import { ST_BAIA } from './BaiaDetail.jsx';
+import { whatsappDaBaia, tomDaSituacao, TEXTO_SITUACAO } from '../lib/whatsapp-baias.ts';
+import { tempoDoEstado } from './WhatsappUi.jsx';
 
-export function Legenda() {
+// Camada WhatsApp: cor da baia pela situação do número (regras do BenHermes).
+const CLASSE_WPP = { ok: 'ok', aviso: 'aberto', ruim: 'wpp-ruim', escuro: 'perdido', cinza: 'vazia' };
+export const ST_WPP = {
+  ok: { label: 'OK', dot: 'rgb(var(--ok-ponto))' },
+  aviso: { label: 'Em análise / restringido', dot: 'rgb(var(--aviso-ponto))' },
+  ruim: { label: 'Banido ou precisa de ação', dot: 'rgb(var(--ruim-ponto))' },
+  escuro: { label: 'Perdido', dot: 'rgb(var(--tinta))' },
+  cinza: { label: 'Não tem', dot: 'rgb(var(--cinza-ponto))' }
+};
+
+export function Legenda({ camada }) {
   return (
     <div className="legend" aria-label="Legenda do mapa">
-      {Object.entries(ST_BAIA).map(([k, v]) => <span key={k}><span className="dot" style={{ background: v.dot }} />{v.label}</span>)}
+      {Object.entries(camada === 'whatsapp' ? ST_WPP : ST_BAIA).map(([k, v]) => <span key={k}><span className="dot" style={{ background: v.dot }} />{v.label}</span>)}
     </div>
   );
 }
 
 /** Desenho da mesa no mesmo layout físico (RF29), com cores por situação (RF30). */
-export default function DeskMap({ layout: L, sel, onPick, compact, mostrarChamado }) {
-  const { st } = useStore();
+export default function DeskMap({ layout: L, sel, onPick, compact, mostrarChamado, camada }) {
+  const { st, agora } = useStore();
   const seat = (pos, center) => {
     const k = posKey(pos);
     const off = !pos.papel && L.desativadas?.[k];
     if (off) return <div className={`seat st-off${compact ? ' compact' : ''}`} key={k}>Desativada</div>;
     const code = baiaCodigo(st, L.id, k);
+    if (camada === 'whatsapp') return seatWhatsapp(pos, k, code, center);
     const status = statusBaia(st, L.id, k);
     const oc = st.ocupacao[`${L.id}:${k}`]?.nome;
     const ab = mostrarChamado ? chamadosDaBaia(st, L.id, k, { abertos: true }) : [];
@@ -32,6 +45,23 @@ export default function DeskMap({ layout: L, sel, onPick, compact, mostrarChamad
         {!compact && <span className="s-occ">{oc ? `${label ? `${label} · ` : ''}${oc}` : 'Sem ocupante'}</span>}
         {!compact && <span className="s-st">{ab.length ? ab.map((c) => numeroChamado(c.id)).join(' · ') : ST_BAIA[status].label}</span>}
         {compact && ab.length > 0 && <span className="text-[11px] text-tinta-2">{ab.length} chamado{ab.length > 1 ? 's' : ''}</span>}
+      </button>
+    );
+  };
+  const seatWhatsapp = (pos, k, code, center) => {
+    const d = new Date(agora);
+    const w = whatsappDaBaia(st.whatsapp, L.base, k, d);
+    const tom = w ? tomDaSituacao(w.estado, d) : null;
+    const oc = st.ocupacao[`${L.id}:${k}`]?.nome;
+    const label = pos.papel ? PAPEIS[pos.papel] : null;
+    const txt = w ? `${TEXTO_SITUACAO[w.estado.situacao]}${tempoDoEstado(w.estado, d) ? ` · ${tempoDoEstado(w.estado, d)}` : ''}` : 'Sem WhatsApp';
+    return (
+      <button key={k} type="button" className={`seat st-${tom ? CLASSE_WPP[tom] : 'vazia'}${center ? ' center' : ''}${sel === k ? ' sel' : ''}${compact ? ' compact' : ''}`}
+        onClick={() => onPick?.(k)} aria-pressed={sel === k} aria-label={`Baia ${code}, ${oc || 'sem ocupante'}, WhatsApp: ${txt}`}>
+        <span className="s-code">{compact ? code.replace(`${L.base}-`, '') : code}{tom && <span className="dot" style={{ background: ST_WPP[tom].dot }} />}</span>
+        {!compact && <span className="s-occ">{oc ? `${label ? `${label} · ` : ''}${oc}` : 'Sem ocupante'}</span>}
+        <span className={compact ? 'text-[11px] text-tinta-2 truncate' : 's-st'}>{compact && w ? TEXTO_SITUACAO[w.estado.situacao] : txt}</span>
+        {!compact && w?.ligada && <span className="truncate text-[10px] opacity-75">📱 {w.ligada.celular.cor} · {w.ligada.vaga.rotulo}</span>}
       </button>
     );
   };

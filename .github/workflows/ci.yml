@@ -37,9 +37,17 @@ jobs:
         run: docker build --build-arg VERSAO=${GITHUB_SHA::7} -t bencalls:ci .
       - name: Sobe e confere o healthcheck e o endurecimento
         run: |
+          # Primeiro sem liberar a rede do Docker: o acesso de fora da lista tem que dar 403.
+          docker run -d --name restrito --read-only --cap-drop ALL --security-opt no-new-privileges:true \
+            --tmpfs /run/bencalls:uid=1000,gid=1000,mode=0700 --tmpfs /tmp:uid=1000,gid=1000,mode=0700 \
+            -p 127.0.0.1:8081:8080 bencalls:ci
+          for i in $(seq 1 30); do curl -s -o /dev/null http://127.0.0.1:8081/ && break; sleep 1; done
+          test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8081/)" = "403"
+          docker rm -f restrito
+          # O acesso pela porta publicada chega com o IP interno do Docker (172.16.0.0/12): libera só ele.
           docker run -d --name bencalls --read-only --cap-drop ALL --security-opt no-new-privileges:true \
             --tmpfs /run/bencalls:uid=1000,gid=1000,mode=0700 --tmpfs /tmp:uid=1000,gid=1000,mode=0700 \
-            -p 127.0.0.1:8080:8080 bencalls:ci
+            -e IPS_LIBERADOS=172.16.0.0/12 -p 127.0.0.1:8080:8080 bencalls:ci
           for i in $(seq 1 30); do
             [ "$(docker inspect --format '{{.State.Health.Status}}' bencalls)" = healthy ] && break; sleep 2
           done
@@ -48,7 +56,8 @@ jobs:
           curl -fsSI http://127.0.0.1:8080/ | grep -qi "content-security-policy"
           test "$(docker exec bencalls id -u)" = "1000"
       - name: Varredura de vulnerabilidades (Trivy)
-        uses: aquasecurity/trivy-action@0.28.0
+        # Fixado pelo commit (v0.36.0): as tags antigas sem "v" deixaram de existir.
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25
         with:
           image-ref: bencalls:ci
           severity: CRITICAL,HIGH

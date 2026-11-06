@@ -277,7 +277,7 @@
     background: radial-gradient(500px 220px at var(--mx, 50%) var(--my, 0%), rgb(var(--marca) / 0.07), transparent 70%);
   }
   .grid-kpi {
-    @apply grid grid-cols-[repeat(auto-fit,minmax(180px,1fr))] gap-3;
+    @apply grid grid-cols-[repeat(auto-fit,minmax(160px,1fr))] gap-3;
   }
   .grid-kpi > .kpi {
     @apply animate-surgir;
@@ -571,8 +571,9 @@
   .sidebar.recolhido .nav-sec {
     @apply min-[901px]:mx-3 min-[901px]:my-2 min-[901px]:h-px min-[901px]:bg-linha min-[901px]:p-0 min-[901px]:text-[0px];
   }
+  /* Nome do item quebra em até duas linhas em vez de cortar ("Controle de WhatsApps"). */
   .nav-txt {
-    @apply truncate;
+    @apply min-w-0 flex-1 py-1.5 text-left leading-tight line-clamp-2;
   }
   .scrim {
     @apply hidden;
@@ -818,6 +819,16 @@
   }
   .seat.st-vazia {
     @apply border-dashed border-linha bg-cinza-fundo;
+  }
+  /* Camada WhatsApp: banido é vermelho sem pulsar; perdido é escuro. */
+  .seat.st-wpp-ruim {
+    @apply border-ruim-borda bg-ruim-fundo;
+  }
+  .seat.st-perdido {
+    @apply border-tinta bg-tinta text-superficie;
+  }
+  .seat.st-perdido * {
+    @apply text-superficie;
   }
   .seat.st-off {
     @apply cursor-default items-center justify-center border-dashed border-linha-forte bg-transparent text-xs text-mudo hover:transform-none hover:shadow-none;
@@ -1228,6 +1239,7 @@
 @keyframes en-esmaecer { from { opacity: 0; } to { opacity: 1; } }
 @keyframes en-sair { to { opacity: 0; visibility: hidden; } }
 @keyframes en-buraco { from { --en-buraco: 0px; } to { --en-buraco: 1600px; } }
+@keyframes sino { 0%, 100% { transform: rotate(0); } 15% { transform: rotate(14deg); } 30% { transform: rotate(-12deg); } 45% { transform: rotate(8deg); } 60% { transform: rotate(-4deg); } }
 
 #painel-baia {
   scroll-margin-top: calc(var(--topo-h) + 12px);

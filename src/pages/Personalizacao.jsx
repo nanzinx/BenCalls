@@ -16,6 +16,7 @@ const MODULOS = [
   ['termo', 'Termo de responsabilidade', 'Termo digital dos itens da baia para aceite do operador.'],
   ['dossie', 'Dossiê para o RH', 'Laudo “mau uso” gera dossiê com chamado, fotos, ocupante e termo.'],
   ['benhub', 'Integração BenHub', 'Avisos nos grupos do BenHub. Desligado, o mesmo motor envia por e-mail.'],
+  ['whatsapp', 'Controle de WhatsApps (BenHermes)', 'Situação do WhatsApp de cada baia, celulares, manutenção e o texto do grupo, com as mesmas regras do BenHermes.'],
   ['argus', 'Integração Argus', 'Ocupação das baias pelo login na Argus (fase futura).']
 ];
 

@@ -34,8 +34,19 @@ services:
       # Atrás do túnel, o IP real do usuário vem no CF-Connecting-IP (usado no limite por IP).
       TRUST_CLOUDFLARE: "1"
       LIMITE_POR_MINUTO: ${LIMITE_POR_MINUTO:-600}
+      # Só entram os IPs de server/ips-liberados.txt e os somados aqui (docs/DEPLOY.md, seção 5).
+      IPS_LIBERADOS: ${IPS_LIBERADOS:-}
+      RESTRINGIR_IPS: ${RESTRINGIR_IPS:-1}
       # Endereço da BenApi, liberado no connect-src do CSP quando o front for ligado nela.
       API_URL: ${API_URL:-}
+      # API de integração com o BenHermes (docs/API-INTEGRACAO.md): o segredo vem de um arquivo
+      # fora do Git. Sem o arquivo, a integração fica desligada e o resto funciona igual.
+      BENHERMES_SEGREDO_ARQUIVO: /run/secrets/benhermes_segredo
+    secrets:
+      - benhermes_segredo
+    # Única pasta gravável (além do tmpfs): os eventos recebidos do BenHermes.
+    volumes:
+      - dados:/dados
     tmpfs:
       - /run/bencalls:uid=1000,gid=1000,mode=0700,size=32m
       - /tmp:uid=1000,gid=1000,mode=0700,size=32m
@@ -66,3 +77,13 @@ services:
     depends_on:
       bencalls:
         condition: service_healthy
+
+volumes:
+  dados:
+
+secrets:
+  benhermes_segredo:
+    # Crie com: openssl rand -hex 32 > deploy/benhermes_segredo.txt   (o mesmo valor vai no BenHermes)
+    # e deixe legível só para o usuário do container (uid 1000):
+    #   sudo chown 1000:1000 deploy/benhermes_segredo.txt && sudo chmod 400 deploy/benhermes_segredo.txt
+    file: ./deploy/benhermes_segredo.txt

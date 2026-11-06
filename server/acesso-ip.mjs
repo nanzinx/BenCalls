@@ -1,16 +1,18 @@
-// Bloqueio de IPs (IPv4 e IPv6, com ou sem faixa CIDR). Sem dependências.
+// Acesso por IP: só entram os IPs e faixas liberados (IPv4 e IPv6, com ou sem CIDR), como no
+// BenHermes (ALLOWED_IPS). Todo o resto recebe 403. Sem dependências.
 //
 // Usado pelo servidor de produção (servidor.mjs, no pm2/Docker) e pelo Vite em `npm run dev`
 // e `npm run preview` (vite.config.js), para o comportamento ser o mesmo em todo lugar.
 //
-// As regras ficam em server/ips-bloqueados.txt (uma por linha, # para comentário) e podem
-// ser somadas pela variável IPS_BLOQUEADOS (separadas por vírgula).
+// As regras ficam em server/ips-liberados.txt (uma por linha, # para comentário) e podem ser
+// somadas pela variável IPS_LIBERADOS (separadas por vírgula). RESTRINGIR_IPS=0 desliga a
+// restrição (só para testes locais: não use em produção).
 import { readFileSync, existsSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const AQUI = dirname(fileURLToPath(import.meta.url));
-export const ARQUIVO_PADRAO = join(AQUI, 'ips-bloqueados.txt');
+export const ARQUIVO_PADRAO = join(AQUI, 'ips-liberados.txt');
 
 function ipv4(s) {
   const p = s.split('.');
@@ -74,8 +76,12 @@ export function lerRegra(texto) {
   return { texto: original, v: ip.v, bits, mascara, rede: ip.n & mascara };
 }
 
-/** Lista de textos -> função que diz qual regra bloqueia o IP (ou null). */
-export function criarFiltro(textos) {
+/**
+ * Lista de regras liberadas -> filtro. `liberado(ip)` devolve a regra que deixa entrar (ou null);
+ * `bloqueado(ip)` é o contrário. Lista vazia com a restrição ligada não deixa ninguém entrar
+ * (falha fechada): melhor um aviso claro do que o site aberto por engano.
+ */
+export function criarFiltro(textos, { restringir = true } = {}) {
   const regras = [];
   const invalidas = [];
   for (const t of textos) {
@@ -83,23 +89,31 @@ export function criarFiltro(textos) {
     if (r) regras.push(r);
     else invalidas.push(t);
   }
-  const bloqueado = (ip) => {
+  const liberado = (ip) => {
     const x = lerIp(ip);
     if (!x) return null;
     return regras.find((r) => r.v === x.v && (x.n & r.mascara) === r.rede) || null;
   };
-  return { bloqueado, regras, invalidas };
+  const bloqueado = (ip) => restringir && !liberado(ip);
+  return { liberado, bloqueado, regras, invalidas, restringir };
 }
 
-/** Lê o arquivo de regras + a variável IPS_BLOQUEADOS. */
-export function carregarRegras(arquivo = ARQUIVO_PADRAO, extra = process.env.IPS_BLOQUEADOS || '') {
+/** Lê o arquivo de regras + a variável IPS_LIBERADOS. */
+export function carregarRegras(arquivo = ARQUIVO_PADRAO, extra = process.env.IPS_LIBERADOS || '', restringir = process.env.RESTRINGIR_IPS !== '0') {
   const linhas = existsSync(arquivo) ? readFileSync(arquivo, 'utf8').split(/\r?\n/) : [];
   const doArquivo = linhas.map((l) => l.replace(/#.*/, '').trim()).filter(Boolean);
   const daVariavel = extra.split(',').map((x) => x.trim()).filter(Boolean);
-  return criarFiltro([...doArquivo, ...daVariavel]);
+  return criarFiltro([...doArquivo, ...daVariavel], { restringir });
 }
 
-/** Middleware (connect/Vite) que responde 403 para IPs bloqueados. */
+/** Uma linha para o log de subida: quantas regras e se a restrição está ligada. */
+export function resumoDoFiltro(filtro) {
+  if (!filtro.restringir) return 'restrição de IP DESLIGADA (RESTRINGIR_IPS=0)';
+  if (!filtro.regras.length) return 'nenhum IP liberado: ninguém consegue entrar (confira server/ips-liberados.txt)';
+  return `${filtro.regras.length} IPs/faixas liberados`;
+}
+
+/** Middleware (connect/Vite) que responde 403 para IPs fora da lista de liberados. */
 export function middlewareBloqueio(filtro = carregarRegras(), { confiarCloudflare = false } = {}) {
   return (req, res, next) => {
     const cf = confiarCloudflare ? req.headers['cf-connecting-ip'] : null;
@@ -107,7 +121,7 @@ export function middlewareBloqueio(filtro = carregarRegras(), { confiarCloudflar
     if (filtro.bloqueado(ip)) {
       res.statusCode = 403;
       res.setHeader('Content-Type', 'text/plain; charset=utf-8');
-      res.end('Acesso bloqueado.');
+      res.end('Acesso não liberado para este endereço.');
       return;
     }
     next();

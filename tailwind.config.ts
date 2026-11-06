@@ -16,7 +16,7 @@ export default {
   safelist: [
     ...['marca', 'ok', 'aviso', 'ruim', 'info'].map((t) => `k-${t}`),
     ...['warn', 'bad', 'ok', 'info', 'gray'].map((t) => `note-${t}`),
-    ...['ok', 'aberto', 'parado', 'vazia', 'off'].map((t) => `st-${t}`),
+    ...['ok', 'aberto', 'parado', 'vazia', 'off', 'wpp-ruim', 'perdido'].map((t) => `st-${t}`),
     ...['ok', 'alerta', 'neutro'].map((t) => `en-${t}`),
     'marca-normal', 'marca-entrada', 'bad', 'info'
   ],

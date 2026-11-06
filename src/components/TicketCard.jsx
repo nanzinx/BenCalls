@@ -6,7 +6,8 @@ import { numeroChamado, idade } from '../lib/format.ts';
 import { StatusBadge, PrioBadge } from './ui.jsx';
 
 export default function TicketCard({ c, onClick, sel, modo = 'lista' }) {
-  const { st, user, agora } = useStore();
+  const { st, user, agora, paraMimIds } = useStore();
+  const novo = paraMimIds.has(c.id);
   const baia = c.layoutId ? baiaCodigo(st, c.layoutId, c.pos) : c.local || 'Sem baia';
   const quem = c.layoutId ? c.ocupante : nomeUser(st, c.remetenteId);
   const precisaConfirmar = c.status === 'Aguardando Consenso' && c.remetenteId === user.id;
@@ -24,7 +25,7 @@ export default function TicketCard({ c, onClick, sel, modo = 'lista' }) {
     <button
       type="button"
       onClick={onClick}
-      aria-label={`Abrir chamado ${numeroChamado(c.id)}: ${c.titulo}, ${c.status}${c.prioritario ? ', prioritário' : ''}`}
+      aria-label={`Abrir chamado ${numeroChamado(c.id)}: ${c.titulo}, ${c.status}${c.prioritario ? ', prioritário' : ''}${novo ? ', novo para você' : ''}`}
       className={clsx(
         'ticket group relative overflow-hidden',
         // Faixa vermelha à esquerda só nos prioritários: dá para varrer a lista pela cor.
@@ -34,7 +35,10 @@ export default function TicketCard({ c, onClick, sel, modo = 'lista' }) {
       )}
     >
       <span className="flex min-w-0 flex-col gap-1">
-        <span className="t-title leading-snug">{c.titulo}</span>
+        <span className="t-title leading-snug">
+          {novo && <span className="mr-1.5 inline-flex translate-y-[-1px] items-center rounded-full bg-marca px-1.5 py-px align-middle text-[10px] font-bold uppercase tracking-wide text-sobre-marca">Novo</span>}
+          {c.titulo}
+        </span>
         <span className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-xs text-mudo">
           <span className="font-semibold">{numeroChamado(c.id)}</span>
           <span aria-hidden="true">·</span>

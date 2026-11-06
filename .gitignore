@@ -5,3 +5,5 @@ dist
 .env
 .env.*
 !.env.example
+# Segredo da API de integração com o BenHermes
+deploy/benhermes_segredo.txt

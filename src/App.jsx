@@ -22,6 +22,7 @@ const Catalogo = lazy(() => import('./pages/Catalogo.jsx'));
 const Espacos = lazy(() => import('./pages/Espacos.jsx'));
 const Personalizacao = lazy(() => import('./pages/Personalizacao.jsx'));
 const Auditoria = lazy(() => import('./pages/Auditoria.jsx'));
+const WhatsappBaias = lazy(() => import('./pages/WhatsappBaias.jsx'));
 
 function Protegida({ acesso, modulo, children }) {
   const { user, st } = useStore();
@@ -50,6 +51,7 @@ function Rotas() {
         {r('/novo', NovoChamado, 'RC')}
         {r('/painel', Painel, 'PC')}
         {r('/mapa', MapaGeral, 'MAPA')}
+        {r('/whatsapp', WhatsappBaias, 'WPP', 'whatsapp')}
         {r('/estoque', Estoque, 'EST')}
         {r('/revisao', Revisao, 'REV')}
         {r('/termos', Termos, 'TERMO', 'termo')}

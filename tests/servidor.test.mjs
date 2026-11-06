@@ -4,7 +4,7 @@ import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { carregar, criarServidor, resolverRota, permitir } from '../server/servidor.mjs';
-import { criarFiltro } from '../server/bloqueio.mjs';
+import { criarFiltro } from '../server/acesso-ip.mjs';
 
 let dir, srv, base;
 before(async () => {
@@ -70,8 +70,8 @@ test('limite de requisições por IP', () => {
   assert.equal(permitir('1.2.3.4', 61_000, 3), true);
 });
 
-test('IP bloqueado recebe 403, com os cabeçalhos de segurança', async () => {
-  const s2 = criarServidor(carregar(dir), criarFiltro(['127.0.0.1']));
+test('IP fora da lista de liberados recebe 403, com os cabeçalhos de segurança', async () => {
+  const s2 = criarServidor(carregar(dir), criarFiltro(['201.93.163.133']));
   await new Promise((r) => s2.listen(0, '127.0.0.1', r));
   const r = await fetch(`http://127.0.0.1:${s2.address().port}/`);
   assert.equal(r.status, 403);

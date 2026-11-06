@@ -5,6 +5,7 @@ import { useStore } from '../store/store.jsx';
 import { baiaCodigo, codigoItem, itensDaBaia, layoutById, nomeItem, statusBaia, tem, layoutsDoUsuario } from '../store/selectors.js';
 import { dataCurta, dataHora, numeroChamado, idade } from '../lib/format.ts';
 import { ItemBadge, StatusBadge } from './ui.jsx';
+import { SecaoWhatsappDaBaia } from './WhatsappUi.jsx';
 
 export const ST_BAIA = {
   ok: { label: 'OK', dot: 'rgb(var(--ok-ponto))' },
@@ -61,6 +62,8 @@ export default function BaiaDetail({ chave, onClose, abrir }) {
         {podeOcupacao && <button type="button" className="btn" onClick={() => { setEditando(true); setNome(''); }}><UserCog size={15} /> Trocar ocupante</button>}
         {st.modulos.termo && termo && tem(user, 'TERMO') && <button type="button" className="btn" onClick={() => nav(`/termos?baia=${encodeURIComponent(chave)}`)}><FileSignature size={15} /> Ver termo</button>}
       </div>
+
+      <SecaoWhatsappDaBaia layout={L} pos={pos} />
 
       {editando && (
         <div className="card card-flat flex flex-col gap-1.5 bg-superficie-2">

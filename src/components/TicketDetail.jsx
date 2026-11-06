@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import clsx from 'clsx';
 import { X, Paperclip, AlertTriangle, ListChecks, Wrench, UserCheck, Play, PauseCircle, Ban, ThumbsUp, ThumbsDown, RotateCcw, MessageSquarePlus, ArrowRightLeft, Sparkles, MapPin, ExternalLink, ChevronDown, Flame } from 'lucide-react';
 import { useStore } from '../store/store.jsx';
@@ -96,8 +96,12 @@ function SolucaoForm({ c, onDone, onCancel }) {
 }
 
 export default function TicketDetail({ id, onClose, abrir }) {
-  const { st, user, actions, toast, agora } = useStore();
+  const { st, user, actions, toast, agora, paraMimIds } = useStore();
   const c = st.chamados.find((x) => x.id === id);
+  // Abrir o chamado conta como "visto": sai do aviso "para você".
+  const naoVisto = paraMimIds.has(id);
+  useEffect(() => { if (naoVisto) actions.marcarVistos([id]); }, [id, naoVisto, actions]);
+  const tecnicos = useMemo(() => st.usuarios.filter((u) => u.ativo !== false && tem(u, 'ASC')), [st.usuarios]);
   const [form, setForm] = useState(null);
   const [txt, setTxt] = useState('');
   const [coment, setComent] = useState('');
@@ -201,7 +205,15 @@ export default function TicketDetail({ id, onClose, abrir }) {
               <Dado rotulo="Baia">{baia ? <button type="button" className="inline-flex items-center gap-1 font-semibold text-marca-txt hover:underline" onClick={() => abrir({ baia: `${c.layoutId}:${c.pos}` })}><MapPin size={13} /> {baia}</button> : (c.local || '—')}</Dado>
               <Dado rotulo="Ocupante">{c.ocupante}</Dado>
               <Dado rotulo="Aberto por">{nomeUser(st, c.remetenteId)} · {idade(c.criadoEm, agora)}</Dado>
-              <Dado rotulo="Técnico">{c.tecnicoId ? nomeUser(st, c.tecnicoId) : <span className="text-mudo">Ninguém ainda</span>}</Dado>
+              <Dado rotulo="Técnico">
+                {ti && !finalizado ? (
+                  <select className="select min-h-[34px] w-full py-1 text-sm" value={c.tecnicoId || ''} aria-label="Encaminhar para"
+                    onChange={(e) => { if (!e.target.value) return; actions.encaminhar(c.id, e.target.value); toast(e.target.value === user.id ? `Você assumiu ${numeroChamado(c.id)}.` : `Encaminhado para ${nomeUser(st, e.target.value)}. Vai aparecer para a pessoa assim que ela entrar.`); }}>
+                    {!c.tecnicoId && <option value="">Ninguém ainda · encaminhar para…</option>}
+                    {tecnicos.map((u) => <option key={u.id} value={u.id}>{u.id === user.id ? `${u.nome} (eu)` : u.nome}</option>)}
+                  </select>
+                ) : c.tecnicoId ? nomeUser(st, c.tecnicoId) : <span className="text-mudo">Ninguém ainda</span>}
+              </Dado>
             </dl>
 
             {c.descricao && <p className="whitespace-pre-line rounded-xl bg-superficie-2 px-3.5 py-3 leading-relaxed">{c.descricao}</p>}

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useOutletContext, useSearchParams } from 'react-router-dom';
 import { Map as MapIcon, FileText, Check, ArrowLeft, ArrowRight, PartyPopper, MessageSquare, AlertTriangle, Info, CircleSlash } from 'lucide-react';
 import { useStore } from '../store/store.jsx';
+import { whatsappDaBaia, TEXTO_SITUACAO } from '../lib/whatsapp-baias.ts';
 import { baiaCodigo, codigoItem, itensDaBaia, layoutsDoUsuario, subDoItem, indiceCatalogo, nomeItem, chamadosDaBaia, layoutById } from '../store/selectors.js';
 import { alertaTriagem, detectarIncidentes, ehPrioritario } from '../lib/rules.ts';
 import { numeroChamado } from '../lib/format.ts';
@@ -105,7 +106,12 @@ function PorMapa() {
   const subBaia = subs.b9;
   const opcoes = [
     ...itens.map((it) => ({ key: it.id, it, sub: subDoItem(st, it.tipo), code: codigoItem(st, it), nome: nomeItem(it.tipo) })),
-    { key: 'BAIA', it: null, sub: subBaia, code: 'Sem etiqueta', nome: 'Problema na baia (sem item)' }
+    { key: 'BAIA', it: null, sub: subBaia, code: 'Sem etiqueta', nome: 'Problema na baia (sem item)', desc: 'cadeira, tomada, mobiliário', sigla: '—' },
+    // Controle de WhatsApps (BenHermes): "WhatsApp banido" já marca o número no mapa do WhatsApp.
+    ...(st.modulos.whatsapp && subs.b12 && sel && sel !== 'SUB' ? [{
+      key: 'WPP', it: null, sub: subs.b12, nome: 'WhatsApp da baia', desc: 'banido, chip perdido, celular', sigla: 'WA',
+      code: (() => { const w = whatsappDaBaia(st.whatsapp, L.base, sel, new Date(agora)); return w ? `WhatsApp: ${TEXTO_SITUACAO[w.estado.situacao]}` : 'Sem WhatsApp no mapa'; })()
+    }] : [])
   ];
   const opc = Object.fromEntries(opcoes.map((o) => [o.key, o]));
   const marcados = ordem.filter((k) => picks[k]?.sitId);
@@ -206,10 +212,10 @@ function PorMapa() {
                       <div key={o.key} className={`item-pick${on ? ' on' : ''}`}>
                         <button type="button" onClick={() => toggle(o.key)} aria-pressed={on} disabled={!o.sub}>
                           <span className={`box${on ? ' on' : ''}`}>{on && <Check size={14} />}</span>
-                          <span className="sigla">{o.it ? o.it.tipo : '—'}</span>
+                          <span className="sigla">{o.it ? o.it.tipo : o.sigla}</span>
                           <span className="flex flex-col min-w-0 flex-auto gap-0">
                             <b>{o.nome}</b>
-                            <span className="text-[11px] text-mudo">{o.code}{o.it ? ` · ${o.it.status}` : ' · cadeira, tomada, mobiliário'}{dup ? ` · chamado ${numeroChamado(dup.id)} aberto` : ''}</span>
+                            <span className="text-[11px] text-mudo">{o.code}{o.it ? ` · ${o.it.status}` : ` · ${o.desc}`}{dup ? ` · chamado ${numeroChamado(dup.id)} aberto` : ''}</span>
                           </span>
                         </button>
                         {on && (

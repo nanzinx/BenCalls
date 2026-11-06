@@ -51,6 +51,7 @@ ENV NODE_ENV=production \
     PORT=8080 \
     HOST=0.0.0.0 \
     DIST_DIR=/app/dist \
+    DADOS_DIR=/dados \
     BENCALLS_VERSAO=${VERSAO} \
     # Com o disco só leitura, o pm2 escreve só no tmpfs.
     PM2_HOME=/run/bencalls/pm2 \
@@ -59,11 +60,12 @@ ENV NODE_ENV=production \
 WORKDIR /app
 COPY --from=deps /deps/node_modules ./node_modules
 COPY --from=build /app/dist ./dist
-COPY server/servidor.mjs server/bloqueio.mjs server/ips-bloqueados.txt ./server/
+COPY server/servidor.mjs server/acesso-ip.mjs server/ips-liberados.txt ./server/
+COPY server/integracao/ ./server/integracao/
 COPY ecosystem.config.cjs ./
 RUN chmod -R a-w /app \
- && mkdir -p /run/bencalls \
- && chown node:node /run/bencalls
+ && mkdir -p /run/bencalls /dados \
+ && chown node:node /run/bencalls /dados
 USER node
 
 EXPOSE 8080

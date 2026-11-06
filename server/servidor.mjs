@@ -13,14 +13,18 @@
 //
 // Variáveis: PORT (8080), HOST (0.0.0.0), DIST_DIR (../dist), API_URL (origem extra liberada no
 // connect-src do CSP), TRUST_CLOUDFLARE=1 (usa CF-Connecting-IP como IP do cliente),
-// LIMITE_POR_MINUTO (600), LOG_ACESSO (1), IPS_BLOQUEADOS (soma regras às de ips-bloqueados.txt).
+// LIMITE_POR_MINUTO (600), LOG_ACESSO (1), IPS_LIBERADOS (soma IPs aos de ips-liberados.txt; só eles
+// entram), RESTRINGIR_IPS=0 (desliga a restrição, só para teste local),
+// BENHERMES_SEGREDO ou BENHERMES_SEGREDO_ARQUIVO (liga a API de integração com o BenHermes) e
+// DADOS_DIR (pasta gravável para os eventos recebidos; veja docs/API-INTEGRACAO.md).
 import http from 'node:http';
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join, relative, extname, resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createHash } from 'node:crypto';
 import { gzipSync, brotliCompressSync, constants as zc } from 'node:zlib';
-import { carregarRegras } from './bloqueio.mjs';
+import { carregarRegras, resumoDoFiltro } from './acesso-ip.mjs';
+import { criarIntegracao } from './integracao/rotas.mjs';
 
 const AQUI = dirname(fileURLToPath(import.meta.url));
 const PORT = Number(process.env.PORT || 8080);
@@ -158,7 +162,7 @@ export function resolverRota(mapa, url) {
   return null;
 }
 
-export function criarServidor(mapa = carregar(), filtro = carregarRegras()) {
+export function criarServidor(mapa = carregar(), filtro = carregarRegras(), integracao = criarIntegracao()) {
   const servidor = http.createServer((req, res) => {
     const t0 = process.hrtime.bigint();
     const ip = ipDe(req);
@@ -175,16 +179,22 @@ export function criarServidor(mapa = carregar(), filtro = carregarRegras()) {
       fim(status);
     };
 
-    // IPs e faixas bloqueados (server/ips-bloqueados.txt): nem chegam ao site.
-    if (filtro.bloqueado(ip)) return erro(403, 'Acesso bloqueado.');
+    // Só os IPs e faixas liberados (server/ips-liberados.txt) chegam ao site, como no BenHermes.
+    if (filtro.bloqueado(ip)) return erro(403, 'Acesso não liberado para este endereço.');
     if ((req.url || '').length > 2048) return erro(414, 'URL longa demais');
-    if (req.method !== 'GET' && req.method !== 'HEAD') {
-      res.setHeader('Allow', 'GET, HEAD');
-      return erro(405, 'Método não permitido');
-    }
     if (!permitir(ip)) {
       res.setHeader('Retry-After', '60');
       return erro(429, 'Muitas requisições. Tente de novo em um minuto.');
+    }
+    // API de integração com o BenHermes (a única rota que aceita POST, e só com assinatura).
+    const api = integracao.atender(req, res);
+    if (api) {
+      api.then(fim, (e) => { console.error('Integração BenHermes:', e); if (!res.headersSent) erro(500, 'Erro interno'); else fim(500); });
+      return;
+    }
+    if (req.method !== 'GET' && req.method !== 'HEAD') {
+      res.setHeader('Allow', 'GET, HEAD');
+      return erro(405, 'Método não permitido');
     }
     if (req.url === '/healthz') {
       res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' });
@@ -232,10 +242,12 @@ const ehPrincipal = !!alvo && resolve(alvo) === fileURLToPath(import.meta.url);
 if (ehPrincipal) {
   const mapa = carregar();
   const filtro = carregarRegras();
-  if (filtro.invalidas.length) console.warn(`Regras de bloqueio ignoradas (formato inválido): ${filtro.invalidas.join(', ')}`);
-  const servidor = criarServidor(mapa, filtro);
+  if (filtro.invalidas.length) console.warn(`IPs liberados ignorados (formato inválido): ${filtro.invalidas.join(', ')}`);
+  if (!filtro.restringir || !filtro.regras.length) console.warn(`Atenção: ${resumoDoFiltro(filtro)}.`);
+  const integracao = criarIntegracao();
+  const servidor = criarServidor(mapa, filtro, integracao);
   servidor.listen(PORT, HOST, () => {
-    console.log(`BenCalls ${VERSAO} no ar em http://${HOST}:${PORT} · ${mapa.size} arquivos · ${filtro.regras.length} regras de bloqueio de IP · pid ${process.pid}`);
+    console.log(`BenCalls ${VERSAO} no ar em http://${HOST}:${PORT} · ${mapa.size} arquivos · ${resumoDoFiltro(filtro)} · integração BenHermes ${integracao.ativa ? 'ligada' : 'desligada'} · pid ${process.pid}`);
     process.send?.('ready'); // pm2 wait_ready
   });
   let saindo = false;
