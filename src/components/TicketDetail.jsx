@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
-import { X, Paperclip, AlertTriangle, ListChecks, Wrench, UserCheck, Play, PauseCircle, Ban, ThumbsUp, ThumbsDown, RotateCcw, MessageSquarePlus, ArrowRightLeft, Sparkles, MapPin, ExternalLink } from 'lucide-react';
+import clsx from 'clsx';
+import { X, Paperclip, AlertTriangle, ListChecks, Wrench, UserCheck, Play, PauseCircle, Ban, ThumbsUp, ThumbsDown, RotateCcw, MessageSquarePlus, ArrowRightLeft, Sparkles, MapPin, ExternalLink, ChevronDown } from 'lucide-react';
 import { useStore } from '../store/store.jsx';
 import { baiaCodigo, codigoItem, indiceCatalogo, nomeItem, nomeUser, tem, itensDaBaia } from '../store/selectors.js';
 import { numeroChamado, hhmmss, dataHora, idade } from '../lib/format.ts';
@@ -40,7 +41,7 @@ function SolucaoForm({ c, onDone, onCancel }) {
       </label>
       {precisaLaudo && (
         <div className="flex flex-col gap-1.5">
-          <span className="text-xs font-semibold">Laudo técnico: qual foi a causa? <span className="text-mudo">(obrigatório — RN02)</span></span>
+          <span className="text-xs font-semibold">Laudo técnico: qual foi a causa? <span className="text-mudo">(obrigatório)</span></span>
           <div className="flex flex-wrap items-center gap-1.5">
             {CAUSAS.map((k) => (
               <button key={k} type="button" className="pill" aria-pressed={causa === k} onClick={() => setCausa(k)}
@@ -48,13 +49,13 @@ function SolucaoForm({ c, onDone, onCancel }) {
             ))}
           </div>
           {causa === 'Mau uso' && (
-            <Note tipo="bad">Gera um dossiê para o RH com chamado, laudo, fotos, ocupante e termo assinado. <b>O sistema nunca aplica desconto</b>: a decisão é do RH (RN03).</Note>
+            <Note tipo="bad">Gera um dossiê para o RH com chamado, laudo, fotos, ocupante e termo assinado. <b>O sistema nunca aplica desconto</b>: a decisão é do RH.</Note>
           )}
         </div>
       )}
       {itensChamado.length > 0 && (
         <div className="flex flex-col gap-1.5">
-          <span className="text-xs font-semibold flex flex-wrap items-center gap-2"><ArrowRightLeft size={14} /> Troca de item (baixa automática no estoque — RF16)</span>
+          <span className="text-xs font-semibold flex flex-wrap items-center gap-2"><ArrowRightLeft size={14} /> Troca de item (baixa automática no estoque)</span>
           {itensChamado.map((it) => {
             const t = trocas[it.id] || { on: false, novoId: '', destino: 'Em manutenção' };
             const set = (patch) => setTrocas((x) => ({ ...x, [it.id]: { ...t, ...patch } }));
@@ -100,6 +101,7 @@ export default function TicketDetail({ id, onClose, abrir }) {
   const [form, setForm] = useState(null);
   const [txt, setTxt] = useState('');
   const [coment, setComent] = useState('');
+  const [aba, setAba] = useState('resumo');
   const { sits } = useMemo(() => indiceCatalogo(st), [st]);
   if (!c) return null;
 
@@ -134,168 +136,203 @@ export default function TicketDetail({ id, onClose, abrir }) {
 
   const podeVirarPasso = ti && c.solucao && sit && !sit.outros && !sit.dano && !sit.solicitacao && !(sit.passos || []).includes(c.solucao.texto);
 
+  const outrosDaBaia = baia ? st.chamados.filter((x) => x.layoutId === c.layoutId && x.pos === c.pos && x.id !== c.id).sort((a, b) => b.criadoEm - a.criadoEm) : [];
+  const ABAS = [
+    { id: 'resumo', l: 'Resumo' },
+    { id: 'triagem', l: 'Triagem', n: c.triagem.length },
+    { id: 'comentarios', l: 'Comentários', n: (c.comentarios || []).length },
+    { id: 'historico', l: 'Histórico', n: c.hist.length }
+  ];
+  const finalizado = ['Concluído', 'Cancelado', 'Negado'].includes(c.status);
+
   return (
-    <div className="flex flex-col gap-3 p-5">
-      <div className="flex flex-wrap justify-between gap-3 items-start">
-        <div className="flex flex-col gap-1.5 min-w-0 flex-1">
-          <span className="text-xs font-semibold text-mudo">{numeroChamado(c.id)} · {c.categoria} › {c.sub}</span>
-          <h2 className="text-[19px] text-marca-txt">{c.titulo}</h2>
-          <div className="flex flex-wrap items-center gap-1.5">
-            <StatusBadge status={c.status} />
-            <PrioBadge prio={c.prioridade} sm={false} />
-            {c.operadorParado && !['Concluído', 'Cancelado', 'Negado'].includes(c.status) && <span className="badge b-bad">Operador parado</span>}
-            {c.reaberturas > 0 && <span className="badge b-orange">Reaberto {c.reaberturas}×</span>}
+    <div className="flex min-h-full flex-col">
+      <header className="sticky top-0 z-10 flex flex-col gap-2.5 border-b border-linha bg-superficie/95 px-5 pt-4 backdrop-blur">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex min-w-0 flex-col gap-1">
+            <span className="text-xs font-semibold text-mudo">{numeroChamado(c.id)} · {c.categoria} › {c.sub}</span>
+            <h2 className="text-lg leading-snug text-tinta">{c.titulo}</h2>
           </div>
+          <button type="button" className="btn btn-ghost btn-icon flex-none" onClick={onClose} aria-label="Fechar detalhe"><X size={18} /></button>
         </div>
-        <button type="button" className="btn btn-icon" onClick={onClose} aria-label="Fechar detalhe"><X size={18} /></button>
-      </div>
+        <div className="flex flex-wrap items-center gap-1.5">
+          <StatusBadge status={c.status} />
+          <PrioBadge prio={c.prioridade} sm={false} />
+          {c.operadorParado && !finalizado && <span className="badge b-bad">Operador parado</span>}
+          {c.reaberturas > 0 && <span className="badge b-orange">Reaberto {c.reaberturas}×</span>}
+        </div>
+        <div className="flex items-start gap-2"><div className="min-w-0 flex-auto"><Sla ch={c} agora={agora} bar /></div><AjudaSla /></div>
+        <nav className="abas" role="tablist" aria-label="Seções do chamado">
+          {ABAS.map((a) => (
+            <button key={a.id} type="button" role="tab" aria-selected={aba === a.id} className="aba" onClick={() => setAba(a.id)}>
+              {a.l}{a.n > 0 && <span className="aba-n">{a.n}</span>}
+            </button>
+          ))}
+        </nav>
+      </header>
 
-      <div className="flex gap-2 items-start flex-nowrap"><div className="min-w-0 flex-auto"><Sla ch={c} agora={agora} bar /></div><AjudaSla /></div>
+      <div className="flex flex-1 flex-col gap-4 p-5">
+        {form === 'solucao' && <SolucaoForm c={c} onCancel={() => setForm(null)} onDone={(m) => { setForm(null); toast(m); }} />}
+        {F && (
+          <div className="card card-flat flex animate-surgir flex-col gap-2 bg-superficie-2">
+            <label className="field">{F.titulo}
+              <textarea className="textarea" rows={3} value={txt} onChange={(e) => setTxt(e.target.value)} placeholder={F.ph} autoFocus />
+            </label>
+            {form === 'devolver' && <span className="text-xs text-mudo">Volta para “Em Execução” com o seu comentário no histórico.</span>}
+            {form === 'reabrir' && <span className="text-xs text-mudo">Volta para o mesmo técnico e conta como reabertura.</span>}
+            <div className="flex flex-wrap items-center gap-2">
+              <button type="button" className={`btn ${form === 'negar' || form === 'cancelar' ? 'btn-danger' : 'btn-primary'}`} disabled={txt.trim().length < 5} onClick={confirmar}>{F.botao}</button>
+              <button type="button" className="btn btn-ghost" onClick={() => { setForm(null); setTxt(''); }}>Voltar</button>
+            </div>
+          </div>
+        )}
 
-      <div className="detail-grid">
-        <div><div className="lbl">Baia</div><div className="val">{baia ? <button type="button" className="btn btn-sm btn-ghost p-0 min-h-0" onClick={() => abrir({ baia: `${c.layoutId}:${c.pos}` })}><MapPin size={13} /> {baia}</button> : '—'}</div></div>
-        <div><div className="lbl">Ocupante na abertura</div><div className="val">{c.ocupante}</div></div>
-        <div><div className="lbl">Aberto por</div><div className="val">{nomeUser(st, c.remetenteId)}</div></div>
-        <div><div className="lbl">Aberto em</div><div className="val">{dataHora(c.criadoEm, agora)} · {idade(c.criadoEm, agora)}</div></div>
-        <div><div className="lbl">Atendimento</div><div className="val">{c.depto} · {c.tecnicoId ? nomeUser(st, c.tecnicoId) : <span className="text-mudo">sem técnico</span>}</div></div>
-        <div><div className="lbl">SLA da prioridade (prazo)</div><div className="val">{c.slaMin >= 60 ? `${c.slaMin / 60}h` : `${c.slaMin} min`}</div></div>
-        {c.local && <div className="col-span-full"><div className="lbl">Onde</div><div className="val">{c.local}</div></div>}
-      </div>
+        {aba === 'resumo' && (
+          <>
+            {c.alerta && <Note tipo="bad"><b>Alerta de triagem:</b> {c.alerta}</Note>}
+            {c.outros && !c.outrosRevisado && <Note tipo="gray">Fora do catálogo: na fila de revisão do TI.</Note>}
 
-      {c.alerta && <Note tipo="bad"><b>Alerta de triagem:</b> {c.alerta}</Note>}
-      {c.outros && !c.outrosRevisado && <Note tipo="gray"><b>“Outros”:</b> está na fila de revisão do TI para ser reclassificado.</Note>}
+            <dl className="grid grid-cols-2 gap-x-4 gap-y-3 max-sm:grid-cols-1">
+              <Dado rotulo="Baia">{baia ? <button type="button" className="inline-flex items-center gap-1 font-semibold text-marca-txt hover:underline" onClick={() => abrir({ baia: `${c.layoutId}:${c.pos}` })}><MapPin size={13} /> {baia}</button> : (c.local || '—')}</Dado>
+              <Dado rotulo="Ocupante">{c.ocupante}</Dado>
+              <Dado rotulo="Aberto por">{nomeUser(st, c.remetenteId)} · {idade(c.criadoEm, agora)}</Dado>
+              <Dado rotulo="Técnico">{c.tecnicoId ? nomeUser(st, c.tecnicoId) : <span className="text-mudo">Ninguém ainda</span>}</Dado>
+            </dl>
 
-      {c.itens.length > 0 && (
-        <div className="flex flex-col gap-1.5">
-          <span className="text-xs font-semibold text-mudo">Itens</span>
-          {c.itens.map((i, k) => {
-            const it = st.itens.find((x) => x.id === i.assetId);
-            return (
-              <div key={k} className="flex flex-wrap items-center gap-2 border border-linha rounded-[10px] py-2 px-2.5">
-                <span className="tag">{it ? codigoItem(st, it) : '—'}</span>
-                <b>{nomeItem(i.tipo)}</b>
-                <span className="text-xs text-mudo min-w-0 flex-auto">{i.situacao}</span>
-                {it && <ItemBadge status={it.status} />}
-                {it && tem(user, 'EST') && <button type="button" className="btn btn-sm btn-ghost" onClick={() => abrir({ item: it.id })} aria-label={`Abrir item ${it.id}`}><ExternalLink size={13} /> {it.id}</button>}
+            {c.descricao && <p className="whitespace-pre-line rounded-xl bg-superficie-2 px-3.5 py-3 leading-relaxed">{c.descricao}</p>}
+
+            {c.itens.length > 0 && (
+              <div className="flex flex-col gap-1.5">
+                {c.itens.map((i, k) => {
+                  const it = st.itens.find((x) => x.id === i.assetId);
+                  const podeAbrir = it && tem(user, 'EST');
+                  return (
+                    <button key={k} type="button" disabled={!podeAbrir} onClick={() => podeAbrir && abrir({ item: it.id })}
+                      className="group flex items-center gap-2.5 rounded-xl border border-linha px-3 py-2 text-left transition hover:border-marca-txt hover:bg-marca-suave-2 disabled:cursor-default disabled:hover:border-linha disabled:hover:bg-transparent">
+                      <span className="tag">{it ? codigoItem(st, it) : '—'}</span>
+                      <span className="min-w-0 flex-auto"><b>{nomeItem(i.tipo)}</b> <span className="text-xs text-mudo">{i.situacao}</span></span>
+                      {it && <ItemBadge status={it.status} />}
+                      {podeAbrir && <ExternalLink size={14} className="text-mudo group-hover:text-marca-txt" aria-hidden="true" />}
+                    </button>
+                  );
+                })}
               </div>
-            );
-          })}
-        </div>
-      )}
+            )}
 
-      {c.descricao && (
-        <div className="flex flex-col gap-1.5">
-          <span className="text-xs font-semibold text-mudo">Descrição</span>
-          <p className="whitespace-pre-line leading-[1.55]">{c.descricao}</p>
-        </div>
-      )}
+            {c.solucao && (
+              <div className="flex flex-col gap-1.5 rounded-xl border border-ok-ponto/30 bg-ok-fundo/50 px-3.5 py-3">
+                <span className="text-xs font-semibold text-ok">Solução · {nomeUser(st, c.solucao.user)} · {dataHora(c.solucao.at, agora)}</span>
+                <p className="leading-relaxed">{c.solucao.texto}</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {c.solucao.causa && <span className="badge badge-sm b-info">Laudo: {c.solucao.causa}</span>}
+                  {st.dossies.some((d) => d.ticketId === c.id) && <span className="badge badge-sm b-bad">Dossiê enviado ao RH</span>}
+                </div>
+                {podeVirarPasso && (
+                  <button type="button" className="btn btn-sm mt-1 self-start" onClick={() => { actions.adicionarPasso(sit.id, c.solucao.texto); toast(`Novo passo adicionado à triagem de “${sit.nome}”.`); }}>
+                    <Sparkles size={14} /> Virar passo de triagem
+                  </button>
+                )}
+              </div>
+            )}
 
-      <div className="flex flex-wrap items-center gap-2">
-        {c.anexos.map((a) => <span key={a} className="badge b-blue"><Paperclip size={12} /> {a}</span>)}
-        {!['Concluído', 'Cancelado', 'Negado'].includes(c.status) && (
-          <label className="btn btn-sm btn-dashed cursor-pointer">
-            <Paperclip size={13} /> Anexar arquivo
-            <input type="file" className="sr-only" onChange={(e) => { const f = e.target.files?.[0]; if (f) { actions.anexar(c.id, f.name); toast(`Anexo “${f.name}” enviado (BenTabularium).`); } }} />
-          </label>
+            <div className="flex flex-wrap items-center gap-2">
+              {c.anexos.map((a) => <span key={a} className="badge b-blue"><Paperclip size={12} /> {a}</span>)}
+              {!finalizado && (
+                <label className="btn btn-sm btn-ghost cursor-pointer text-mudo">
+                  <Paperclip size={13} /> Anexar
+                  <input type="file" className="sr-only" onChange={(e) => { const f = e.target.files?.[0]; if (f) { actions.anexar(c.id, f.name); toast(`Anexo “${f.name}” enviado.`); } }} />
+                </label>
+              )}
+            </div>
+
+            {outrosDaBaia.length > 0 && (
+              <details className="group rounded-xl border border-linha">
+                <summary className="flex cursor-pointer list-none items-center justify-between px-3.5 py-2.5 text-[13px] font-semibold text-tinta-2">
+                  Outros chamados desta baia ({outrosDaBaia.length})
+                  <ChevronDown size={16} className="transition-transform group-open:rotate-180" />
+                </summary>
+                <div className="flex flex-col gap-1 px-2 pb-2">
+                  {outrosDaBaia.slice(0, 6).map((x) => (
+                    <button key={x.id} type="button" className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-left text-xs hover:bg-superficie-2" onClick={() => abrir({ ch: x.id })}>
+                      <span className="font-semibold text-mudo">{numeroChamado(x.id)}</span>
+                      <span className="min-w-0 flex-auto truncate">{x.titulo}</span>
+                      <StatusBadge status={x.status} sm />
+                    </button>
+                  ))}
+                </div>
+              </details>
+            )}
+            {baia && itensDaBaia(st, c.layoutId, c.pos).length === 0 && <span className="text-xs text-mudo">Baia sem itens cadastrados.</span>}
+          </>
+        )}
+
+        {aba === 'triagem' && (
+          c.triagem.length ? (
+            <ol className="flex flex-col">
+              {c.triagem.map((t, k) => (
+                <li key={k} className="flex items-start gap-3 border-b border-linha py-2.5 last:border-0">
+                  <span className={clsx('box mt-px', t.st === 'feito' ? 'ok' : 'imp')} aria-hidden="true">{t.st === 'feito' ? '✓' : '!'}</span>
+                  <span className="flex min-w-0 flex-col gap-0.5">
+                    <span>{t.texto}</span>
+                    {t.st !== 'feito' && <span className="text-xs font-semibold text-laranja">Não foi possível: {t.motivo}</span>}
+                  </span>
+                  <span className="ml-auto font-mono text-[11px] text-mudo">{hhmmss(t.at)}</span>
+                </li>
+              ))}
+            </ol>
+          ) : <span className="text-xs text-mudo">Este chamado não passou por triagem.</span>
+        )}
+
+        {aba === 'comentarios' && (
+          <div className="flex flex-col gap-2">
+            {(c.comentarios || []).map((m, k) => (
+              <div key={k} className="rounded-xl bg-superficie-2 px-3.5 py-2.5">
+                <div className="text-[11px] text-mudo">{nomeUser(st, m.user)} · {dataHora(m.at, agora)}</div>
+                <div className="whitespace-pre-line">{m.texto}</div>
+              </div>
+            ))}
+            {!(c.comentarios || []).length && <span className="text-xs text-mudo">Nenhum comentário ainda.</span>}
+            <div className="flex items-stretch gap-2">
+              <input className="input min-w-0 flex-auto" value={coment} onChange={(e) => setComent(e.target.value)} placeholder="Escreva para o TI ou para quem abriu…"
+                onKeyDown={(e) => { if (e.key === 'Enter' && coment.trim()) { actions.comentar(c.id, coment.trim()); setComent(''); } }} aria-label="Novo comentário" />
+              <button type="button" className="btn btn-icon" disabled={!coment.trim()} onClick={() => { actions.comentar(c.id, coment.trim()); setComent(''); }} aria-label="Enviar comentário"><MessageSquarePlus size={16} /></button>
+            </div>
+          </div>
+        )}
+
+        {aba === 'historico' && (
+          <div className="timeline">
+            {[...c.hist].reverse().map((h, k) => (
+              <div key={k} className="tl-item">
+                <span className="tl-dot" style={{ background: PONTO_STATUS[h.status], boxShadow: k === 0 ? '0 0 0 3px rgb(var(--superficie-3))' : 'none' }} />
+                <div className="flex flex-col gap-px">
+                  <span><b>{h.status}</b> <span className="text-mudo">· {nomeUser(st, h.user)}</span></span>
+                  <span className="text-[11px] text-mudo">{dataHora(h.at, agora)} · {idade(h.at, agora)}</span>
+                  {h.just && <span className="text-xs text-tinta-2">{h.just}</span>}
+                </div>
+              </div>
+            ))}
+          </div>
         )}
       </div>
 
-      {c.triagem.length > 0 && (
-        <div className="flex flex-col gap-1.5">
-          <span className="text-xs font-semibold text-mudo flex flex-wrap items-center gap-2"><ListChecks size={14} /> Registro da triagem</span>
-          {c.triagem.map((t, k) => (
-            <div key={k} className="flex flex-wrap items-baseline gap-x-2.5 gap-y-1 border-b border-linha pb-1.5">
-              <span className="font-mono text-[11px] text-mudo">{hhmmss(t.at)}</span>
-              <span className="flex-[1_1_200px]">{t.texto}</span>
-              <span className="text-xs font-semibold" style={{ color: t.st === 'feito' ? 'rgb(var(--ok))' : 'rgb(var(--laranja))' }}>{t.st === 'feito' ? 'Feito' : `Não foi possível: ${t.motivo}`}</span>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {c.solucao && (
-        <div className="card card-flat flex flex-col gap-1.5">
-          <span className="text-xs font-semibold text-mudo">Solução · {nomeUser(st, c.solucao.user)} · {dataHora(c.solucao.at, agora)}</span>
-          <p className="leading-[1.55]">{c.solucao.texto}</p>
-          {c.solucao.causa && <span className="text-xs font-semibold text-info">Laudo técnico: {c.solucao.causa}</span>}
-          {st.dossies.some((d) => d.ticketId === c.id) && <span className="text-xs font-semibold text-ruim">Dossiê enviado ao RH para análise do termo de responsabilidade.</span>}
-          {podeVirarPasso && (
-            <button type="button" className="btn btn-sm self-start" onClick={() => { actions.adicionarPasso(sit.id, c.solucao.texto); toast(`Novo passo adicionado à triagem de “${sit.nome}”.`); }}>
-              <Sparkles size={14} /> Transformar em passo de triagem (RF08)
-            </button>
-          )}
-        </div>
-      )}
-
-      {souDono && c.status === 'Aguardando Consenso' && !form && (
-        <Note tipo="warn">Confira na baia se o problema foi resolvido. Sua resposta encerra o chamado ou devolve ao TI.</Note>
-      )}
-
       {acoes.length > 0 && (
-        <div className="flex flex-wrap items-center gap-2">
-          {acoes.map((a) => <button key={a.l} type="button" className={`btn ${a.cls || ''}`} onClick={a.run}><a.i size={15} />{a.l}</button>)}
-        </div>
-      )}
-
-      {form === 'solucao' && <SolucaoForm c={c} onCancel={() => setForm(null)} onDone={(m) => { setForm(null); toast(m); }} />}
-      {F && (
-        <div className="card card-flat flex flex-col gap-1.5 bg-superficie-2">
-          <label className="field">{F.titulo}
-            <textarea className="textarea" rows={3} value={txt} onChange={(e) => setTxt(e.target.value)} placeholder={F.ph} autoFocus />
-          </label>
-          {form === 'devolver' && <span className="text-xs text-mudo">Volta para “Em Execução” com o seu comentário no histórico.</span>}
-          {form === 'reabrir' && <span className="text-xs text-mudo">Reabertura em até 7 dias volta para o mesmo técnico e conta como reabertura nos relatórios (RN07).</span>}
+        <footer className="sticky bottom-0 flex flex-col gap-2 border-t border-linha bg-superficie/95 px-5 py-3 backdrop-blur">
+          {souDono && c.status === 'Aguardando Consenso' && <span className="text-xs text-tinta-2">O TI registrou a solução. Confira na baia e responda:</span>}
           <div className="flex flex-wrap items-center gap-2">
-            <button type="button" className={`btn ${form === 'negar' || form === 'cancelar' ? 'btn-danger' : 'btn-primary'}`} disabled={txt.trim().length < 5} onClick={confirmar}>{F.botao}</button>
-            <button type="button" className="btn" onClick={() => { setForm(null); setTxt(''); }}>Voltar</button>
+            {acoes.map((a) => <button key={a.l} type="button" className={`btn ${a.cls || ''}`} onClick={() => { setAba('resumo'); a.run(); }}><a.i size={15} />{a.l}</button>)}
           </div>
-        </div>
+        </footer>
       )}
+    </div>
+  );
+}
 
-      <div className="flex flex-col gap-1.5">
-        <span className="text-xs font-semibold text-mudo">Comentários</span>
-        {(c.comentarios || []).map((m, k) => (
-          <div key={k} className="card card-flat p-2.5">
-            <div className="text-[11px] text-mudo">{nomeUser(st, m.user)} · {dataHora(m.at, agora)}</div>
-            <div className="whitespace-pre-line">{m.texto}</div>
-          </div>
-        ))}
-        <div className="flex flex-wrap gap-2 items-stretch">
-          <input className="input min-w-0 flex-auto" value={coment} onChange={(e) => setComent(e.target.value)} placeholder="Escreva um comentário para o TI ou para quem abriu…"
-            onKeyDown={(e) => { if (e.key === 'Enter' && coment.trim()) { actions.comentar(c.id, coment.trim()); setComent(''); } }} aria-label="Novo comentário" />
-          <button type="button" className="btn" disabled={!coment.trim()} onClick={() => { actions.comentar(c.id, coment.trim()); setComent(''); }}><MessageSquarePlus size={15} /> Enviar</button>
-        </div>
-      </div>
-
-      <div className="flex flex-col gap-1.5">
-        <span className="text-xs font-semibold text-mudo">Histórico</span>
-        <div className="timeline">
-          {[...c.hist].reverse().map((h, k) => (
-            <div key={k} className="tl-item">
-              <span className="tl-dot" style={{ background: PONTO_STATUS[h.status], boxShadow: k === 0 ? `0 0 0 3px rgb(var(--superficie-3))` : 'none' }} />
-              <div className="flex flex-col gap-px">
-                <span><b>{h.status}</b> <span className="text-mudo">· {nomeUser(st, h.user)}</span></span>
-                <span className="text-[11px] text-mudo">{dataHora(h.at, agora)} · {idade(h.at, agora)}</span>
-                {h.just && <span className="text-xs text-tinta-2">{h.just}</span>}
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {baia && (
-        <div className="flex flex-col gap-1.5">
-          <span className="text-xs font-semibold text-mudo flex flex-wrap items-center gap-2"><AlertTriangle size={14} /> Outros chamados desta baia</span>
-          {st.chamados.filter((x) => x.layoutId === c.layoutId && x.pos === c.pos && x.id !== c.id).sort((a, b) => b.criadoEm - a.criadoEm).slice(0, 5).map((x) => (
-            <button key={x.id} type="button" className="ticket py-2 px-2.5" onClick={() => abrir({ ch: x.id })}>
-              <span className="t-top"><span className="t-num">{numeroChamado(x.id)} · {idade(x.criadoEm, agora)}</span><StatusBadge status={x.status} sm /></span>
-              <span className="text-xs">{x.titulo}</span>
-            </button>
-          ))}
-          {!st.chamados.some((x) => x.layoutId === c.layoutId && x.pos === c.pos && x.id !== c.id) && <span className="text-xs text-mudo">Nenhum outro chamado nesta baia.</span>}
-          {itensDaBaia(st, c.layoutId, c.pos).length === 0 && <span className="text-xs text-mudo">Baia sem itens cadastrados.</span>}
-        </div>
-      )}
+function Dado({ rotulo, children }) {
+  return (
+    <div className="flex min-w-0 flex-col gap-0.5">
+      <dt className="text-[11px] font-medium uppercase tracking-wide text-mudo">{rotulo}</dt>
+      <dd className="truncate text-[13.5px] font-semibold">{children}</dd>
     </div>
   );
 }

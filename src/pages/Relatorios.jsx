@@ -115,7 +115,7 @@ export default function Relatorios() {
 
   return (
     <>
-      <PageHead title="Dashboard e relatórios" desc={`Últimos ${dias} dias · todos os departamentos · calculado a partir dos chamados registrados. Relatórios automáticos vão para o grupo da gestão.`}>
+      <PageHead title="Dashboard e relatórios" desc={`Últimos ${dias} dias · todos os departamentos`}>
         <Pills label="Período" value={dias} onChange={setDias} options={[{ value: 7, label: '7 dias' }, { value: 30, label: '30 dias' }, { value: 90, label: '90 dias' }]} />
         <button type="button" className="btn no-print" onClick={() => window.print()}><Printer size={15} /> PDF</button>
         <button type="button" className="btn btn-primary no-print" onClick={csv('chamados', ['Número', 'Aberto em', 'Categoria', 'Tipo', 'Situação', 'Baia', 'Prioridade', 'Status', 'Solicitante', 'Técnico', 'Laudo'],
@@ -124,11 +124,11 @@ export default function Relatorios() {
 
       <div className="grid-kpi">
         <Kpi icon={Ticket} label="Chamados no período" valor={r.total} sub={`${r.concl.length} concluídos`} />
-        <Kpi icon={Sparkles} label="Resolvidos na triagem" valor={`${r.triPct}%`} sub={`${r.tri.length} problemas sem abrir chamado`} />
-        <Kpi icon={Timer} label="Tempo médio de resolução" valor={duracao(r.tempoMedio)} sub="Da abertura à solução registrada" />
-        <Kpi icon={Target} ajuda={<AjudaSla />} label="SLA cumprido" valor={`${r.slaPct}%`} sub={`${r.foraSla} chamados fora do prazo`} destaque={r.slaPct < 85} />
-        <Kpi icon={UserX} label="Operador parado" valor={duracao(r.paradoTotal)} sub="Somando todas as baias" />
-        <Kpi icon={RotateCcw} label="Reaberturas" valor={r.reab} sub="Voltaram após o fechamento" />
+        <Kpi icon={Sparkles} tom="info" label="Resolvidos na triagem" valor={`${r.triPct}%`} sub={`${r.tri.length} sem abrir chamado`} />
+        <Kpi icon={Timer} label="Tempo médio de resolução" valor={duracao(r.tempoMedio)} title="Da abertura à solução registrada" />
+        <Kpi icon={Target} ajuda={<AjudaSla />} label="SLA cumprido" valor={`${r.slaPct}%`} tom="ok" sub={`${r.foraSla} fora do prazo`} destaque={r.slaPct < 85} />
+        <Kpi icon={UserX} tom="aviso" label="Operador parado" valor={duracao(r.paradoTotal)} title="Tempo somado de todas as baias" />
+        <Kpi icon={RotateCcw} label="Reaberturas" valor={r.reab} title="Chamados que voltaram após o fechamento" />
       </div>
 
       <Painel titulo="Chamados abertos × fechados por dia" desc="Últimos 30 dias no máximo" onCsv={csv('abertos-fechados', ['Dia', 'Abertos', 'Fechados'], r.serie.map((d) => [d.dia, d.abertos, d.fechados]))}>

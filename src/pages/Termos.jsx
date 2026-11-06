@@ -63,10 +63,10 @@ export default function Termos() {
 
   return (
     <>
-      <PageHead title="Termos de responsabilidade" desc="Ao assumir uma baia, o operador confirma o checklist dos itens (patrimônio e estado). Esse é o registro de “como recebeu”, que dá sustentação ao laudo e ao dossiê." />
+      <PageHead title="Termos de responsabilidade" desc="O aceite do operador para os itens da baia que assumiu." />
       <div className="grid-kpi">
         <Kpi icon={FileSignature} label="Aguardando aceite" valor={pend} destaque={pend > 0} onClick={() => setFiltro('pendentes')} />
-        <Kpi icon={FileSignature} label="Assinados" valor={todos.length - pend} onClick={() => setFiltro('assinados')} />
+        <Kpi icon={FileSignature} tom="ok" label="Assinados" valor={todos.length - pend} onClick={() => setFiltro('assinados')} />
       </div>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <Pills label="Filtro" value={filtro} onChange={setFiltro} options={[{ value: 'pendentes', label: 'Aguardando aceite' }, { value: 'assinados', label: 'Assinados' }, { value: 'todos', label: 'Todos' }]} />

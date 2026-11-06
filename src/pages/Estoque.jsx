@@ -44,7 +44,7 @@ function NovoTipo({ onClose }) {
   const sigla = f.sigla.toUpperCase().replace(/[^A-Z]/g, '').slice(0, 2);
   const erro = sigla.length !== 2 ? 'A sigla tem 2 letras (ex.: TB para tablet).' : st.tipos.some((t) => t.sigla === sigla) ? 'Sigla já usada.' : !f.nome.trim() ? 'Informe o nome.' : '';
   return (
-    <Modal title="Novo tipo de item (RF40)" onClose={onClose} footer={<>
+    <Modal title="Novo tipo de item" onClose={onClose} footer={<>
       <button type="button" className="btn" onClick={onClose}>Cancelar</button>
       <button type="button" className="btn btn-primary" disabled={!!erro} onClick={() => { actions.cadastrarTipo({ sigla, nome: f.nome.trim(), minimo: f.minimo, modelos: f.modelos.split(',').map((x) => x.trim()).filter(Boolean) }); toast(`Tipo ${f.nome} (${sigla}) criado.`); onClose(); }}>Criar tipo</button></>}>
       <div className="grid grid-cols-[repeat(auto-fit,minmax(320px,1fr))] items-start gap-3">
@@ -101,7 +101,7 @@ export default function Estoque() {
 
   return (
     <>
-      <PageHead title="Estoque e patrimônio" desc="Cada item tem um ID interno fixo e uma etiqueta que acompanha o lugar onde ele está. Mudou de baia, a etiqueta é recalculada; o histórico fica preso ao ID.">
+      <PageHead title="Estoque e patrimônio" desc="Itens, etiquetas, mínimos e garantias.">
         {podeEditar && <button type="button" className="btn" onClick={() => setModal('tipo')}><Tag size={15} /> Novo tipo</button>}
         {podeEditar && <button type="button" className="btn btn-primary" onClick={() => setModal('item')}><Plus size={16} /> Cadastrar itens</button>}
       </PageHead>
@@ -109,21 +109,33 @@ export default function Estoque() {
       <div className="grid-kpi">
         <Kpi icon={Package} label="Itens cadastrados" valor={st.itens.filter((i) => i.status !== 'Descartado').length} sub={`${cont.Descartado || 0} descartados`} />
         <Kpi icon={Boxes} label="Em uso" valor={cont['Em uso'] || 0} onClick={() => { setAba('itens'); setStatus('Em uso'); }} />
-        <Kpi icon={Boxes} label="Disponíveis" valor={(cont.Novo || 0) + (cont['Disponível (usado)'] || 0)} sub="Novos + usados no almoxarifado" onClick={() => { setAba('itens'); setStatus('Novo'); }} />
-        <Kpi icon={Wrench} label="Manutenção ou garantia" valor={(cont['Em manutenção'] || 0) + (cont['Em garantia'] || 0)} onClick={() => { setAba('itens'); setStatus('Em manutenção'); }} />
-        <Kpi icon={AlertOctagon} label="Quebrados" valor={cont.Quebrado || 0} onClick={() => { setAba('itens'); setStatus('Quebrado'); }} />
+        <Kpi icon={Boxes} label="Disponíveis" valor={(cont.Novo || 0) + (cont['Disponível (usado)'] || 0)} tom="ok" title="Novos e usados no almoxarifado" onClick={() => { setAba('itens'); setStatus('Novo'); }} />
+        <Kpi icon={Wrench} tom="info" label="Manutenção ou garantia" valor={(cont['Em manutenção'] || 0) + (cont['Em garantia'] || 0)} onClick={() => { setAba('itens'); setStatus('Em manutenção'); }} />
+        <Kpi icon={AlertOctagon} tom="ruim" label="Quebrados" valor={cont.Quebrado || 0} onClick={() => { setAba('itens'); setStatus('Quebrado'); }} />
       </div>
 
-      {resumo.filter((t) => t.abaixo).map((t) => {
-        const s = sugestaoCompra({ disponiveis: t.disponiveis, minimo: t.minimo, consumo90d: consumo(t.sigla) });
-        return <Note key={t.sigla} tipo="warn" icon={TrendingDown}><b>Estoque mínimo — {t.nome}:</b> {t.disponiveis} disponível(is), mínimo de {t.minimo}. Consumo médio de {s.mensal}/mês. <b>Sugestão de compra: {s.sugerir} unidade(s).</b></Note>;
-      })}
-      {pendentes.length > 0 && (
-        <Note tipo="info" icon={ShieldCheck}>
-          <b>{pendentes.length} descarte(s) aguardando aprovação do gestor:</b>{' '}
-          {pendentes.map((i) => <button key={i.id} type="button" className="btn btn-sm btn-ghost min-h-0 py-0 px-1" onClick={() => abrir({ item: i.id })}>{i.id}</button>)}
-          {tem(user, 'APROV') ? ' — abra o item para aprovar ou recusar.' : ''}
-        </Note>
+      {(resumo.some((t) => t.abaixo) || pendentes.length > 0) && (
+        <section className="card flex flex-col gap-1 p-2" aria-label="Precisa de atenção">
+          <span className="px-2.5 pb-1 pt-1.5 text-[11px] font-semibold uppercase tracking-wide text-mudo">Precisa de atenção</span>
+          {resumo.filter((t) => t.abaixo).map((t) => {
+            const s = sugestaoCompra({ disponiveis: t.disponiveis, minimo: t.minimo, consumo90d: consumo(t.sigla) });
+            return (
+              <button key={t.sigla} type="button" className="flex items-center gap-3 rounded-lg px-2.5 py-2 text-left transition-colors hover:bg-superficie-2" onClick={() => setAba('tipos')}
+                title={`Consumo médio de ${s.mensal}/mês`}>
+                <span className="grid size-8 flex-none place-items-center rounded-lg bg-aviso-fundo text-aviso-ponto"><TrendingDown size={16} /></span>
+                <span className="min-w-0 flex-auto"><b>{t.nome}</b> <span className="text-mudo">abaixo do mínimo · {t.disponiveis} de {t.minimo}</span></span>
+                <span className="badge b-warn">Comprar {s.sugerir}</span>
+              </button>
+            );
+          })}
+          {pendentes.map((i) => (
+            <button key={i.id} type="button" className="flex items-center gap-3 rounded-lg px-2.5 py-2 text-left transition-colors hover:bg-superficie-2" onClick={() => abrir({ item: i.id })}>
+              <span className="grid size-8 flex-none place-items-center rounded-lg bg-marca-suave text-marca-txt"><ShieldCheck size={16} /></span>
+              <span className="min-w-0 flex-auto"><b>Descarte de {i.id}</b> <span className="text-mudo">{tem(user, 'APROV') ? 'aguardando a sua aprovação' : 'aguardando aprovação do gestor'}</span></span>
+              <span className="badge b-blue">Abrir</span>
+            </button>
+          ))}
+        </section>
       )}
 
       <Seg label="Seções do estoque" value={aba} onChange={setAba} options={[{ value: 'itens', label: 'Itens' }, { value: 'tipos', label: 'Por tipo e mínimos' }, { value: 'alertas', label: 'Garantia e defeitos' }, { value: 'etiquetas', label: 'Folha de etiquetas' }]} />
@@ -194,7 +206,7 @@ export default function Estoque() {
       {aba === 'alertas' && (
         <div className="grid grid-cols-[repeat(auto-fit,minmax(320px,1fr))] items-start gap-4">
           <section className="card flex flex-col gap-1.5">
-            <div className="card-title"><CalendarClock size={16} /> Garantias vencendo em 45 dias (RF28)</div>
+            <div className="card-title"><CalendarClock size={16} /> Garantias vencendo em 45 dias</div>
             {garantia.map((i) => (
               <button key={i.id} type="button" className="ticket py-2 px-2.5 flex-row items-center" onClick={() => abrir({ item: i.id })}>
                 <span className="tag">{codigoItem(st, i)}</span><span className="min-w-0 flex-auto text-xs">{nomeItem(i.tipo)} · {i.modelo}</span>
@@ -228,7 +240,7 @@ export default function Estoque() {
             </div>
             <button type="button" className="btn btn-primary" onClick={() => window.print()}><Printer size={15} /> Imprimir folha</button>
           </div>
-          <p className="text-xs text-mudo no-print">Folha pronta para etiqueta adesiva. Se o padrão de etiqueta mudar, a folha é recalculada; o histórico fica no ID interno (RN12).</p>
+          <p className="text-xs text-mudo no-print">Folha pronta para etiqueta adesiva. Se o padrão de etiqueta mudar, a folha é recalculada; o histórico fica no ID interno.</p>
           <div className="labels">
             {posicoesDaMesa(LE).flatMap((p) => itensDaBaia(st, LE.id, posKey(p))).map((i) => <EtiquetaImpressa key={i.id} code={codigoItem(st, i)} item={i} empresa={st.tema.empresa} />)}
           </div>

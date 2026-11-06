@@ -42,12 +42,17 @@ Passo a passo completo, incluindo a configuração na Cloudflare: [docs/DEPLOY.m
 
 ## Stack
 
-React 18 + Vite + TypeScript, React Router, Recharts e lucide-react — a mesma base do front atual (§9).
+React 18 + Vite + TypeScript + **Tailwind CSS 3**, React Router, Recharts e lucide-react — a mesma base do front
+atual (§9) e o mesmo padrão de estilos do BenHeimdall.
 As regras de negócio (`src/lib`), o logo, a entrada animada e as regras de sessão são TypeScript estrito
 (`npm run typecheck`); as telas seguem em JSX e migram aos poucos.
-Design system próprio em `src/styles/global.css` (tokens que o tema da instalação sobrescreve, modo escuro)
-e `src/styles/motion.css` (marca, entrada, tela de acesso e microinterações). Fontes Inter e Space Grotesk
-servidas pelo próprio site (sem CDN, CSP fechado).
+
+**Estilos:** `tailwind.config.ts` define cores (trincas RGB com nomes em português: `marca`, `destaque`,
+`superficie`, `tinta`, `mudo`, `ok`, `aviso`, `ruim`…), sombras e animações; `src/index.css` tem os tokens dos
+temas claro/escuro em `@layer base` e os componentes (`.btn`, `.card`, `.kpi`, `.ticket`, `.seat`…) em
+`@layer components` com `@apply`. O JSX usa essas classes e os utilitários do Tailwind. O tema de cada empresa
+sobrescreve as variáveis, então `bg-marca/10` funciona com qualquer cor. Classes de componente montadas com
+`${...}` precisam estar no `safelist` (há um teste que confere). Fonte única: **Inter**, servida pelo próprio site.
 
 ## Estrutura
 
@@ -58,6 +63,7 @@ src/
   store/        estado + ações (cada ação = uma rota da BenApi) e seletores
   components/   Layout, busca global, detalhe de chamado/item/baia, mapa da mesa, triagem, UI base
   pages/        uma tela por rota
+  index.css     tokens e componentes (Tailwind)
 server/        servidor de produção (Node puro) + lock do pm2 da imagem
 deploy/        deploy.sh (atualização com rollback)
 cloudflared/   exemplo de túnel por arquivo

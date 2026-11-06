@@ -53,7 +53,7 @@ export default function Personalizacao() {
 
   return (
     <>
-      <PageHead title="Personalização" desc="Cada empresa cliente personaliza visual, textos e módulos. A assinatura Benconsig (faixa amarela e selo “Desenvolvido por”) é fixa e não pode ser removida (RN10)." />
+      <PageHead title="Personalização" desc="Visual, módulos e notificações desta empresa." />
       <Seg label="Seções" value={aba} onChange={setAba} options={[{ value: 'tema', label: 'Tema', icon: Palette }, { value: 'modulos', label: 'Módulos', icon: Puzzle }, { value: 'canais', label: 'Notificações', icon: BellRing }]} />
 
       {aba === 'tema' && (
@@ -89,7 +89,7 @@ export default function Personalizacao() {
               </div>
             </div>
             <div className="flex flex-col gap-1.5">
-              <b className="text-xs">Validação de contraste (RF37)</b>
+              <b className="text-xs">Validação de contraste</b>
               <Contraste a={textoSobre(t.primaria)} b={t.primaria} rotulo="Texto sobre a cor principal (barra, botões)" />
               <Contraste a={t.primaria} b="#FFFFFF" rotulo="Cor principal como texto em fundo branco" />
               <Contraste a={contraste(t.destaque, t.primaria) >= 4.5 ? t.primaria : textoSobre(t.destaque)} b={t.destaque} rotulo="Texto sobre o destaque (selos, foco)" />
@@ -129,14 +129,14 @@ export default function Personalizacao() {
                 <div className="footer-sig"><span>Desenvolvido por</span><span className="sig-chip"><i>B</i><b>BENCONSIG</b></span></div>
               </div>
             </section>
-            <Note tipo="info">Fica fixo em todas as versões: faixa amarela nas barras, selo “Desenvolvido por Benconsig” no rodapé e no login, ícones e estrutura das telas, assinatura dos e-mails e PDFs.</Note>
+            <Note tipo="info">A faixa amarela e o selo “Desenvolvido por Benconsig” são fixos em todas as empresas.</Note>
           </aside>
         </div>
       )}
 
       {aba === 'modulos' && (
         <section className="card flex flex-col gap-3">
-          <p className="text-xs text-mudo">Recursos próprios da Benconsig viram módulos opcionais que cada empresa cliente liga ou desliga (RF41).</p>
+          <p className="text-xs text-mudo">Recursos próprios da Benconsig viram módulos opcionais que cada empresa cliente liga ou desliga.</p>
           {MODULOS.map(([k, nome, desc]) => (
             <div key={k} className="flex flex-wrap items-center justify-between gap-3 border-t border-linha pt-3">
               <div><b>{nome}</b><div className="text-xs text-mudo">{desc}</div></div>
@@ -159,7 +159,7 @@ export default function Personalizacao() {
               </tr>
             ))}</tbody>
           </table>
-          <div className="text-xs text-mudo p-3">Pendência técnica (§2.5): confirmar como o BenHub recebe mensagens de outro sistema (API, webhook, bot ou e-mail). Até lá, o e-mail fica como canal reserva.</div>
+          <div className="text-xs text-mudo p-3">Pendência técnica: confirmar como o BenHub recebe mensagens de outro sistema (API, webhook, bot ou e-mail). Até lá, o e-mail fica como canal reserva.</div>
         </section>
       )}
     </>

@@ -399,7 +399,7 @@ function PorFormulario() {
         {passos.length > 0 && <PassosTriagem passos={passos} regs={regs} setReg={(k, r) => setRegs((x) => { const n = { ...x }; if (r) n[k] = r; else delete n[k]; return n; })} />}
         {erro && <Note tipo="bad">{erro}</Note>}
         <button type="button" className="btn btn-primary btn-lg" disabled={!!bloqueio} onClick={enviar}>{bloqueio || 'Abrir chamado'}</button>
-        {passos.length > 0 && !bloqueio && <span className="text-[11px] text-mudo">Os passos e horários vão junto com o chamado (RF07).</span>}
+        {passos.length > 0 && !bloqueio && <span className="text-[11px] text-mudo">Os passos e horários vão junto com o chamado.</span>}
       </aside>
     </div>
   );
@@ -500,7 +500,7 @@ function ChamadoProprio() {
           </div>
           {erro && <Note tipo="bad">{erro}</Note>}
           <button type="button" className="btn btn-primary btn-lg" disabled={!!bloqueio} onClick={enviar}>{bloqueio || <><Send size={16} /> Abrir chamado</>}</button>
-          <span className="text-[11px] text-mudo">Sem triagem: como o problema está fora do catálogo, não há passos prontos. O chamado entra na fila de revisão de “Outros” (RN11).</span>
+          <span className="text-[11px] text-mudo">Sem triagem: como o problema está fora do catálogo, não há passos prontos. O chamado entra na fila de revisão de “Outros”.</span>
         </div>
       </aside>
     </div>
@@ -513,7 +513,7 @@ export default function NovoChamado() {
   const nav = useNavigate();
   return (
     <>
-      <PageHead title="Novo chamado" desc="Problema numa baia? Use o mapa. Sistemas, acessos e solicitações: formulário. Não achou o que precisa? Abra um chamado próprio, com o seu título.">
+      <PageHead title="Novo chamado" desc="Escolha como abrir: pela baia, pelo catálogo ou com o seu próprio título.">
         <button type="button" className="btn btn-ghost" onClick={() => nav('/inicio')}><CircleSlash size={15} /> Cancelar</button>
       </PageHead>
       <BannerIncidentes />

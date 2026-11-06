@@ -12,6 +12,15 @@ const cores = (nomes: string[]) => Object.fromEntries(nomes.map((n) => [n, cor(n
 
 export default {
   content: ['./index.html', './src/**/*.{js,jsx,ts,tsx}'],
+  // Classes de componente montadas com `${...}` no JSX (o Tailwind não as encontra sozinho).
+  safelist: [
+    ...['marca', 'ok', 'aviso', 'ruim', 'info'].map((t) => `k-${t}`),
+    ...['ok', 'alerta', 'estourado', 'pausado'].map((t) => `sla-${t}`),
+    ...['warn', 'bad', 'ok', 'info', 'gray'].map((t) => `note-${t}`),
+    ...['ok', 'aberto', 'parado', 'vazia', 'off'].map((t) => `st-${t}`),
+    ...['ok', 'alerta', 'neutro'].map((t) => `en-${t}`),
+    'marca-normal', 'marca-entrada', 'bad', 'info'
+  ],
   darkMode: ['selector', '[data-theme="dark"]'],
   theme: {
     extend: {
@@ -26,9 +35,9 @@ export default {
         'cinza', 'cinza-fundo', 'cinza-ponto'
       ]),
       fontFamily: {
-        // A fonte do texto vem da personalização (--fonte); títulos usam a display.
+        // Uma fonte só, neutra (Inter), para texto e títulos. A personalização pode trocar (--fonte).
         sans: ['var(--fonte)'],
-        display: ['"Space Grotesk Variable"', '"Inter Variable"', '"Segoe UI"', 'sans-serif'],
+        display: ['var(--fonte)'],
         mono: ['"JetBrains Mono Variable"', 'ui-monospace', 'Consolas', 'monospace']
       },
       borderRadius: {

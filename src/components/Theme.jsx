@@ -9,7 +9,6 @@ import { Marca } from './Marca.tsx';
 /** Fontes servidas pelo próprio site (sem CDN externo, o CSP fica fechado). */
 export const FONTES = {
   Inter: "'Inter Variable', 'Segoe UI', Roboto, Arial, sans-serif",
-  'Space Grotesk': "'Space Grotesk Variable', 'Segoe UI', sans-serif",
   Sistema: "system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif"
 };
 

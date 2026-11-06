@@ -261,7 +261,7 @@ export function StoreProvider({ children }) {
             c.reaberturas = (c.reaberturas || 0) + 1;
           }
           mudar(s, ctx, c, 'Em Execução', `Reaberto: ${just}`);
-          if (c.tecnicoId) ctx.notificar('TI', `${numeroChamado(id)} voltou para ${nomeUser(s, c.tecnicoId)} (RN07): ${just}`);
+          if (c.tecnicoId) ctx.notificar('TI', `${numeroChamado(id)} voltou para ${nomeUser(s, c.tecnicoId)}: ${just}`);
         });
       },
       comentar(id, texto) {

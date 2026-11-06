@@ -62,7 +62,7 @@ export default function Espacos() {
 
   return (
     <>
-      <PageHead title="Espaços e baias" desc="Monte salas e mesas sem programação. O mapa aparece na hora para o supervisor responsável, e o padrão de etiqueta é recalculado sem perder histórico.">
+      <PageHead title="Espaços e baias" desc="Monte salas, mesas e o padrão de etiqueta.">
         {existente && <button type="button" className="btn" onClick={() => { setEd(VAZIO); setSalvo(null); }}><Plus size={15} /> Nova mesa</button>}
       </PageHead>
 
@@ -131,7 +131,7 @@ export default function Espacos() {
               {exemplos.map(([c, d]) => <div key={d} className="flex flex-wrap items-center gap-2"><span className="tag">{c}</span><span className="text-xs">{d}</span></div>)}
               {!ed.padrao.includes('lado') && <span className="text-[11px] text-mudo">Sem o campo Lado, as baias são numeradas em sequência: primeiro o lado esquerdo, depois o direito.</span>}
             </div>
-            {mudaEtiqueta && <Note tipo="warn">Ao salvar, as {nItensMesa} etiquetas desta mesa serão recalculadas e uma folha nova fica disponível no estoque. O histórico não se perde: ele está preso ao ID interno de cada item (RN12).</Note>}
+            {mudaEtiqueta && <Note tipo="warn">Ao salvar, as {nItensMesa} etiquetas desta mesa são recalculadas. O histórico de cada item não se perde.</Note>}
           </div>
         </section>
 

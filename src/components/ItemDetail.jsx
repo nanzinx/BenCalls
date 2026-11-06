@@ -67,7 +67,7 @@ export default function ItemDetail({ id, onClose, abrir }) {
       {it.descartePendente && tem(user, 'APROV') && (
         <Note tipo="warn" icon={ShieldCheck}>
           <div className="flex flex-col gap-1.5">
-            <span><b>Aprovação de descarte (RN05).</b> Item descartado não volta a nenhum status.</span>
+            <span><b>Aprovação de descarte.</b> Item descartado não volta a nenhum status.</span>
             <div className="flex flex-wrap items-center gap-2">
               <button type="button" className="btn btn-sm btn-danger" onClick={() => { actions.decidirDescarte(it.id, true); toast(`${it.id} baixado do patrimônio.`); }}><CheckCircle2 size={14} /> Aprovar descarte</button>
               <button type="button" className="btn btn-sm" onClick={() => { actions.decidirDescarte(it.id, false); toast('Descarte recusado.'); }}><XCircle size={14} /> Recusar</button>
@@ -86,7 +86,7 @@ export default function ItemDetail({ id, onClose, abrir }) {
 
       {modo === 'status' && (
         <div className="card card-flat flex flex-col gap-1.5 bg-superficie-2">
-          <span className="text-xs font-semibold">Ciclo de vida (§4): de “{it.status}” pode ir para</span>
+          <span className="text-xs font-semibold">Ciclo de vida: de “{it.status}” pode ir para</span>
           <div className="flex flex-wrap items-center gap-1.5">
             {transicoes.map((s) => <button key={s} type="button" className="pill" aria-pressed={novo === s} onClick={() => setNovo(s)}>{s}</button>)}
           </div>

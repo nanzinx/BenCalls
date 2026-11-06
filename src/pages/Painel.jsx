@@ -43,33 +43,42 @@ export default function Painel() {
 
   return (
     <>
-      <PageHead title="Painel de chamados" desc="Chamados em andamento, com baia, item e triagem. Ordenados por prioridade e pelo prazo de SLA restante.">
+      <PageHead title="Painel de chamados" desc="Em andamento, por prioridade e prazo.">
         <Seg label="Visualização" value={vis} onChange={setV} options={[{ value: 'kanban', label: 'Quadro', icon: KanbanSquare }, { value: 'lista', label: 'Lista', icon: List }]} />
       </PageHead>
       <BannerIncidentes />
       <div className="grid-kpi">
-        <Kpi icon={Flame} ajuda={<AjudaSla />} label="SLA estourado" valor={estourados} sub="Relógio do SLA correndo" destaque={estourados > 0} onClick={() => setFlag('sla')} />
-        <Kpi icon={Timer} label="SLA perto de estourar" valor={quase} sub="Menos de 25% do prazo" onClick={() => setFlag('sla')} />
-        <Kpi icon={AlertTriangle} label="Alertas de triagem" valor={abertos.filter((c) => c.alerta).length} sub="Passos marcados rápido demais" onClick={() => setFlag('alerta')} />
-        <Kpi icon={ClipboardCheck} label="“Outros” a revisar" valor={abertos.filter((c) => c.outros && !c.outrosRevisado).length} sub="Fila de revisão" onClick={() => setFlag('outros')} />
-        <Kpi icon={UserCheck} label="Comigo" valor={abertos.filter((c) => c.tecnicoId === user.id).length} sub="Chamados que você assumiu" onClick={() => setFlag('meus')} />
+        <Kpi icon={Flame} ajuda={<AjudaSla />} label="SLA estourado" valor={estourados} destaque={estourados > 0} ativo={flag === 'sla'} onClick={() => setFlag(flag === 'sla' ? 'todos' : 'sla')} />
+        <Kpi icon={Timer} tom="aviso" label="SLA perto de estourar" valor={quase} title="Menos de 25% do prazo restante" ativo={flag === 'sla'} onClick={() => setFlag(flag === 'sla' ? 'todos' : 'sla')} />
+        <Kpi icon={AlertTriangle} tom="aviso" label="Alertas de triagem" valor={abertos.filter((c) => c.alerta).length} title="Passos da triagem marcados rápido demais" ativo={flag === 'alerta'} onClick={() => setFlag(flag === 'alerta' ? 'todos' : 'alerta')} />
+        <Kpi icon={ClipboardCheck} label="“Outros” a revisar" valor={abertos.filter((c) => c.outros && !c.outrosRevisado).length} tom="info" title="Chamados fora do catálogo aguardando revisão" ativo={flag === 'outros'} onClick={() => setFlag(flag === 'outros' ? 'todos' : 'outros')} />
+        <Kpi icon={UserCheck} label="Comigo" valor={abertos.filter((c) => c.tecnicoId === user.id).length} tom="ok" title="Chamados que você assumiu" ativo={flag === 'meus'} onClick={() => setFlag(flag === 'meus' ? 'todos' : 'meus')} />
       </div>
 
-      <div className="card flex flex-col gap-3 p-3.5">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="search-wrap flex-[1_1_260px] max-w-[380px]">
-            <Search size={16} />
-            <input className="input input-search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Buscar por número, baia, ocupante, solicitante…" aria-label="Buscar no painel" />
-          </div>
-          <Pills label="Departamento" value={depto} onChange={setDepto} options={['Todos', 'TI', 'Facilities']} />
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="search-wrap min-w-[220px] flex-[1_1_260px]">
+          <Search size={16} />
+          <input className="input input-search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Buscar número, baia, pessoa…" aria-label="Buscar no painel" />
         </div>
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <Pills label="Prioridade" value={prio} onChange={setPrio} options={['Todas', ...PRIORIDADES]} />
-          <Pills label="Filtro rápido" value={flag} onChange={setFlag} options={[
-            { value: 'todos', label: 'Todos' }, { value: 'meus', label: 'Comigo' }, { value: 'parado', label: 'Operador parado' },
-            { value: 'sla', label: 'SLA em risco' }, { value: 'alerta', label: 'Alerta de triagem' }, { value: 'outros', label: '“Outros”' }
-          ]} />
-        </div>
+        <select className="select w-auto" value={flag} onChange={(e) => setFlag(e.target.value)} aria-label="Mostrar">
+          <option value="todos">Todos os chamados</option>
+          <option value="meus">Só os meus</option>
+          <option value="parado">Operador parado</option>
+          <option value="sla">SLA em risco</option>
+          <option value="alerta">Alerta de triagem</option>
+          <option value="outros">“Outros” a revisar</option>
+        </select>
+        <select className="select w-auto" value={prio} onChange={(e) => setPrio(e.target.value)} aria-label="Prioridade">
+          <option value="Todas">Todas as prioridades</option>
+          {PRIORIDADES.map((p) => <option key={p}>{p}</option>)}
+        </select>
+        <select className="select w-auto" value={depto} onChange={(e) => setDepto(e.target.value)} aria-label="Departamento">
+          <option value="Todos">Todos os departamentos</option>
+          <option>TI</option><option>Facilities</option>
+        </select>
+        {(q || prio !== 'Todas' || depto !== 'Todos' || flag !== 'todos') && (
+          <button type="button" className="btn btn-ghost btn-sm" onClick={() => { setQ(''); setPrio('Todas'); setDepto('Todos'); setFlag('todos'); }}>Limpar</button>
+        )}
       </div>
 
       {filtrados.length === 0 && <Empty title="Nenhum chamado com esses filtros">Limpe os filtros para ver todos os {abertos.length} chamados em andamento.</Empty>}

@@ -23,7 +23,7 @@ function Editar({ u, onClose }) {
       <div className="field">Perfil de acesso<Pills label="Perfil" value={f.perfil} onChange={(v) => setF({ ...f, perfil: v })} options={Object.entries(PERFIS).map(([k, p]) => ({ value: k, label: p.label }))} /></div>
       <div className="text-xs text-mudo">Acessos do perfil: {PERFIS[f.perfil].acessos.map((a) => ACESSOS[a]).join(' · ')}</div>
       {f.perfil === 'supervisor' && (
-        <div className="field">Mesas sob responsabilidade (RN06: só vê e abre chamados dessas baias)
+        <div className="field">Mesas sob responsabilidade (só vê e abre chamados dessas baias)
           <div className="flex flex-wrap items-center gap-1.5">{st.layouts.map((l) => {
             const on = f.equipes.includes(l.id);
             return <button key={l.id} type="button" className="pill" aria-pressed={on} onClick={() => setF({ ...f, equipes: on ? f.equipes.filter((x) => x !== l.id) : [...f.equipes, l.id] })}>{l.base}</button>;
@@ -42,7 +42,7 @@ export default function Usuarios() {
   const lista = st.usuarios.filter((u) => !q || normalizar(`${u.nome} ${u.user} ${u.cargo} ${u.depto}`).includes(normalizar(q)));
   return (
     <>
-      <PageHead title="Usuários" desc="Mesma função do sistema atual (cargos, departamentos, equipes e acessos), agora com perfil e mesas de cada supervisor.">
+      <PageHead title="Usuários" desc="Quem acessa o sistema, com perfil e mesas de cada supervisor.">
         <button type="button" className="btn btn-primary" onClick={() => setEd(null)}><Plus size={16} /> Novo usuário</button>
       </PageHead>
       <div className="search-wrap max-w-[360px]"><Search size={16} /><input className="input input-search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Buscar por nome, usuário ou cargo" aria-label="Buscar usuário" /></div>

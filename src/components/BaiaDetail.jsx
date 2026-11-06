@@ -64,7 +64,7 @@ export default function BaiaDetail({ chave, onClose, abrir }) {
 
       {editando && (
         <div className="card card-flat flex flex-col gap-1.5 bg-superficie-2">
-          <span className="text-xs font-semibold">Registrar nova ocupação (RF02)</span>
+          <span className="text-xs font-semibold">Registrar nova ocupação</span>
           <input className="input" value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Nome do operador (vazio = baia desocupada)" autoFocus />
           <div className="flex flex-wrap items-center gap-1.5">
             {['Manhã', 'Tarde', 'Noite', 'Integral'].map((t) => <button key={t} type="button" className="pill" aria-pressed={turno === t} onClick={() => setTurno(t)}>{t}</button>)}

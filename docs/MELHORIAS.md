@@ -58,3 +58,16 @@ Usuários, Catálogo e Espaços com três perfis. Esta versão implementa o esco
 - Validar com RH/jurídico o texto do termo e o fluxo do dossiê antes da produção (CLT, art. 462, §1º).
 - Mutirão de inventário: a folha de etiquetas por mesa já está pronta para a etiquetagem baia a baia.
 - QR code na etiqueta apontando para `?item=BEN-0000`, para o técnico abrir o histórico pela câmera.
+
+## Tailwind e refinamento visual
+
+- **Tailwind CSS 3**, no mesmo padrão do BenHeimdall (tokens em trincas RGB, componentes com `@apply`).
+- **Fonte única, Inter**, neutra, para texto e títulos (sem a fonte de identidade do BenHeimdall).
+- **Menos poluição:** sem códigos do escopo (RF/RN) na tela, descrições de página em uma linha, indicadores
+  só com o número (a explicação fica no balão do mouse) e avisos agrupados num cartão “Precisa de atenção”.
+- **Cartão de chamado em uma linha:** título, número, tempo, baia e ocupante; prazo e status à direita; faixa
+  colorida pela prioridade; alertas como ícones.
+- **Detalhe do chamado em abas** (Resumo, Triagem, Comentários, Histórico) com as ações fixas no rodapé.
+- **Menu do usuário no avatar:** situação do técnico, tema escuro, reiniciar demonstração e sair.
+- **Menu lateral recolhível** (só ícones), lembrado entre as visitas.
+- **Filtros do painel numa linha** e indicadores que funcionam como atalho de filtro (mostram quando estão ativos).

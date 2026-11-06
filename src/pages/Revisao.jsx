@@ -76,10 +76,10 @@ export default function Revisao() {
 
   return (
     <>
-      <PageHead title="Revisão de “Outros”" desc="“Outros” não pode virar gaveta. Reclassifique cada chamado e, quando o mesmo problema se repetir, promova o texto a uma situação oficial com um clique — o catálogo cresce com o uso real." />
+      <PageHead title="Revisão de “Outros”" desc="Reclassifique os chamados fora do catálogo ou transforme os repetidos em situação oficial." />
       <div className="grid-kpi">
-        <Kpi icon={ClipboardCheck} label="Na fila" valor={fila.length} destaque={fila.length > 0} sub="Aguardando reclassificação" />
-        <Kpi icon={PieChart} label="“Outros” nos últimos 30 dias" valor={`${pct}%`} sub={`${outrosMes.length} de ${mes.length} chamados · meta: abaixo de 10%`} />
+        <Kpi icon={ClipboardCheck} label="Na fila" valor={fila.length} destaque={fila.length > 0} title="Aguardando reclassificação" />
+        <Kpi icon={PieChart} label="“Outros” nos últimos 30 dias" valor={`${pct}%`} tom="info" sub={`${outrosMes.length} de ${mes.length} · meta abaixo de 10%`} />
       </div>
       <div className="split">
         <section className="main flex flex-col gap-3">
@@ -101,7 +101,7 @@ export default function Revisao() {
         </section>
         <aside className="side flex flex-col gap-3">
           <section className="card flex flex-col gap-1.5">
-            <div className="card-title">Palavras mais frequentes (RF48)</div>
+            <div className="card-title">Palavras mais frequentes</div>
             {palavras.length ? <Bars dados={palavras} cor="rgb(var(--aviso-ponto))" /> : <span className="text-xs text-mudo">Sem dados.</span>}
             <span className="text-[11px] text-mudo">Palavras que se repetem são candidatas a nova situação.</span>
           </section>

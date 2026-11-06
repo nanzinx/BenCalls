@@ -18,12 +18,12 @@ export default function MapaGeral() {
 
   return (
     <>
-      <PageHead title="Mapa geral" desc={`Todas as salas e mesas no layout físico. ${total} posições cadastradas. Clique numa baia para ver o histórico, os itens e os chamados.`}>
+      <PageHead title="Mapa geral" desc={`${total} posições em todas as salas. Clique numa baia para ver o histórico.`}>
         <Legenda />
       </PageHead>
       <BannerIncidentes />
       <div className="grid-kpi">
-        {Object.entries(cont).map(([k, v]) => <Kpi key={k} label={ST_BAIA[k].label} valor={v} sub={`${Math.round((v / total) * 100)}% das posições`} destaque={k === 'parado' && v > 0} />)}
+        {Object.entries(cont).map(([k, v]) => <Kpi key={k} label={ST_BAIA[k].label} valor={v} sub={`${Math.round((v / total) * 100)}% das posições`} tom={{ ok: 'ok', aberto: 'aviso', parado: 'ruim', vazia: 'marca' }[k]} destaque={k === 'parado' && v > 0} />)}
       </div>
       {salas.map((sala) => {
         let mesas = st.layouts.filter((l) => l.sala === sala);

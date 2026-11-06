@@ -40,10 +40,10 @@ function Dossie({ d, onClose }) {
         <Note tipo={d.status === 'Procedente' ? 'bad' : 'ok'} icon={Gavel}><b>{d.status}</b> · {nomeUser(st, d.decisao.user)} · {dataHora(d.decisao.at)}<br />{d.decisao.just}</Note>
       ) : (
         <div className="card card-flat flex flex-col gap-1.5 bg-superficie-2">
-          <label className="field">Decisão do RH (RF21)
+          <label className="field">Decisão do RH
             <textarea className="textarea" rows={3} value={just} onChange={(e) => setJust(e.target.value)} placeholder="Fundamente a decisão (termo, fotos, laudo, conversa com o colaborador)…" />
           </label>
-          <span className="text-xs text-mudo">O sistema não aplica desconto em folha: só registra a decisão (RN03).</span>
+          <span className="text-xs text-mudo">O sistema não aplica desconto em folha: só registra a decisão.</span>
           <div className="flex flex-wrap items-center gap-2">
             <button type="button" className="btn btn-danger" disabled={just.trim().length < 10} onClick={() => { actions.decidirDossie(d.id, 'Procedente', just.trim()); toast('Dossiê marcado como procedente.'); onClose(); }}>Procedente</button>
             <button type="button" className="btn btn-ok" disabled={just.trim().length < 10} onClick={() => { actions.decidirDossie(d.id, 'Improcedente', just.trim()); toast('Dossiê marcado como improcedente.'); onClose(); }}>Improcedente</button>
@@ -62,11 +62,11 @@ export default function Dossies() {
   const n = (s) => st.dossies.filter((d) => d.status === s).length;
   return (
     <>
-      <PageHead title="Dossiês do RH" desc="Gerados automaticamente quando o laudo técnico aponta “mau uso”. Reúnem chamado, laudo, fotos, ocupante e termo assinado. A decisão é humana." />
+      <PageHead title="Dossiês do RH" desc="Casos de laudo “mau uso” aguardando a decisão do RH." />
       <div className="grid-kpi">
         <Kpi icon={ShieldAlert} label="Aguardando análise" valor={n('Aguardando RH')} destaque={n('Aguardando RH') > 0} />
         <Kpi icon={Gavel} label="Procedentes" valor={n('Procedente')} />
-        <Kpi icon={Gavel} label="Improcedentes" valor={n('Improcedente')} />
+        <Kpi icon={Gavel} tom="ok" label="Improcedentes" valor={n('Improcedente')} />
       </div>
       <Pills label="Filtro" value={filtro} onChange={setFiltro} options={['Aguardando RH', 'Procedente', 'Improcedente', 'Todos']} />
       {!lista.length ? <Empty icon={ShieldAlert} title="Nenhum dossiê aqui" /> : (

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import clsx from 'clsx';
 import { X, Clock, PauseCircle, AlertTriangle, CheckCircle2, Info, Inbox, HelpCircle } from 'lucide-react';
 import { useContagem } from './Entrada.tsx';
 import { slaInfo } from '../lib/rules.ts';
@@ -78,13 +79,22 @@ export function AjudaSla() {
   return <Ajuda titulo="O que é SLA?"><b>O que é SLA?</b> {TEXTO_SLA}</Ajuda>;
 }
 
-export function Kpi({ label, valor, sub, destaque, icon: Icon, onClick, ajuda }) {
+/**
+ * Indicador: número grande, rótulo curto e o ícone num selo colorido.
+ * `sub` só quando acrescenta um dado (ex.: "151 concluídos"); explicação vai no `title`.
+ */
+export function Kpi({ label, valor, sub, destaque, icon: Icon, onClick, ajuda, tom = 'marca', title, ativo }) {
   return (
-    <div className={`kpi${destaque ? ' destaque' : ''}`}>
-      <span className="k-label">{Icon && <Icon size={14} />}{label}{ajuda}</span>
-      <span className="k-valor"><Contador valor={valor} /></span>
+    <div className={clsx('kpi', destaque && 'destaque', ativo && 'kpi-ativo')} title={title}>
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex min-w-0 flex-col gap-1">
+          <span className="k-label">{label}{ajuda}</span>
+          <span className="k-valor"><Contador valor={valor} /></span>
+        </div>
+        {Icon && <span className={`k-icone k-${destaque ? 'ruim' : tom}`} aria-hidden="true"><Icon size={18} /></span>}
+      </div>
       {sub && <span className="k-sub">{sub}</span>}
-      {onClick && <button type="button" className="k-link" onClick={onClick} aria-label={`${label}: ${valor}. Ver detalhes`} />}
+      {onClick && <button type="button" className="k-link" onClick={onClick} aria-label={`${label}: ${valor}. Filtrar`} aria-pressed={ativo || undefined} />}
     </div>
   );
 }

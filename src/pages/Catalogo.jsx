@@ -40,8 +40,8 @@ export default function Catalogo() {
 
   return (
     <>
-      <PageHead title="Catálogo de chamados" desc="Categoria › tipo › situação. Categorias e tipos já existem na API (com prioridade e SLA); a versão nova acrescenta as situações, com a triagem de cada uma. Tudo sem programação.">
-        <label className="btn cursor-pointer"><Upload size={15} /> Importar planilha (CSV)
+      <PageHead title="Catálogo de chamados" desc="Categoria › tipo › situação, com os passos de triagem de cada uma.">
+        <label className="btn cursor-pointer" title="Planilha CSV no formato Categoria;Tipo;Situação;Passo 1|Passo 2"><Upload size={15} /> Importar planilha (CSV)
           <input type="file" accept=".csv,.txt" className="sr-only" onChange={async (e) => {
             const f = e.target.files?.[0]; if (!f) return;
             const { cat, criadas } = importarCsv(await f.text(), st.catalogo);
@@ -51,7 +51,6 @@ export default function Catalogo() {
           }} />
         </label>
       </PageHead>
-      <Note tipo="info">RF47: importe o catálogo do sistema atual com uma planilha no formato <span className="font-mono">Categoria;Tipo;Situação;Passo 1|Passo 2</span>. Linhas repetidas são ignoradas.</Note>
 
       <div className="grid items-start gap-4 grid-cols-[repeat(auto-fit,_minmax(260px,_1fr))]">
         <section className="card flex flex-col gap-1.5">
@@ -133,7 +132,7 @@ export default function Catalogo() {
             const nome = prompt(`Nova situação para ${S.nome}`); if (!nome?.trim()) return;
             editar((cat, c, s) => { s.sits.splice(Math.max(0, s.sits.findIndex((y) => y.outros)), 0, { id: nid('s'), nome: nome.trim(), passos: [] }); }, `Situação criada: ${nome}`);
           }}><Plus size={14} /> Situação</button>
-          <span className="text-[11px] text-mudo">“Outros” existe em todo tipo e não pode ser removido (RF44).</span>
+          <span className="text-[11px] text-mudo">“Outros” existe em todo tipo e não pode ser removido.</span>
         </section>
       </div>
     </>

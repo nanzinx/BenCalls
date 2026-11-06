@@ -13,10 +13,10 @@ export default function Auditoria() {
   const lista = st.auditoria.filter((a) => !q || normalizar(`${a.acao} ${a.alvo} ${a.detalhe} ${nomeUser(st, a.user)}`).includes(normalizar(q)));
   return (
     <>
-      <PageHead title="Auditoria" desc="Registro imutável das ações: aberturas, mudanças de status, laudos, movimentações de estoque, decisões do RH, alterações de catálogo, tema e acessos.">
+      <PageHead title="Auditoria" desc="Tudo o que foi feito no sistema, por quem e quando. Não pode ser alterado.">
         <button type="button" className="btn" onClick={() => baixarCsv('auditoria', ['Quando', 'Usuário', 'Ação', 'Alvo', 'Detalhe'], lista.map((a) => [new Date(a.at).toLocaleString('pt-BR'), nomeUser(st, a.user), a.acao, a.alvo, a.detalhe]))}><Download size={15} /> Exportar</button>
       </PageHead>
-      <Note tipo="gray" icon={Lock}>Somente leitura. Na versão final o registro é gravado pela API (não pelo navegador) e nenhum perfil consegue editar ou apagar.</Note>
+      <Note tipo="gray" icon={Lock}>Somente leitura: nenhum perfil edita ou apaga registros.</Note>
       <div className="search-wrap max-w-[420px]"><Search size={16} /><input className="input input-search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Filtrar por ação, usuário, chamado, item…" aria-label="Filtrar auditoria" /></div>
       <div className="card card-pad-0 table-wrap">
         <table className="table min-w-[720px]">
