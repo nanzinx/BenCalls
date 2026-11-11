@@ -67,3 +67,21 @@ test('middleware do Vite responde 403 para IP fora da lista e deixa os liberados
   assert.equal(b.res.statusCode, 403);
   assert.equal(b.passou, false);
 });
+
+test('atrás do ngrok (CONFIAR_PROXY): vale o IP real do X-Forwarded-For, só em conexão local', async () => {
+  const { ipDoCliente } = await import('../server/acesso-ip.mjs');
+  const req = (remoto, headers = {}) => ({ socket: { remoteAddress: remoto }, headers });
+  const proxy = { proxy: true };
+  // visitante do túnel: conexão local + cabeçalho → o IP real (o último, que o túnel acrescentou)
+  assert.equal(ipDoCliente(req('127.0.0.1', { 'x-forwarded-for': '8.8.8.8' }), proxy), '8.8.8.8');
+  assert.equal(ipDoCliente(req('::ffff:127.0.0.1', { 'x-forwarded-for': '201.93.163.133, 8.8.8.8' }), proxy), '8.8.8.8');
+  assert.equal(ipDoCliente(req('::1', { 'x-forwarded-for': '2804:431:80f7:7700::1' }), proxy), '2804:431:80f7:7700::1');
+  // a própria máquina (sem cabeçalho) continua local
+  assert.equal(ipDoCliente(req('127.0.0.1'), proxy), '127.0.0.1');
+  // de fora, o cabeçalho não vale (qualquer um poderia inventar um IP liberado)
+  assert.equal(ipDoCliente(req('189.10.20.30', { 'x-forwarded-for': '201.93.163.133' }), proxy), '189.10.20.30');
+  // sem a opção ligada, o cabeçalho é ignorado
+  assert.equal(ipDoCliente(req('127.0.0.1', { 'x-forwarded-for': '8.8.8.8' })), '127.0.0.1');
+  // Cloudflare continua igual
+  assert.equal(ipDoCliente(req('127.0.0.1', { 'cf-connecting-ip': '201.93.163.133' }), { cloudflare: true }), '201.93.163.133');
+});

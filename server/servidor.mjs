@@ -13,6 +13,7 @@
 //
 // Variáveis: PORT (8080), HOST (0.0.0.0), DIST_DIR (../dist), API_URL (origem extra liberada no
 // connect-src do CSP), TRUST_CLOUDFLARE=1 (usa CF-Connecting-IP como IP do cliente),
+// CONFIAR_PROXY=1 (atrás do ngrok neste mesmo computador: usa o X-Forwarded-For das conexões locais),
 // LIMITE_POR_MINUTO (600), LOG_ACESSO (1), IPS_LIBERADOS (soma IPs aos de ips-liberados.txt; só eles
 // entram), RESTRINGIR_IPS=0 (desliga a restrição, só para teste local),
 // BENHERMES_SEGREDO ou BENHERMES_SEGREDO_ARQUIVO (liga a API de integração com o BenHermes) e
@@ -23,7 +24,7 @@ import { join, relative, extname, resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createHash } from 'node:crypto';
 import { gzipSync, brotliCompressSync, constants as zc } from 'node:zlib';
-import { carregarRegras, resumoDoFiltro } from './acesso-ip.mjs';
+import { carregarRegras, resumoDoFiltro, ipDoCliente, confiancaDoAmbiente } from './acesso-ip.mjs';
 import { criarIntegracao } from './integracao/rotas.mjs';
 
 const AQUI = dirname(fileURLToPath(import.meta.url));
@@ -31,7 +32,7 @@ const PORT = Number(process.env.PORT || 8080);
 const HOST = process.env.HOST || '0.0.0.0';
 const DIST = resolve(process.env.DIST_DIR || join(AQUI, '..', 'dist'));
 const API_URL = (process.env.API_URL || '').trim();
-const TRUST_CF = process.env.TRUST_CLOUDFLARE === '1';
+const CONFIANCA = confiancaDoAmbiente();
 const LIMITE = Number(process.env.LIMITE_POR_MINUTO || 600);
 const LOG = process.env.LOG_ACESSO !== '0';
 const VERSAO = process.env.BENCALLS_VERSAO || 'dev';
@@ -142,8 +143,7 @@ setInterval(() => {
 }, 60_000).unref();
 
 function ipDe(req) {
-  const cf = TRUST_CF ? req.headers['cf-connecting-ip'] : null;
-  return (typeof cf === 'string' && cf) || req.socket.remoteAddress || '?';
+  return ipDoCliente(req, CONFIANCA) || '?';
 }
 
 // ---------------------------------------------------------------- rotas
@@ -247,7 +247,7 @@ if (ehPrincipal) {
   const integracao = criarIntegracao();
   const servidor = criarServidor(mapa, filtro, integracao);
   servidor.listen(PORT, HOST, () => {
-    console.log(`BenCalls ${VERSAO} no ar em http://${HOST}:${PORT} · ${mapa.size} arquivos · ${resumoDoFiltro(filtro)} · integração BenHermes ${integracao.ativa ? 'ligada' : 'desligada'} · pid ${process.pid}`);
+    console.log(`BenCalls ${VERSAO} no ar em http://${HOST}:${PORT} · ${mapa.size} arquivos · ${resumoDoFiltro(filtro)} · integração BenHermes ${integracao.ativa ? 'ligada' : 'desligada'}${CONFIANCA.proxy ? ' · atrás de túnel local (X-Forwarded-For)' : ''} · pid ${process.pid}`);
     process.send?.('ready'); // pm2 wait_ready
   });
   let saindo = false;

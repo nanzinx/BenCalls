@@ -144,3 +144,47 @@ docker compose exec bencalls node node_modules/pm2/bin/pm2 list
 ```bash
 curl -s http://127.0.0.1:8080/healthz
 ```
+
+## 9. Provisório: publicar pelo ngrok
+
+Para mostrar o sistema antes do servidor definitivo, dá para publicar o BenCalls do próprio PC com pm2 + ngrok.
+
+1. Crie o `.env` (copie o `.env.example`) e ligue a opção do túnel local:
+
+   ```
+   CONFIAR_PROXY=1
+   ```
+
+   **Não pule este passo.** O ngrok entrega os acessos a partir do próprio PC; sem a opção, todo visitante
+   pareceria `localhost` e passaria pela lista de IPs liberados. Com ela, vale o IP real de quem acessa
+   (`X-Forwarded-For`, aceito só de conexões locais).
+
+2. Suba com o pm2 (ele lê o `.env`):
+
+   ```bash
+   npm run build
+   ```
+
+   ```bash
+   npx pm2 start ecosystem.config.cjs
+   ```
+
+3. Abra o túnel para a porta do site:
+
+   ```bash
+   ngrok http 8080
+   ```
+
+O endereço `https://….ngrok-free.app` que o ngrok mostrar já funciona para os IPs de
+[`server/ips-liberados.txt`](../server/ips-liberados.txt) (some outros em `IPS_LIBERADOS` no `.env`).
+Depois de mudar o `.env`: `npx pm2 restart ecosystem.config.cjs --update-env`.
+
+O que saber antes de mandar o link:
+
+- **Os dados ainda são de demonstração e ficam no navegador de cada pessoa.** Um chamado aberto por alguém não
+  aparece para os outros. Isso só muda com o servidor de dados (BenApi).
+- No plano gratuito, o ngrok mostra uma página de aviso na primeira visita e o endereço muda a cada vez que o
+  túnel é reaberto.
+- Com o BenHermes no mesmo PC, use `BENCALLS_URL=http://localhost:8080` nele: os avisos da integração chegam
+  direto, sem passar pelo túnel.
+- O PC precisa ficar ligado, com o pm2 e o ngrok rodando.

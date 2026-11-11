@@ -240,7 +240,8 @@ Passo a passo completo, incluindo a configuração na Cloudflare: **[`docs/DEPLO
 - **Servidor próprio:** CSP fechado, HSTS e demais cabeçalhos; só serve os arquivos do build; limite de requisições por IP.
 - **Só IPs liberados:** como no BenHermes, só entram os IPs e faixas de [`server/ips-liberados.txt`](server/ips-liberados.txt)
   (IPv4 e IPv6, com ou sem `/prefixo`); o resto recebe 403. Vale no servidor, no `npm run dev` e no `npm run preview`.
-  Atrás do túnel o IP real vem do `CF-Connecting-IP`. Para barrar também na borda da Cloudflare, veja
+  Atrás do Cloudflare Tunnel o IP real vem do `CF-Connecting-IP`; atrás do ngrok, ligue `CONFIAR_PROXY=1`
+  ([`docs/DEPLOY.md`](docs/DEPLOY.md#9-provisório-publicar-pelo-ngrok)). Para barrar também na borda da Cloudflare, veja
   [`docs/DEPLOY.md`](docs/DEPLOY.md#5-só-ips-liberados).
 - **Sessão:** expira após 30 min sem uso; 5 senhas erradas bloqueiam o login por 5 min.
 
