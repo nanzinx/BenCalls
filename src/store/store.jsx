@@ -15,9 +15,10 @@ import { paraVoce } from '../lib/notificacoes.ts';
 import { whatsappDaBaia, trocarOperador } from '../lib/whatsapp-baias.ts';
 import { aplicarAcao, ACAO } from '../lib/benhermes/whatsappManutencao.ts';
 import { gravarAlteracao } from '../lib/benhermes/whatsappHistorico.ts';
-import { aplicarEventos } from '../lib/integracao-benhermes.ts';
+import { aplicarEventos, separarCodigo } from '../lib/integracao-benhermes.ts';
+import { sincronizarChamados, revisarAguardando, etapaDoWhatsapp } from '../lib/estagios-whatsapp.ts';
 
-const KEY = 'bencalls:demo:v7';
+const KEY = 'bencalls:demo:v8';
 const SESS = 'bencalls:sessao';
 const SESSAO_HORAS = 8;
 
@@ -26,7 +27,7 @@ function carregar() {
     const raw = localStorage.getItem(KEY);
     if (raw) {
       const st = JSON.parse(raw);
-      if (st && st.versao === 7) return st;
+      if (st && st.versao === 8) return st;
     }
   } catch { /* storage indisponível */ }
   return seed();
@@ -133,6 +134,26 @@ export function StoreProvider({ children }) {
       ctx.notificar(grupoSup(s, c), `${numeroChamado(c.id)} · ${c.titulo} agora está "${status}"${just ? `: ${just}` : ''}`);
     };
     const achar = (s, id) => s.chamados.find((c) => c.id === id);
+    // Situações do catálogo ligadas ao WhatsApp ("WhatsApp banido", "restringido", "número perdido").
+    const sitsWhatsappDe = (s) => new Set(Object.values(indiceCatalogo(s).sits).filter((x) => x.whatsapp).map((x) => x.id));
+    /**
+     * Os chamados de WhatsApp da baia acompanham o estágio do número (estagios-whatsapp.ts):
+     * em análise/restringido ficam aguardando o WhatsApp; perdido volta ao TI; OK conclui.
+     */
+    const sincronizarBaia = (s, ctx, codigo, acao) => {
+      const partes = codigo && separarCodigo(codigo);
+      const L = partes && s.layouts.find((l) => l.base.toUpperCase() === partes.sigla.toUpperCase());
+      const w = L && whatsappDaBaia(s.whatsapp, L.base, partes.posicao, new Date(ctx.agora));
+      if (!w) return [];
+      const mudancas = sincronizarChamados(s.chamados, { layoutId: L.id, pos: partes.posicao }, w.estado, sitsWhatsappDe(s), ctx.agora,
+        { usuario: ctx.eu, onde: 'Controle de WhatsApps', acao });
+      for (const m of mudancas) {
+        if (m.tipo === 'anotado') continue;
+        ctx.audit(m.tipo === 'concluido' ? 'Chamado concluído pelo Controle de WhatsApps' : 'Chamado de WhatsApp', numeroChamado(m.chamadoId), m.texto);
+        ctx.notificar(`Supervisão ${L.sala} · ${L.nome}`, `${numeroChamado(m.chamadoId)}: ${m.texto}`);
+      }
+      return mudancas;
+    };
     const direcionar = (s, ctx, c, paraId, motivo) => {
       c.tecnicoId = paraId;
       c.direcionadoEm = ctx.agora;
@@ -231,14 +252,23 @@ export function StoreProvider({ children }) {
           ctx.audit('Chamado aberto', numeroChamado(id), `${c.titulo} · ${onde}`);
           ctx.notificar(c.depto === 'Facilities' ? 'Facilities' : 'TI', `Novo chamado ${numeroChamado(id)} · ${onde} · ${c.titulo}${prioritario ? ' · PRIORITÁRIO' : ''}${alerta ? ' · ⚠ alerta de triagem' : ''}`);
           if (c.layoutId) ctx.notificar(grupoSup(s, c), `Chamado ${numeroChamado(id)} aberto para ${onde}.`);
-          // Controle de WhatsApps: chamado "WhatsApp banido" já marca o número como banido no mapa.
-          if (princ.whatsapp === 'BANIDO' && c.layoutId && s.whatsapp && s.modulos.whatsapp) {
+          // Controle de WhatsApps: o chamado já marca o número no mapa ("WhatsApp banido" → banido;
+          // "WhatsApp restringido" → restringido pelo prazo informado) e passa a acompanhar o estágio.
+          const sitW = sitsUsadas.find((x) => x.whatsapp);
+          if (sitW && c.layoutId && s.whatsapp && s.modulos.whatsapp) {
             const L = layoutById(s, c.layoutId);
             const d = new Date(ctx.agora);
             const w = L && whatsappDaBaia(s.whatsapp, L.base, c.pos, d);
-            if (w && w.acoes.includes('BANIDO')) {
-              s.whatsapp = gravarAlteracao(s.whatsapp, aplicarAcao(s.whatsapp, w.alvo, 'BANIDO', d), d);
-              c.hist.push({ status: c.status, at: ctx.agora, just: `WhatsApp ${w.codigo} marcado como banido no Controle de WhatsApps.`, user: ctx.eu });
+            if (w) {
+              const r = p.whatsappRestricao;
+              const marcar = sitW.whatsapp === 'BANIDO' && w.acoes.includes('BANIDO') ? ['BANIDO', undefined, 'banido']
+                : sitW.whatsapp === 'RESTRINGIDO' && w.acoes.includes('RESTRINGIDO') && r?.quantidade > 0 ? ['RESTRINGIDO', { restricao: r }, `restringido por ${r.quantidade} ${r.unidade}`]
+                  : null;
+              if (marcar) {
+                s.whatsapp = gravarAlteracao(s.whatsapp, aplicarAcao(s.whatsapp, w.alvo, marcar[0], d, marcar[1]), d);
+                c.hist.push({ status: c.status, at: ctx.agora, just: `WhatsApp ${w.codigo} marcado como ${marcar[2]} no Controle de WhatsApps.`, user: ctx.eu });
+              }
+              sincronizarBaia(s, ctx, w.codigo);
             }
           }
           return id;
@@ -513,18 +543,8 @@ export function StoreProvider({ children }) {
             const L = mesa && s.layouts.find((l) => l.base.toUpperCase() === mesa.sigla.toUpperCase());
             if (L) ctx.notificar(`Supervisão ${L.sala} · ${L.nome}`, acao === 'BANIDO' ? `WhatsApp ${onde}${quem} caiu. A análise será pedida na manutenção.` : `WhatsApp ${onde}${quem} foi perdido: o chip será trocado.`);
           }
-          // Anota nos chamados de WhatsApp abertos daquela baia.
-          if (alvo.tipo === 'lugar') {
-            const mesa = s.whatsapp.salas.flatMap((x) => x.mesas).find((m) => m.id === alvo.mesaId);
-            const L = mesa && s.layouts.find((l) => l.base.toUpperCase() === mesa.sigla.toUpperCase());
-            if (L) {
-              for (const c of s.chamados) {
-                if (c.layoutId === L.id && c.pos === alvo.posicao && c.subId === 'b12' && ABERTOS.includes(c.status)) {
-                  c.hist.push({ status: c.status, at: ctx.agora, just: `Controle de WhatsApps: ${ACAO[acao].rotulo.toLowerCase()}${extra?.numeroNovo ? ` (número novo ${extra.numeroNovo})` : ''}.`, user: ctx.eu });
-                }
-              }
-            }
-          }
+          // Os chamados de WhatsApp daquela baia acompanham o novo estágio do número.
+          if (ev?.codigo) sincronizarBaia(s, ctx, ev.codigo, `${ACAO[acao].rotulo.toLowerCase()}${extra?.numeroNovo ? ` (número novo ${extra.numeroNovo})` : ''}`);
           return true;
         });
       },
@@ -556,11 +576,40 @@ export function StoreProvider({ children }) {
             if (e.tipo === 'chamado-concluido') {
               ctx.audit('Chamado concluído pelo BenHermes', numeroChamado(e.chamadoId), e.texto);
               ctx.notificar(e.grupo, `${numeroChamado(e.chamadoId)} concluído: ${e.texto}`);
-            } else if (e.tipo === 'whatsapp') ctx.notificar(e.grupo, e.texto);
+            } else if (e.tipo === 'chamado-status') ctx.notificar(e.grupo, `${numeroChamado(e.chamadoId)}: ${e.texto}`);
+            else if (e.tipo === 'whatsapp') ctx.notificar(e.grupo, e.texto);
             else ctx.notificar('TI', e.texto);
           }
           if (eventos.length) ctx.audit('Integração BenHermes', `${eventos.length} evento(s)`, efeitos.length ? `${efeitos.length} efeito(s)` : 'sem efeito');
           return efeitos;
+        });
+      },
+      /**
+       * Prazos que vencem sozinhos (restrição que terminou, análise sem resposta há 24 h): os chamados
+       * que estavam aguardando o WhatsApp voltam para o TI. Só mexe no estado se houver o que mudar.
+       */
+      revisarWhatsapp() {
+        const s0 = stRef.current;
+        if (!s0.whatsapp) return [];
+        const agora = Date.now();
+        const estadoDe = (s) => (layoutId, pos) => {
+          const L = layoutById(s, layoutId);
+          return L ? whatsappDaBaia(s.whatsapp, L.base, pos, new Date(agora))?.estado || null : null;
+        };
+        const algum = s0.chamados.some((c) => {
+          if (!c.aguardandoWhatsapp || c.status !== 'Pendente') return false;
+          const e = estadoDe(s0)(c.layoutId, c.pos);
+          return e && !etapaDoWhatsapp(e, new Date(agora)).aguardandoWhatsapp;
+        });
+        if (!algum) return [];
+        return mutate((s, ctx) => {
+          const mudancas = revisarAguardando(s.chamados, estadoDe(s), ctx.agora, 'sistema');
+          for (const m of mudancas) {
+            const c = achar(s, m.chamadoId);
+            ctx.audit('Chamado de WhatsApp voltou ao TI', numeroChamado(m.chamadoId), m.texto);
+            ctx.notificar('TI', `${numeroChamado(m.chamadoId)} · ${c.titulo}: ${m.texto}`);
+          }
+          return mudancas;
         });
       },
       /** Troca o mapa inteiro (importar o .json do BenHermes). O histórico vem junto com o arquivo. */

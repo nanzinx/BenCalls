@@ -27,6 +27,26 @@ O objetivo é ter mais controle dos números e facilitar a manutenção diária.
   atualizar a situação dela, pela mesma regra do BenHermes (`filtrarMapaParaSupervisor`). Código de acesso: `WPP`.
 - **Módulo.** Liga e desliga em *Personalização › Módulos › Controle de WhatsApps (BenHermes)*.
 
+## Estágios do banimento e o chamado
+
+O número passa pelos mesmos estágios do BenHermes, e o chamado de WhatsApp da baia acompanha cada um
+([`src/lib/estagios-whatsapp.ts`](../src/lib/estagios-whatsapp.ts)):
+
+| Estágio | O que é | O chamado |
+|---|---|---|
+| ⛔ **Banido** | O WhatsApp baniu o número. | Com o TI: pedir a análise na manutenção. |
+| 🔎 **Em análise** | O próprio WhatsApp avalia o número; a resposta costuma sair **em até 1 dia** (liberado ou perdido). | **Pendente · aguardando o WhatsApp.** Sem manutenção: *Iniciar execução* e *Registrar solução* ficam travados. |
+| ⏳ **Restringido** | O número **não conecta no WhatsApp Web** até o fim do prazo que o WhatsApp mostra. | **Pendente · aguardando o WhatsApp**, até o prazo acabar. |
+| Restrição terminou / análise passou de 24 h | O prazo venceu sem novidade. | **Volta sozinho para o TI**, com o próximo passo (conferir o WhatsApp Web / o celular). |
+| ✖️ **Perdido** | A análise foi negada; o número não volta. | Volta para o TI: **trocar o chip**. |
+| 🟢 **Liberado / voltou / chip trocado** | O número funciona de novo. | **Concluído** sozinho, com a solução registrada. |
+
+- Vale para o que é feito no BenCalls e para o que chega do BenHermes pela API.
+- O catálogo tem **“WhatsApp restringido (não conecta no WhatsApp Web)”**: ao abrir, a supervisão informa por
+  quanto tempo (o WhatsApp mostra no celular) e a baia já fica restringida até lá.
+- No chamado, uma linha do tempo mostra o estágio, a previsão (resposta da análise ou fim da restrição) e o
+  próximo passo. No *Controle de WhatsApps*, o bloco **Aguardando o WhatsApp** lista esses números com os prazos.
+
 ## As regras são as do BenHermes, sem cópia manual
 
 As regras ficam em [`src/lib/benhermes/`](../src/lib/benhermes) e **vêm do BenHermes por um script**, sem

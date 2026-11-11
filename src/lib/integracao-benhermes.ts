@@ -7,8 +7,8 @@ import { alterarLugarNoMapa } from './benhermes/whatsappBaias.ts';
 import { gravarAlteracao } from './benhermes/whatsappHistorico.ts';
 import { ACAO, ROTULO_JANELA } from './benhermes/whatsappManutencao.ts';
 import { acharMesa } from './whatsapp-baias.ts';
-import { ABERTOS } from './rules.ts';
-import type { StatusChamado } from './tipos.ts';
+import { sincronizarChamados } from './estagios-whatsapp.ts';
+import type { ChamadoWhatsapp } from './estagios-whatsapp.ts';
 
 export interface EventoSituacao {
   id: string;
@@ -34,15 +34,8 @@ export interface EventoManutencao {
 }
 export type EventoBenHermes = EventoSituacao | EventoManutencao;
 
-interface Chamado {
-  id: number;
-  layoutId?: string | null;
-  pos?: string | null;
-  sitId?: string;
-  status: StatusChamado;
+interface Chamado extends ChamadoWhatsapp {
   titulo: string;
-  hist: { status: StatusChamado; at: number; just?: string; user?: string }[];
-  solucao?: unknown;
 }
 interface LayoutMin { id: string; base: string; sala?: string; nome?: string }
 
@@ -64,6 +57,8 @@ export interface RegistroIntegracao {
 
 export type Efeito =
   | { tipo: 'chamado-concluido'; chamadoId: number; codigo: string; texto: string; grupo: string }
+  /** Chamado foi para "aguardando o WhatsApp" ou voltou para o TI */
+  | { tipo: 'chamado-status'; chamadoId: number; codigo: string; texto: string; grupo: string }
   | { tipo: 'whatsapp'; codigo: string; texto: string; grupo: string }
   | { tipo: 'manutencao'; texto: string };
 
@@ -115,27 +110,29 @@ function aplicarSituacao(st: EstadoBenCalls, ev: EventoSituacao, sitsWhatsapp: S
   const L = partes && st.layouts.find((l) => l.base.toUpperCase() === partes.sigla.toUpperCase());
   const grupo = L ? `Supervisão ${L.sala} · ${L.nome}` : 'TI';
   let motivo: string | undefined;
+  let antigo = false;
 
   // 1) O mapa do WhatsApp: vale o mais recente (se aqui mudou depois, fica o daqui).
   const achada = partes && st.whatsapp ? acharMesa(st.whatsapp, partes.sigla) : null;
   const lugar = achada && partes ? achada.mesa.lugares[partes.posicao] : undefined;
   if (!achada || !lugar || !partes) motivo = 'baia não existe no mapa do WhatsApp daqui';
-  else if (Date.parse(lugar.whatsapp.mudouEm) > Date.parse(d.estado.mudouEm)) motivo = 'o WhatsApp desta baia mudou aqui depois';
+  else if (Date.parse(lugar.whatsapp.mudouEm) > Date.parse(d.estado.mudouEm)) { motivo = 'o WhatsApp desta baia mudou aqui depois'; antigo = true; }
   else if (JSON.stringify(lugar.whatsapp) !== JSON.stringify(d.estado)) {
     const t = new Date(d.estado.mudouEm);
     const antes = st.whatsapp!;
     st.whatsapp = gravarAlteracao(antes, alterarLugarNoMapa(antes, achada.sala.id, achada.mesa.id, partes.posicao, { whatsapp: d.estado }, t), t);
   }
 
-  // 2) Os chamados: número de volta a OK conclui o chamado de WhatsApp aberto naquela baia.
-  if (d.para === 'OK' && L && partes) {
-    for (const c of st.chamados) {
-      if (c.layoutId !== L.id || c.pos !== partes.posicao || !c.sitId || !sitsWhatsapp.has(c.sitId) || !ABERTOS.includes(c.status)) continue;
-      const just = `Resolvido no BenHermes: ${rotulo.toLowerCase()}${quando(ev)}${d.chipTrocado ? ', com chip novo' : ''}.`;
-      c.solucao = { texto: just, causa: null, user: USUARIO_BENHERMES, at: agora, trocas: [] };
-      c.status = 'Concluído';
-      c.hist.push({ status: 'Concluído', at: agora, just, user: USUARIO_BENHERMES });
-      efeitos.push({ tipo: 'chamado-concluido', chamadoId: c.id, codigo: d.codigo, texto: just, grupo });
+  // 2) Os chamados de WhatsApp da baia acompanham o estágio (estagios-whatsapp.ts): número OK
+  //    conclui; em análise/restringido deixa "aguardando o WhatsApp"; perdido volta para o TI.
+  //    Um evento mais antigo que a mudança daqui só vale para concluir (o número voltou).
+  if (L && partes && (!antigo || d.para === 'OK')) {
+    const mudancas = sincronizarChamados(st.chamados, { layoutId: L.id, pos: partes.posicao }, d.estado, sitsWhatsapp, agora, {
+      usuario: USUARIO_BENHERMES, onde: 'BenHermes', acao: rotulo.toLowerCase(), quando: quando(ev), chipTrocado: d.chipTrocado
+    });
+    for (const m of mudancas) {
+      if (m.tipo === 'concluido') efeitos.push({ tipo: 'chamado-concluido', chamadoId: m.chamadoId, codigo: d.codigo, texto: m.texto, grupo });
+      else if (m.tipo !== 'anotado') efeitos.push({ tipo: 'chamado-status', chamadoId: m.chamadoId, codigo: d.codigo, texto: m.texto, grupo });
     }
   }
   if (d.para === 'BANIDO' || d.para === 'PERMANENTE') {

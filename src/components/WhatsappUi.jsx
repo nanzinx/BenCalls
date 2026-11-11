@@ -1,15 +1,16 @@
 // Peças do Controle de WhatsApps usadas na página, no detalhe da baia e no mapa.
 import { useState } from 'react';
 import clsx from 'clsx';
-import { Smartphone, PlusCircle, ExternalLink } from 'lucide-react';
+import { Smartphone, PlusCircle, ExternalLink, Hourglass, Check, Circle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useStore } from '../store/store.jsx';
 import { tem, layoutsDoUsuario, indiceCatalogo } from '../store/selectors.js';
-import { whatsappDaBaia, tomDaSituacao, TEXTO_SITUACAO, TEXTO_ALERTA } from '../lib/whatsapp-baias.ts';
+import { whatsappDaBaia, tomDaSituacao, TEXTO_SITUACAO } from '../lib/whatsapp-baias.ts';
 import { ACAO, acoesPossiveis as acoesPossiveisDe } from '../lib/benhermes/whatsappManutencao.ts';
 import { tempoDesde, tempoRestante, restricaoVencida } from '../lib/benhermes/whatsappBaias.ts';
 import { textoDoLocal, nomeDoCelular } from '../lib/benhermes/celulares.ts';
 import { numeroChamado } from '../lib/format.ts';
+import { etapaDoWhatsapp, passosDoCaminho } from '../lib/estagios-whatsapp.ts';
 
 export const TOM_CHIP = {
   ok: 'bg-ok-fundo text-ok',
@@ -42,6 +43,42 @@ export function SituacaoChip({ estado, agora, sm }) {
       <span className={clsx('h-1.5 w-1.5 rounded-full', tom === 'escuro' ? 'bg-superficie' : 'bg-current')} aria-hidden="true" />
       {TEXTO_SITUACAO[estado.situacao]}{t && <span className="font-normal opacity-80">· {t}</span>}
     </span>
+  );
+}
+
+/**
+ * Estágio do banimento: linha do tempo (Banido → Em análise → Liberado/Perdido, ou Restringido →
+ * Prazo terminou → Voltou), o que está acontecendo e o próximo passo.
+ */
+export function EstagioWhatsapp({ estado, agora, compacto }) {
+  const etapa = etapaDoWhatsapp(estado, agora);
+  if (etapa.id === 'ok' || etapa.id === 'nao-tem') return null;
+  const passos = passosDoCaminho(etapa.id);
+  const atual = { banido: 0, analise: 1, 'analise-atrasada': 1, perdido: 2, restringido: 0, 'restricao-vencida': 1 }[etapa.id] ?? 0;
+  return (
+    <div className="flex flex-col gap-2">
+      {!compacto && (
+        <ol className="flex items-center gap-1.5 text-[11px] font-semibold" aria-label="Estágios do WhatsApp">
+          {passos.map((p, i) => (
+            <li key={p.id} className="flex min-w-0 flex-1 items-center gap-1.5">
+              <span className={clsx('grid h-5 w-5 flex-none place-items-center rounded-full border',
+                i < atual ? 'border-ok-ponto bg-ok-ponto text-white' : i === atual ? (etapa.aguardandoWhatsapp ? 'border-aviso-ponto bg-aviso-fundo text-aviso' : 'border-ruim-ponto bg-ruim-fundo text-ruim') : 'border-linha-forte text-mudo')}
+                aria-current={i === atual ? 'step' : undefined}>
+                {i < atual ? <Check size={12} /> : i === atual && etapa.aguardandoWhatsapp ? <Hourglass size={11} /> : <Circle size={7} fill="currentColor" />}
+              </span>
+              <span className={clsx('truncate', i === atual ? 'text-tinta' : 'text-mudo')}>{p.titulo}</span>
+              {i < passos.length - 1 && <span className="h-px min-w-3 flex-1 bg-linha-forte" aria-hidden="true" />}
+            </li>
+          ))}
+        </ol>
+      )}
+      <div className={clsx('rounded-lg px-3 py-2 text-xs leading-relaxed', etapa.aguardandoWhatsapp ? 'bg-aviso-fundo text-tinta-2' : 'bg-superficie-3 text-tinta-2')}>
+        <b className="text-tinta">{etapa.titulo}{etapa.quandoTexto ? ` · ${etapa.quandoTexto}` : ''}.</b> {etapa.descricao}
+        {etapa.aguardandoWhatsapp
+          ? <span className="mt-1 flex items-center gap-1.5 font-semibold text-aviso"><Hourglass size={12} /> Aguardando o WhatsApp: não há manutenção a fazer agora.</span>
+          : etapa.proximoPasso && <span className="mt-1 block font-semibold text-tinta">Próximo passo: {etapa.proximoPasso}</span>}
+      </div>
+    </div>
   );
 }
 
@@ -145,7 +182,7 @@ export function SecaoWhatsappDaBaia({ layout, pos }) {
         {numero && <span className="font-mono">{numero}</span>}
         {w.operador && <span>No mapa: {w.operador}</span>}
       </div>
-      {w.atencao && <span className="text-xs font-semibold text-ruim">{TEXTO_ALERTA[w.atencao]}</span>}
+      <EstagioWhatsapp estado={w.estado} agora={d} />
       {pode && <BotoesAcao alvo={w.alvo} estado={w.estado} agora={d} />}
       <div className="flex flex-wrap items-center gap-2">
         {pode && w.estado.situacao === 'PERMANENTE' && sitPerdido && !chamadoAberto && (

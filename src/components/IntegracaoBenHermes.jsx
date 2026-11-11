@@ -42,6 +42,7 @@ export function useIntegracaoBenHermes({ onAbrir }) {
             const efeitos = actions.aplicarEventosBenHermes(novos, cursor);
             for (const e of efeitos.slice(0, 4)) {
               if (e.tipo === 'chamado-concluido') toast(`✅ ${numeroChamado(e.chamadoId)} concluído: ${e.texto}`, 'ok', { l: 'Abrir', run: () => ref.current.onAbrir(e.chamadoId) });
+              else if (e.tipo === 'chamado-status') toast(`${numeroChamado(e.chamadoId)}: ${e.texto}`, 'info', { l: 'Abrir', run: () => ref.current.onAbrir(e.chamadoId) });
               else toast(e.texto, 'info');
             }
           }

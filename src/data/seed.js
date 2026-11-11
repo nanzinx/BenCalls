@@ -160,6 +160,8 @@ export function seedCatalogo() {
     { id: 'c6', nome: 'WhatsApp e celular', icone: 'phone', equipe: 'TI', subs: [
       { id: 'b12', nome: 'WhatsApp da baia', prioritario: false, sits: [
         S('WhatsApp banido', { whatsapp: 'BANIDO', passos: ['Abrir o WhatsApp e confirmar a mensagem de conta banida'] }),
+        // Restringido: não conecta no WhatsApp Web até o fim do prazo que o próprio WhatsApp mostra.
+        S('WhatsApp restringido (não conecta no WhatsApp Web)', { whatsapp: 'RESTRINGIDO', passos: ['Abrir o WhatsApp no celular e ver até quando vai a restrição'] }),
         S('Número perdido (trocar o chip)', { whatsapp: 'PERMANENTE', solicitacao: true }),
         S('Celular corporativo com defeito', { passos: ['Reiniciar o celular', 'Conferir se o carregador está funcionando'] }),
         OUTROS()] }
@@ -348,7 +350,8 @@ export function seed(agora = Date.now()) {
       // Direcionamento: quando chegou para quem vai resolver (abertura ou encaminhamento).
       direcionadoEm: agora - (o.encaminhado ? o.encaminhado.min : o.hist[0][1]) * MIN,
       direcionadoPor: o.encaminhado ? o.encaminhado.por : o.remetente,
-      motivoDirecionamento: o.encaminhado || o.tecnico ? 'encaminhado' : 'fila'
+      motivoDirecionamento: o.encaminhado || o.tecnico ? 'encaminhado' : 'fila',
+      ...(o.extra || {})
     });
   };
   ativo({ subId: 'b4', sit: 'Não liga', layoutId: 'OP1', pos: 'D2', remetente: 'u1', descricao: 'Operador sem conseguir trabalhar desde o início do turno.',
@@ -376,6 +379,23 @@ export function seed(agora = Date.now()) {
   ativo({ subId: 'b6', sit: 'Erro ao entrar', layoutId: 'OP2', pos: 'D4', remetente: 'u7', tecnico: 'u3', encaminhado: { por: 'u4', min: 8 },
     triagem: reg(['Conferir usuário e senha (caps lock)', 'Fechar e abrir a Argus novamente'], 47, 35),
     hist: [['Em Análise', 45, 'Chamado registrado no sistema.', 'u7'], ['Em Análise', 8, 'Encaminhado para Diego Lima.', 'u4']] });
+  // Chamados de WhatsApp acompanhando os estágios do banimento (Controle de WhatsApps):
+  // em análise e restringido ficam aguardando o WhatsApp; a restrição de OP5-E2 já terminou
+  // (ao abrir o site, volta para o TI conferir).
+  const aguardando = (etapa, min, horas) => ({ aguardandoWhatsapp: { etapa, desde: agora - min * MIN, previsao: new Date(agora - min * MIN + horas * 60 * MIN).toISOString() } });
+  ativo({ subId: 'b12', sit: 'WhatsApp banido', layoutId: 'OP3', pos: 'E1', remetente: 'u8', tecnico: 'u3',
+    descricao: 'Apareceu a mensagem de conta banida no celular Verde.', triagem: reg(['Abrir o WhatsApp e confirmar a mensagem de conta banida'], 132, 30),
+    hist: [['Em Análise', 130, 'Chamado registrado no sistema.', 'u8'], ['Em Execução', 125, 'Atendimento iniciado.', 'u3'],
+      ['Pendente', 120, 'Aguardando o WhatsApp: em análise pelo WhatsApp (resposta esperada em até 24h). Sem manutenção até a resposta.', 'u3']],
+    extra: aguardando('analise', 120, 24) });
+  ativo({ subId: 'b12', sit: 'WhatsApp restringido (não conecta no WhatsApp Web)', layoutId: 'OP4', pos: 'D1', remetente: 'u9', tecnico: 'u4',
+    descricao: 'O WhatsApp Web não conecta; no celular aparece que a conta está restrita por 2 dias.', triagem: reg(['Abrir o WhatsApp no celular e ver até quando vai a restrição'], 302, 40),
+    hist: [['Em Análise', 300, 'Chamado registrado no sistema.', 'u9'], ['Pendente', 299, 'Aguardando o WhatsApp: restringido por 2 dias. Sem manutenção até o fim do prazo.', 'u4']],
+    extra: aguardando('restringido', 299, 48) });
+  ativo({ subId: 'b12', sit: 'WhatsApp restringido (não conecta no WhatsApp Web)', layoutId: 'OP5', pos: 'E2', remetente: 'u10', tecnico: 'u3',
+    descricao: 'Restrição de 24 horas no número da baia.', triagem: reg(['Abrir o WhatsApp no celular e ver até quando vai a restrição'], 1502, 40),
+    hist: [['Em Análise', 1500, 'Chamado registrado no sistema.', 'u10'], ['Pendente', 1499, 'Aguardando o WhatsApp: restringido por 24 horas. Sem manutenção até o fim do prazo.', 'u3']],
+    extra: aguardando('restringido', 1499, 24) });
   ativo({ subId: 'b11', sit: 'Novo colaborador', remetente: 'u1', depto: 'RH',
     descricao: 'Nova operadora começa segunda na Equipe 1 (baia OP1-E4): precisa de crachá, cadastro e treinamento.',
     hist: [['Em Análise', 20, 'Chamado registrado pelo formulário (destino: RH).', 'u1']] });
@@ -406,7 +426,7 @@ export function seed(agora = Date.now()) {
   }
 
   return {
-    versao: 7,
+    versao: 8,
     ciencia,
     // Controle de WhatsApps (mesmo mapa do BenHermes, versão 3)
     whatsapp: seedWhatsapp(layouts, ocupacao, nomeUser, agora),

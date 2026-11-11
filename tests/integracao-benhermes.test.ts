@@ -95,3 +95,19 @@ test('contrato: os eventos do BenHermes passam na API e funcionam no BenCalls', 
   assert.match(st.chamados.find((c) => c.id === 182)!.hist.at(-1)!.just!, /chip trocado na manutenção \(manhã\), com chip novo/);
   assert.ok(ef.some((e) => e.tipo === 'manutencao'));
 });
+
+test('análise pedida no BenHermes deixa o chamado aguardando o WhatsApp; perdido volta ao TI', () => {
+  const st = estado();
+  const ev = (id: string, para: 'ANALISE' | 'PERMANENTE', acao: 'PEDIU_ANALISE' | 'PERDIDO', em: string): EventoBenHermes => ({
+    id, tipo: 'whatsapp.situacao', em,
+    dados: { codigo: 'OP1-E3', de: 'ANALISE', para, acao, estado: { situacao: para, mudouEm: em, ...(para === 'ANALISE' ? { analisePedidaEm: em } : {}) } }
+  });
+  const ef = aplicarEventos(st, [ev('a1', 'ANALISE', 'PEDIU_ANALISE', '2026-11-06T11:00:00.000Z')], new Set(['sW']), Date.parse('2026-11-06T11:00:05.000Z'));
+  assert.deepEqual(ef.map((e) => e.tipo), ['chamado-status']);
+  assert.equal(st.chamados[0].status, 'Pendente');
+  assert.equal(st.chamados[0].aguardandoWhatsapp?.etapa, 'analise');
+  const ef2 = aplicarEventos(st, [ev('a2', 'PERMANENTE', 'PERDIDO', '2026-11-06T13:00:00.000Z')], new Set(['sW']), Date.parse('2026-11-06T13:00:05.000Z'));
+  assert.ok(ef2.some((e) => e.tipo === 'chamado-status'));
+  assert.equal(st.chamados[0].status, 'Em Análise');
+  assert.equal(st.chamados[0].aguardandoWhatsapp, null);
+});
