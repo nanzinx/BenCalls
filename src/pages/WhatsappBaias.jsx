@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { statusDaIntegracao } from '../components/IntegracaoBenHermes.jsx';
 import { numeroChamado } from '../lib/format.ts';
+import { etapaDoWhatsapp } from '../lib/estagios-whatsapp.ts';
 import { VERSAO_BENHERMES } from '../lib/benhermes/versao.ts';
 import clsx from 'clsx';
 import { useOutletContext, useSearchParams } from 'react-router-dom';
@@ -12,7 +13,7 @@ import {
 } from 'lucide-react';
 import { useStore } from '../store/store.jsx';
 import { tem, layoutsDoUsuario, nomeUser } from '../store/selectors.js';
-import { PageHead, Seg, Kpi, Empty, Note, Modal } from '../components/ui.jsx';
+import { PageHead, Seg, Kpi, Empty, Note, Modal, Ajuda } from '../components/ui.jsx';
 import DeskMap, { Legenda } from '../components/DeskMap.jsx';
 import { SituacaoChip, BotoesAcao, TOM_CHIP } from '../components/WhatsappUi.jsx';
 import { alertasUrgentes, divergencias, usarOcupantesDoBenCalls, mapaDasMesas, acharMesa, TEXTO_ALERTA, TEXTO_SITUACAO } from '../lib/whatsapp-baias.ts';
@@ -137,6 +138,8 @@ function AbaMapa({ mapa, r, urgentes, d, abrir }) {
         </div>
         {lista.length > 12 && <span className="text-xs text-mudo">E mais {lista.length - 12}.</span>}
       </section>
+
+      <AguardandoWhatsapp mapa={mapa} d={d} abrir={abrir} />
 
       <div className="flex flex-wrap items-center justify-between gap-2">
         <span className="text-sm text-mudo">O mapa é o mesmo do BenCalls: clique numa baia para ver o WhatsApp, os chamados e os itens dela.</span>
@@ -561,6 +564,57 @@ function ApiIntegracao() {
             <span className={clsx('badge badge-sm', l.resultado === 'aplicado' ? 'b-ok' : 'b-gray')}>{l.resultado}</span>
             <span>{l.texto}</span>
             <span className="text-xs text-mudo">· {dataHora(l.em)}{l.motivo ? ` · ${l.motivo}` : ''}{l.id.startsWith('simulado:') ? ' · simulado' : ''}</span>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+// ------------------------------------------------------------------ Aguardando o WhatsApp
+/**
+ * Números em análise pelo próprio WhatsApp (resposta em até ~1 dia) ou restringidos (não conectam no
+ * WhatsApp Web até o fim do prazo). Não há manutenção a fazer: é esperar. Os chamados dessas baias
+ * ficam pendentes e voltam sozinhos para o TI.
+ */
+function AguardandoWhatsapp({ mapa, d, abrir }) {
+  const { st } = useStore();
+  const itens = [];
+  for (const sala of mapa.salas) for (const mesa of sala.mesas) {
+    for (const [pos, lugar] of Object.entries(mesa.lugares)) {
+      const etapa = etapaDoWhatsapp(lugar.whatsapp, d);
+      if (!etapa.aguardandoWhatsapp) continue;
+      const L = st.layouts.find((l) => l.base.toUpperCase() === mesa.sigla.toUpperCase());
+      const chamado = L && st.chamados.find((c) => c.layoutId === L.id && c.pos === pos && c.aguardandoWhatsapp && c.status === 'Pendente');
+      itens.push({ codigo: `${mesa.sigla}-${pos}`, operador: pos === 'SUP' ? mesa.supervisor : lugar.operador, etapa, L, pos, chamado, previsao: etapa.previsao || '' });
+    }
+  }
+  itens.sort((a, b) => a.previsao.localeCompare(b.previsao));
+  return (
+    <section className="card flex flex-col gap-2">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h2 className="flex items-center gap-2">⏳ Aguardando o WhatsApp <span className="text-sm font-normal text-mudo">· sem manutenção até a resposta ou o fim do prazo</span></h2>
+        <Ajuda titulo="Como funcionam os estágios do banimento">
+          <b>Banido:</b> o WhatsApp baniu o número; na manutenção, pede-se a análise.<br />
+          <b>Em análise:</b> o próprio WhatsApp avalia o número. A resposta costuma sair em até 1 dia: liberado (volta) ou perdido (trocar o chip).<br />
+          <b>Restringido:</b> o número não conecta no WhatsApp Web até o fim do prazo.<br />
+          Em análise e restringido não há manutenção: o chamado da baia fica pendente e volta sozinho para o TI.
+        </Ajuda>
+      </div>
+      {!itens.length && <p className="text-sm text-mudo">Nenhum número esperando o WhatsApp agora.</p>}
+      <div className="flex flex-col divide-y divide-linha">
+        {itens.map((it) => (
+          <div key={it.codigo} className="flex flex-wrap items-center gap-x-3 gap-y-1 py-2.5">
+            <button type="button" className="flex min-w-[220px] flex-1 flex-col text-left" onClick={() => it.L && abrir({ baia: `${it.L.id}:${it.pos}` })}>
+              <span className="flex flex-wrap items-center gap-2">
+                <b className="font-mono text-marca-txt">{it.codigo}</b>
+                <span className={clsx('rounded-full px-2 py-0.5 text-[11px] font-semibold', TOM_CHIP.aviso)}>{it.etapa.titulo}</span>
+              </span>
+              <span className="text-xs text-mudo">{it.operador || 'Vaga vazia'}{it.etapa.quandoTexto ? ` · ${it.etapa.quandoTexto}` : ''}</span>
+            </button>
+            {it.chamado
+              ? <button type="button" className="btn btn-sm btn-ghost" onClick={() => abrir({ ch: it.chamado.id })}>Chamado {numeroChamado(it.chamado.id)} · aguardando</button>
+              : <span className="text-xs text-mudo">sem chamado</span>}
           </div>
         ))}
       </div>

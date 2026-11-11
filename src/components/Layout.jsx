@@ -273,6 +273,13 @@ export default function Layout() {
   useAlertasEmTempoReal(paraMim, { ativo: !entrada, onAbrir: abrirChamado });
   useTituloComContador(paraMim.length, st.tema.nomeSistema);
   useIntegracaoBenHermes({ onAbrir: abrirChamado });
+  // Prazos do WhatsApp que vencem sozinhos (restrição terminou, análise sem resposta há 24 h):
+  // os chamados que estavam aguardando voltam para o TI. Confere ao abrir e a cada minuto.
+  useEffect(() => {
+    actions.revisarWhatsapp();
+    const id = setInterval(() => actions.revisarWhatsapp(), 60_000);
+    return () => clearInterval(id);
+  }, [actions]);
   const totalSino = naoLidas + paraMim.length;
   const chId = sp.get('ch') ? Number(sp.get('ch')) : null;
   const itemId = sp.get('item');

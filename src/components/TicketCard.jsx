@@ -1,5 +1,5 @@
 import clsx from 'clsx';
-import { AlertTriangle, Paperclip, ClipboardCheck, ChevronRight } from 'lucide-react';
+import { AlertTriangle, Paperclip, ClipboardCheck, ChevronRight, Hourglass } from 'lucide-react';
 import { useStore } from '../store/store.jsx';
 import { baiaCodigo, nomeUser } from '../store/selectors.js';
 import { numeroChamado, idade } from '../lib/format.ts';
@@ -12,6 +12,13 @@ export default function TicketCard({ c, onClick, sel, modo = 'lista' }) {
   const quem = c.layoutId ? c.ocupante : nomeUser(st, c.remetenteId);
   const precisaConfirmar = c.status === 'Aguardando Consenso' && c.remetenteId === user.id;
   const kanban = modo === 'kanban';
+  // Chamado de WhatsApp esperando a resposta do WhatsApp (em análise ou restringido)
+  const esperando = c.aguardandoWhatsapp && c.status === 'Pendente';
+  const seloEspera = esperando && (
+    <span className="badge badge-sm b-warn inline-flex items-center gap-1" title="Em análise pelo WhatsApp ou restringido: sem manutenção até a resposta ou o fim do prazo">
+      <Hourglass size={11} aria-hidden="true" /> {c.aguardandoWhatsapp.etapa === 'restringido' ? 'Restringido' : 'Em análise no WhatsApp'}
+    </span>
+  );
 
   const sinais = (
     <span className="flex items-center gap-1.5 text-mudo">
@@ -25,7 +32,7 @@ export default function TicketCard({ c, onClick, sel, modo = 'lista' }) {
     <button
       type="button"
       onClick={onClick}
-      aria-label={`Abrir chamado ${numeroChamado(c.id)}: ${c.titulo}, ${c.status}${c.prioritario ? ', prioritário' : ''}${novo ? ', novo para você' : ''}`}
+      aria-label={`Abrir chamado ${numeroChamado(c.id)}: ${c.titulo}, ${c.status}${c.prioritario ? ', prioritário' : ''}${novo ? ', novo para você' : ''}${esperando ? ', aguardando o WhatsApp' : ''}`}
       className={clsx(
         'ticket group relative overflow-hidden',
         // Faixa vermelha à esquerda só nos prioritários: dá para varrer a lista pela cor.
@@ -59,12 +66,14 @@ export default function TicketCard({ c, onClick, sel, modo = 'lista' }) {
             {sinais}
           </span>
           <span className="flex items-center gap-2 max-md:mt-1">
+            {seloEspera}
             {precisaConfirmar ? <span className="badge b-warn">Confirme se resolveu</span> : <StatusBadge status={c.status} />}
             <ChevronRight size={16} className="text-mudo transition-transform duration-200 group-hover:translate-x-0.5 max-md:hidden" aria-hidden="true" />
           </span>
         </>
       )}
       {kanban && precisaConfirmar && <span className="badge badge-sm b-warn self-start">Confirme se resolveu</span>}
+      {kanban && seloEspera && <span className="self-start">{seloEspera}</span>}
     </button>
   );
 }

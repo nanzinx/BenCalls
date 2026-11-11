@@ -117,7 +117,9 @@ function PorMapa() {
   const marcados = ordem.filter((k) => picks[k]?.sitId);
   const semSit = ordem.some((k) => !picks[k]?.sitId);
   const outrosOk = ordem.every((k) => !sits[picks[k]?.sitId]?.outros || (picks[k].texto || '').trim().length >= MIN_OUTROS);
-  const podeContinuar = marcados.length > 0 && !semSit && outrosOk;
+  // "WhatsApp restringido": o prazo que o WhatsApp mostra no celular (a restrição vale até lá).
+  const prazoOk = ordem.every((k) => sits[picks[k]?.sitId]?.whatsapp !== 'RESTRINGIDO' || Number(picks[k].restricao?.quantidade) > 0);
+  const podeContinuar = marcados.length > 0 && !semSit && outrosOk && prazoOk;
 
   const toggle = (k) => {
     if (picks[k]) { const p = { ...picks }; delete p[k]; setPicks(p); setOrdem(ordem.filter((x) => x !== k)); }
@@ -148,7 +150,12 @@ function PorMapa() {
         itens: blocos.map((b) => ({ assetId: b.o.it?.id || null, tipo: b.o.it?.tipo || null, sitId: b.x.id, texto: picks[b.k].texto })),
         triagem: registros, anexos: Object.values(fotos).filter(Boolean),
         descricao: [...textosOutros, detalhe.trim()].filter(Boolean).join('\n'),
-        textoOutros: textosOutros[0]?.split(': ').slice(1).join(': ')
+        textoOutros: textosOutros[0]?.split(': ').slice(1).join(': '),
+        whatsappRestricao: (() => {
+          const b = blocos.find((x) => x.x.whatsapp === 'RESTRINGIDO');
+          const r = b && picks[b.k].restricao;
+          return r ? { quantidade: Number(r.quantidade), unidade: r.unidade } : undefined;
+        })()
       });
       setCriado(id);
       setTela('chamado');
@@ -223,7 +230,7 @@ function PorMapa() {
                             <span className="text-xs text-tinta-2">2. Qual é a situação?</span>
                             <div className="flex flex-wrap items-center gap-1.5">
                               {o.sub.sits.filter((x) => !x.solicitacao).map((x) => (
-                                <button key={x.id} type="button" className="pill pill-accent min-h-[34px] text-[12.5px]" aria-pressed={p.sitId === x.id} onClick={() => setPicks({ ...picks, [o.key]: { ...p, sitId: x.id } })}>
+                                <button key={x.id} type="button" className="pill pill-accent min-h-[34px] text-[12.5px]" aria-pressed={p.sitId === x.id} onClick={() => setPicks({ ...picks, [o.key]: { ...p, sitId: x.id, ...(x.whatsapp === 'RESTRINGIDO' && !p.restricao ? { restricao: { quantidade: '24', unidade: 'horas' } } : {}) } })}>
                                   {x.nome}{incidentes.some((i) => i.sitId === x.id) && <AlertTriangle size={12} aria-label="problema conhecido" />}
                                 </button>
                               ))}
@@ -233,6 +240,20 @@ function PorMapa() {
                                 <textarea className="textarea" rows={3} value={p.texto} onChange={(e) => setPicks({ ...picks, [o.key]: { ...p, texto: e.target.value } })} placeholder="Ex.: cadeira da baia quebrada, tomada sem energia…" />
                                 <span className={`hint ${(p.texto || '').trim().length < MIN_OUTROS ? 'bad' : 'ok'}`}>{(p.texto || '').trim().length < MIN_OUTROS ? `Faltam ${MIN_OUTROS - (p.texto || '').trim().length} caracteres` : 'Descrição ok'}</span>
                               </label>
+                            )}
+                            {sits[p.sitId]?.whatsapp === 'RESTRINGIDO' && (
+                              <div className="flex flex-col gap-1">
+                                <span className="text-xs text-tinta-2">Por quanto tempo? (o WhatsApp mostra no celular)</span>
+                                <div className="flex flex-wrap items-center gap-1.5">
+                                  <input className="input min-h-[34px] w-20 py-1" type="number" min="1" aria-label="Tempo da restrição"
+                                    value={p.restricao?.quantidade ?? '24'} onChange={(e) => setPicks({ ...picks, [o.key]: { ...p, restricao: { unidade: 'horas', ...p.restricao, quantidade: e.target.value } } })} />
+                                  <select className="select min-h-[34px] w-auto py-1" aria-label="Unidade da restrição"
+                                    value={p.restricao?.unidade ?? 'horas'} onChange={(e) => setPicks({ ...picks, [o.key]: { ...p, restricao: { quantidade: '24', ...p.restricao, unidade: e.target.value } } })}>
+                                    <option value="horas">horas</option><option value="dias">dias</option>
+                                  </select>
+                                </div>
+                                <span className="text-[11px] text-mudo">Restringido, o número não conecta no WhatsApp Web. Até o fim do prazo não há manutenção: o chamado fica aguardando o WhatsApp.</span>
+                              </div>
                             )}
                             {sits[p.sitId]?.dano && <span className="text-[11px] text-mudo">Dano físico: não tem triagem, mas pede foto na próxima etapa.</span>}
                           </div>

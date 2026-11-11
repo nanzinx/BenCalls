@@ -158,6 +158,12 @@ O primeiro mapa e o histórico antigo de uma importação não são enviados.
 ```
 
 `status`: `aberto`, `concluido` ou `cancelado` (concluído/cancelado tira o chamado da lista do BenHermes).
+`whatsapp`: `BANIDO`, `PERMANENTE` ou `null` (um chamado “WhatsApp restringido” vai com `null`: a restrição é
+registrada pelo prazo, no mapa).
+
+Do lado do BenCalls, cada `whatsapp.situacao` também move o chamado da baia pelos estágios do banimento: em análise
+ou restringido deixa o chamado **pendente, aguardando o WhatsApp**; perdido devolve ao TI; OK conclui
+(veja [`BENHERMES.md`](BENHERMES.md#estágios-do-banimento-e-o-chamado)).
 No BenHermes, **⛔ Marcar como banido** aplica a situação pelo próprio site, com as regras e o histórico de lá.
 
 > **Quem manda o `chamado.whatsapp`?** Precisa sair de um servidor com login, nunca do navegador (senão

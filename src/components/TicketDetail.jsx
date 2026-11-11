@@ -1,8 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
 import clsx from 'clsx';
-import { X, Paperclip, AlertTriangle, ListChecks, Wrench, UserCheck, Play, PauseCircle, Ban, ThumbsUp, ThumbsDown, RotateCcw, MessageSquarePlus, ArrowRightLeft, Sparkles, MapPin, ExternalLink, ChevronDown, Flame } from 'lucide-react';
+import { X, Paperclip, AlertTriangle, ListChecks, Wrench, UserCheck, Play, PauseCircle, Ban, ThumbsUp, ThumbsDown, RotateCcw, MessageSquarePlus, ArrowRightLeft, Sparkles, MapPin, ExternalLink, ChevronDown, Flame, Smartphone, Hourglass } from 'lucide-react';
 import { useStore } from '../store/store.jsx';
-import { baiaCodigo, codigoItem, indiceCatalogo, nomeItem, nomeUser, tem, itensDaBaia } from '../store/selectors.js';
+import { baiaCodigo, codigoItem, indiceCatalogo, nomeItem, nomeUser, tem, itensDaBaia, layoutById } from '../store/selectors.js';
+import { whatsappDaBaia } from '../lib/whatsapp-baias.ts';
+import { etapaDoWhatsapp } from '../lib/estagios-whatsapp.ts';
+import { EstagioWhatsapp } from './WhatsappUi.jsx';
 import { numeroChamado, hhmmss, dataHora, idade } from '../lib/format.ts';
 import { CAUSAS, podeReabrir, DISPONIVEL } from '../lib/rules.ts';
 import { StatusBadge, PrioBadge, Note, PONTO_STATUS, ItemBadge } from './ui.jsx';
@@ -114,12 +117,17 @@ export default function TicketDetail({ id, onClose, abrir }) {
   const F = form && FORMS[form];
   const baia = c.layoutId ? baiaCodigo(st, c.layoutId, c.pos) : null;
   const sit = sits[c.sitId];
+  // Chamado de WhatsApp: acompanha o estágio do número no Controle de WhatsApps. Em análise ou
+  // restringido não há manutenção a fazer, então "Iniciar execução" e "Registrar solução" esperam.
+  const Lw = sit?.whatsapp && c.layoutId && st.modulos.whatsapp ? layoutById(st, c.layoutId) : null;
+  const wpp = Lw ? whatsappDaBaia(st.whatsapp, Lw.base, c.pos, new Date(agora)) : null;
+  const esperandoWhatsapp = !!wpp && etapaDoWhatsapp(wpp.estado, new Date(agora)).aguardandoWhatsapp && !['Concluído', 'Cancelado', 'Negado', 'Aguardando Consenso'].includes(c.status);
   const acoes = [];
   if (!form) {
     if (ti && !c.tecnicoId && ['Em Análise', 'Pendente'].includes(c.status)) acoes.push({ l: 'Assumir', i: UserCheck, run: () => { actions.assumir(c.id); toast(`Você assumiu ${numeroChamado(c.id)}.`); } });
-    if (ti && ['Em Análise', 'Pendente'].includes(c.status)) acoes.push({ l: 'Iniciar execução', i: Play, cls: 'btn-primary', run: () => { actions.iniciarExecucao(c.id); toast(`${numeroChamado(c.id)} em execução.`); } });
+    if (ti && !esperandoWhatsapp && ['Em Análise', 'Pendente'].includes(c.status)) acoes.push({ l: 'Iniciar execução', i: Play, cls: 'btn-primary', run: () => { actions.iniciarExecucao(c.id); toast(`${numeroChamado(c.id)} em execução.`); } });
     if (ti && ['Em Análise', 'Em Execução'].includes(c.status)) acoes.push({ l: 'Marcar como pendente', i: PauseCircle, run: () => setForm('pendente') });
-    if (ti && c.status === 'Em Execução') acoes.push({ l: 'Registrar solução', i: Wrench, cls: 'btn-primary', run: () => setForm('solucao') });
+    if (ti && !esperandoWhatsapp && c.status === 'Em Execução') acoes.push({ l: 'Registrar solução', i: Wrench, cls: 'btn-primary', run: () => setForm('solucao') });
     if (ti && ['Em Análise', 'Pendente'].includes(c.status)) acoes.push({ l: 'Negar', i: Ban, cls: 'btn-danger', run: () => setForm('negar') });
     if (souDono && c.status === 'Aguardando Consenso') {
       acoes.push({ l: 'Sim, foi resolvido', i: ThumbsUp, cls: 'btn-ok', run: () => { actions.confirmarSolucao(c.id); toast(`Chamado ${numeroChamado(c.id)} concluído. Obrigado pela confirmação.`); } });
@@ -200,6 +208,15 @@ export default function TicketDetail({ id, onClose, abrir }) {
           <>
             {c.alerta && <Note tipo="bad"><b>Alerta de triagem:</b> {c.alerta}</Note>}
             {c.outros && !c.outrosRevisado && <Note tipo="gray">Fora do catálogo: na fila de revisão do TI.</Note>}
+            {wpp && !finalizado && (
+              <section className="flex flex-col gap-2 rounded-xl border border-linha p-3" aria-label="WhatsApp da baia">
+                <span className="flex items-center gap-1.5 text-xs font-semibold text-mudo"><Smartphone size={14} /> WhatsApp da baia {wpp.codigo}</span>
+                <EstagioWhatsapp estado={wpp.estado} agora={new Date(agora)} />
+                {esperandoWhatsapp && ti && (
+                  <span className="flex items-start gap-1.5 text-xs text-mudo"><Hourglass size={13} className="mt-0.5 flex-none" /> Iniciar execução e registrar solução voltam quando o WhatsApp responder ou o prazo acabar. O chamado volta sozinho para o TI (e fecha sozinho se o número voltar).</span>
+                )}
+              </section>
+            )}
 
             <dl className="grid grid-cols-2 gap-x-4 gap-y-3 max-sm:grid-cols-1">
               <Dado rotulo="Baia">{baia ? <button type="button" className="inline-flex items-center gap-1 font-semibold text-marca-txt hover:underline" onClick={() => abrir({ baia: `${c.layoutId}:${c.pos}` })}><MapPin size={13} /> {baia}</button> : (c.local || '—')}</Dado>
