@@ -11,6 +11,8 @@
     "test": "node --test tests/*.test.js tests/*.test.ts tests/*.test.mjs tests/benhermes/*.test.ts",
     "benhermes:sincronizar": "node scripts/sincronizar-benhermes.mjs",
     "typecheck": "tsc -p tsconfig.json",
+    "subir": "node scripts/subir.mjs",
+    "subir:ngrok": "node scripts/subir.mjs --ngrok",
     "start": "node server/servidor.mjs",
     "pm2:iniciar": "pm2 start ecosystem.config.cjs",
     "pm2:parar": "pm2 delete ecosystem.config.cjs",

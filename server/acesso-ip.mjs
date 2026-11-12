@@ -113,11 +113,39 @@ export function resumoDoFiltro(filtro) {
   return `${filtro.regras.length} IPs/faixas liberados`;
 }
 
+const ehLocal = (ip) => {
+  const x = lerIp(ip);
+  return !!x && ((x.v === 4 && x.n >> 24n === 127n) || (x.v === 6 && x.n === 1n));
+};
+
+/**
+ * O IP de quem está acessando.
+ * - cloudflare (TRUST_CLOUDFLARE=1): atrás do Cloudflare Tunnel, vem no CF-Connecting-IP.
+ * - proxy (CONFIAR_PROXY=1): atrás de um túnel que roda neste mesmo computador (ngrok), a conexão
+ *   chega de 127.0.0.1 e o IP real vem no X-Forwarded-For. Sem isso, todo visitante do túnel
+ *   pareceria "localhost" e passaria pela lista de liberados. O cabeçalho só vale quando a conexão
+ *   é local (de fora, qualquer um poderia inventá-lo), e conta o último endereço, que é o que o
+ *   túnel acrescentou. Conexão local sem o cabeçalho é a própria máquina (ou o healthcheck).
+ */
+export function ipDoCliente(req, { cloudflare = false, proxy = false } = {}) {
+  const direto = req.socket?.remoteAddress || '';
+  const cf = cloudflare ? req.headers['cf-connecting-ip'] : null;
+  if (typeof cf === 'string' && cf) return cf;
+  if (proxy && ehLocal(direto)) {
+    const xff = req.headers['x-forwarded-for'];
+    const ultimo = String(Array.isArray(xff) ? xff.join(',') : xff || '').split(',').map((x) => x.trim()).filter(Boolean).pop();
+    if (ultimo) return ultimo;
+  }
+  return direto;
+}
+
+/** Opções de ipDoCliente vindas do ambiente (as mesmas no servidor e no Vite). */
+export const confiancaDoAmbiente = (env = process.env) => ({ cloudflare: env.TRUST_CLOUDFLARE === '1', proxy: env.CONFIAR_PROXY === '1' });
+
 /** Middleware (connect/Vite) que responde 403 para IPs fora da lista de liberados. */
-export function middlewareBloqueio(filtro = carregarRegras(), { confiarCloudflare = false } = {}) {
+export function middlewareBloqueio(filtro = carregarRegras(), confianca = confiancaDoAmbiente()) {
   return (req, res, next) => {
-    const cf = confiarCloudflare ? req.headers['cf-connecting-ip'] : null;
-    const ip = (typeof cf === 'string' && cf) || req.socket?.remoteAddress || '';
+    const ip = ipDoCliente(req, confianca);
     if (filtro.bloqueado(ip)) {
       res.statusCode = 403;
       res.setHeader('Content-Type', 'text/plain; charset=utf-8');

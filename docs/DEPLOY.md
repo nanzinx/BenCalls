@@ -117,13 +117,20 @@ outro endereço, inclua o IP dele na regra.)
 
 ## 7. Sem Docker (pm2 direto no servidor)
 
-```bash
-npm ci && npm run verificar
-```
+Um comando só instala o que faltar, compila, sobe (ou recarrega, sem derrubar) no pm2 e confere o `/healthz`.
+Serve para a primeira vez e para cada atualização (depois do `git pull`):
 
 ```bash
-npx pm2 start ecosystem.config.cjs && npx pm2 save && npx pm2 startup
+npm run subir
 ```
+
+Para subir junto com o servidor depois de um reinício:
+
+```bash
+npx pm2 save && npx pm2 startup
+```
+
+(No Windows, use o pacote `pm2-installer` ou o Agendador de Tarefas no lugar do `pm2 startup`.)
 
 E o túnel como serviço, usando `cloudflared/config.example.yml` (instruções no próprio arquivo).
 
@@ -144,3 +151,36 @@ docker compose exec bencalls node node_modules/pm2/bin/pm2 list
 ```bash
 curl -s http://127.0.0.1:8080/healthz
 ```
+
+## 9. Provisório: publicar pelo ngrok
+
+Para mostrar o sistema antes do servidor definitivo, dá para publicar o BenCalls do próprio PC com pm2 + ngrok.
+
+Uma vez só: instale o ngrok e registre o token (`ngrok config add-authtoken <seu token>`). Depois, um comando:
+
+```bash
+npm run subir:ngrok
+```
+
+Ele instala o que faltar, compila, sobe no pm2 com `CONFIAR_PROXY=1` e abre o túnel (`ngrok http 8080`). Com um
+endereço fixo do ngrok: `npm run subir:ngrok -- --url=seu-endereco.ngrok.app`. Fechar o túnel (Ctrl+C) não
+derruba o site, que continua no pm2.
+
+**Sobre o `CONFIAR_PROXY=1`:** o ngrok entrega os acessos a partir do próprio PC; sem a opção, todo visitante
+pareceria `localhost` e passaria pela lista de IPs liberados. Com ela, vale o IP real de quem acessa
+(`X-Forwarded-For`, aceito só de conexões locais). O `subir:ngrok` já liga sozinho; se você abrir o túnel de outro
+jeito, coloque `CONFIAR_PROXY=1` no `.env`.
+
+O endereço `https://….ngrok-free.app` que o ngrok mostrar já funciona para os IPs de
+[`server/ips-liberados.txt`](../server/ips-liberados.txt) (some outros em `IPS_LIBERADOS` no `.env`).
+Depois de mudar o `.env`, rode o mesmo comando de novo.
+
+O que saber antes de mandar o link:
+
+- **Os dados ainda são de demonstração e ficam no navegador de cada pessoa.** Um chamado aberto por alguém não
+  aparece para os outros. Isso só muda com o servidor de dados (BenApi).
+- No plano gratuito, o ngrok mostra uma página de aviso na primeira visita e o endereço muda a cada vez que o
+  túnel é reaberto.
+- Com o BenHermes no mesmo PC, use `BENCALLS_URL=http://localhost:8080` nele: os avisos da integração chegam
+  direto, sem passar pelo túnel.
+- O PC precisa ficar ligado, com o pm2 e o ngrok rodando.

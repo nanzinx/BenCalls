@@ -59,18 +59,27 @@ Para voltar a demonstração ao início: menu do avatar (canto superior direito)
 
 <br />
 
-Com **pm2**, como no servidor (abre em http://localhost:8080):
+Com **pm2**, como no servidor (abre em http://localhost:8080). Um comando só instala o que faltar, compila,
+sobe (ou recarrega) no pm2 e confere se o site respondeu:
 
 ```bash
-npm run build
+npm run subir
+```
+
+Para publicar provisoriamente pelo **ngrok** (o mesmo, mais o túnel, já com o IP real dos visitantes):
+
+```bash
+npm run subir:ngrok
+```
+
+Acompanhar e parar:
+
+```bash
+npm run pm2:logs
 ```
 
 ```bash
-npx pm2 start ecosystem.config.cjs
-```
-
-```bash
-npx pm2 delete all
+npm run pm2:parar
 ```
 
 Com **Docker** (abre em http://localhost:8080):
@@ -240,7 +249,8 @@ Passo a passo completo, incluindo a configuração na Cloudflare: **[`docs/DEPLO
 - **Servidor próprio:** CSP fechado, HSTS e demais cabeçalhos; só serve os arquivos do build; limite de requisições por IP.
 - **Só IPs liberados:** como no BenHermes, só entram os IPs e faixas de [`server/ips-liberados.txt`](server/ips-liberados.txt)
   (IPv4 e IPv6, com ou sem `/prefixo`); o resto recebe 403. Vale no servidor, no `npm run dev` e no `npm run preview`.
-  Atrás do túnel o IP real vem do `CF-Connecting-IP`. Para barrar também na borda da Cloudflare, veja
+  Atrás do Cloudflare Tunnel o IP real vem do `CF-Connecting-IP`; atrás do ngrok, ligue `CONFIAR_PROXY=1`
+  ([`docs/DEPLOY.md`](docs/DEPLOY.md#9-provisório-publicar-pelo-ngrok)). Para barrar também na borda da Cloudflare, veja
   [`docs/DEPLOY.md`](docs/DEPLOY.md#5-só-ips-liberados).
 - **Sessão:** expira após 30 min sem uso; 5 senhas erradas bloqueiam o login por 5 min.
 

@@ -13,7 +13,14 @@
  */
 const path = require('path');
 
+// O .env da pasta vale também no pm2 (o que já estiver definido no terminal tem prioridade).
+try { process.loadEnvFile(path.join(__dirname, '.env')); } catch { /* sem .env: usa os padrões */ }
+
 const LOGS = process.env.LOGS_DIR;
+// Configurações do servidor repassadas do .env/terminal para os processos.
+const REPASSAR = ['IPS_LIBERADOS', 'RESTRINGIR_IPS', 'CONFIAR_PROXY', 'TRUST_CLOUDFLARE', 'LIMITE_POR_MINUTO', 'LOG_ACESSO',
+  'API_URL', 'BENHERMES_SEGREDO', 'BENHERMES_SEGREDO_ARQUIVO', 'DADOS_DIR', 'BENCALLS_VERSAO'];
+const doAmbiente = Object.fromEntries(REPASSAR.filter((k) => process.env[k] !== undefined).map((k) => [k, process.env[k]]));
 
 module.exports = {
   apps: [
@@ -39,7 +46,8 @@ module.exports = {
       env: {
         NODE_ENV: 'production',
         PORT: process.env.PORT || '8080',
-        HOST: process.env.HOST || '0.0.0.0'
+        HOST: process.env.HOST || '0.0.0.0',
+        ...doAmbiente
       }
     }
   ]
