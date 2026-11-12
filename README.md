@@ -59,18 +59,27 @@ Para voltar a demonstração ao início: menu do avatar (canto superior direito)
 
 <br />
 
-Com **pm2**, como no servidor (abre em http://localhost:8080):
+Com **pm2**, como no servidor (abre em http://localhost:8080). Um comando só instala o que faltar, compila,
+sobe (ou recarrega) no pm2 e confere se o site respondeu:
 
 ```bash
-npm run build
+npm run subir
+```
+
+Para publicar provisoriamente pelo **ngrok** (o mesmo, mais o túnel, já com o IP real dos visitantes):
+
+```bash
+npm run subir:ngrok
+```
+
+Acompanhar e parar:
+
+```bash
+npm run pm2:logs
 ```
 
 ```bash
-npx pm2 start ecosystem.config.cjs
-```
-
-```bash
-npx pm2 delete all
+npm run pm2:parar
 ```
 
 Com **Docker** (abre em http://localhost:8080):
